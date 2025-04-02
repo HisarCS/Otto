@@ -15,7 +15,7 @@
 </p>
 <p align="center">
   <a href="https://github.com/HisarCS/Aqui/tree/main/Docs">Documentation</a> •
-  <a href="https://github.com/HisarCS/Aqui/blob/main/LICENSE">License</a> •
+  <a href="https://github.com/HisarCS/Aqui/blob/main/LICENSE">License</a> 
 </p>
 
 ---
