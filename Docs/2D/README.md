@@ -1,7 +1,7 @@
 # Aqui Programming Language Documentation
 
 ## Overview
-Aqui is a domain-specific programming language designed for parametric shape creation and graphical design. It allows users to define parameters, shapes, and transformations through a structured syntax. The Aqui interpreter processes the input and renders the resulting graphics on an HTML5 Canvas. The language is particularly well-suited for teaching parametric design concepts and is designed with SIGGRAPH conference presentations in mind.
+Aqui is a domain-specific programming language designed for parametric shape creation and graphical design. 
 
 ## Core Concepts
 
