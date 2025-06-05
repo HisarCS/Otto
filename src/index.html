@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AQUI</title>
+  
+  <!-- CodeMirror Dependencies -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/mode/simple.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/addon/comment/comment.min.js"></script>
+  
+  <!-- Marked for Markdown rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+
+  <!-- Three.js for 3D rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="header">
+    <div class="logo">Aqui.)</div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="editor-tab">AQUI</button>
+      <button class="tab-btn" data-tab="docs-tab">Docs</button>
+    </div>
+  </div>
+
+  <!-- Editor Tab -->
+  <div class="tab-content active" id="editor-tab">
+    <div class="main-content">
+      <div class="editor-panel">
+        <textarea id="code-editor">//Aqui by the IdeaLab Fablab
+
+</textarea>
+      </div>
+      <div class="visualization-panel">
+        <canvas id="canvas"></canvas>
+        <div class="keyboardShortcuts">
+          <strong>Keyboard Shortcuts:</strong> Delete to remove • Arrow keys to move • R to rotate • G to toggle grid
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="ast-panel">
+      <pre id="ast-output"></pre>
+    </div>
+
+    <div class="panel" id="error-panel">
+      <pre id="error-output"></pre>
+    </div>
+
+    <div class="footer">
+      <button class="button" id="run-button">Run (Shift + Enter)</button>
+      <button class="button" id="view-ast">View AST</button>
+      <button class="button" id="view-errors">
+        Errors
+        <span class="error-count" id="error-count">0</span>
+      </button>
+      <button class="button" id="export-svg">Export SVG</button>
+    </div>
+  </div>
+
+  <!-- Documentation Tab -->
+  <div class="tab-content" id="docs-tab">
+    <div class="docs-content" id="markdown-content"></div>
+  </div>
+
+  <!-- Shape Properties Modal -->
+  <div id="shape-properties-modal">
+    <div class="modal-content">
+      <h3>Edit Shape Properties</h3>
+      <div id="property-fields">
+        <!-- Property fields will be generated dynamically -->
+      </div>
+      <div class="modal-buttons">
+        <button id="cancel-properties">Cancel</button>
+        <button id="apply-properties">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Make THREE.js available globally for modules -->
+  <script>
+    window.THREE = THREE;
+    console.log("THREE.js initialized globally:", !!window.THREE);
+  </script>
+
+  <!-- Main application script -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
