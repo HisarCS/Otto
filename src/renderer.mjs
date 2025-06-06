@@ -1,4 +1,4 @@
-// renderer.mjs - Modern Cuttle-inspired renderer with premium interactions and immediate code sync
+// renderer.mjs - Fixed version with comprehensive interactive support for all shapes
 import {
   Rectangle,
   Circle,
@@ -459,6 +459,7 @@ export class Renderer {
     }
   }
   
+  // FIXED: Enhanced getShapeBounds to handle all shape types properly
   getShapeBounds(shape) {
     try {
       if (!shape || !shape.type || !shape.params) {
@@ -475,6 +476,7 @@ export class Renderer {
             width: params.width,
             height: params.height
           };
+          
         case 'circle':
           return {
             x: -params.radius,
@@ -482,6 +484,7 @@ export class Renderer {
             width: params.radius * 2,
             height: params.radius * 2
           };
+          
         case 'triangle':
           return {
             x: -params.base / 2,
@@ -489,6 +492,7 @@ export class Renderer {
             width: params.base,
             height: params.height
           };
+          
         case 'ellipse':
           return {
             x: -params.radiusX,
@@ -496,6 +500,7 @@ export class Renderer {
             width: params.radiusX * 2,
             height: params.radiusY * 2
           };
+          
         case 'polygon':
           return {
             x: -params.radius,
@@ -503,6 +508,7 @@ export class Renderer {
             width: params.radius * 2,
             height: params.radius * 2
           };
+          
         case 'star':
           return {
             x: -params.outerRadius,
@@ -510,6 +516,89 @@ export class Renderer {
             width: params.outerRadius * 2,
             height: params.outerRadius * 2
           };
+          
+        case 'arc':
+          return {
+            x: -params.radius,
+            y: -params.radius,
+            width: params.radius * 2,
+            height: params.radius * 2
+          };
+          
+        case 'roundedRectangle':
+          return {
+            x: -params.width / 2,
+            y: -params.height / 2,
+            width: params.width,
+            height: params.height
+          };
+          
+        case 'arrow':
+          return {
+            x: -params.length / 2,
+            y: -params.headWidth / 2,
+            width: params.length,
+            height: params.headWidth
+          };
+          
+        case 'donut':
+          return {
+            x: -params.outerRadius,
+            y: -params.outerRadius,
+            width: params.outerRadius * 2,
+            height: params.outerRadius * 2
+          };
+          
+        case 'spiral':
+          const maxRadius = Math.max(params.startRadius || 0, params.endRadius || 0);
+          return {
+            x: -maxRadius,
+            y: -maxRadius,
+            width: maxRadius * 2,
+            height: maxRadius * 2
+          };
+          
+        case 'cross':
+          return {
+            x: -params.width / 2,
+            y: -params.width / 2,
+            width: params.width,
+            height: params.width
+          };
+          
+        case 'wave':
+          return {
+            x: -params.width / 2,
+            y: -params.amplitude,
+            width: params.width,
+            height: params.amplitude * 2
+          };
+          
+        case 'slot':
+          return {
+            x: -params.length / 2,
+            y: -params.width / 2,
+            width: params.length,
+            height: params.width
+          };
+          
+        case 'chamferRectangle':
+          return {
+            x: -params.width / 2,
+            y: -params.height / 2,
+            width: params.width,
+            height: params.height
+          };
+          
+        case 'gear':
+          const diameter = params.diameter || 100;
+          return {
+            x: -diameter / 2,
+            y: -diameter / 2,
+            width: diameter,
+            height: diameter
+          };
+          
         case 'text':
           const width = params.text.length * (params.fontSize || 12) * 0.6;
           const height = (params.fontSize || 12) * 1.2;
@@ -519,20 +608,32 @@ export class Renderer {
             width: width,
             height: height
           };
-        case 'gear':
-          return {
-            x: -params.diameter / 2,
-            y: -params.diameter / 2,
-            width: params.diameter,
-            height: params.diameter
-          };
+          
+        case 'path':
+          if (params.points && params.points.length > 0) {
+            let minX = Infinity, maxX = -Infinity;
+            let minY = Infinity, maxY = -Infinity;
+            
+            params.points.forEach(point => {
+              const x = Array.isArray(point) ? point[0] : point.x;
+              const y = Array.isArray(point) ? point[1] : point.y;
+              minX = Math.min(minX, x);
+              maxX = Math.max(maxX, x);
+              minY = Math.min(minY, y);
+              maxY = Math.max(maxY, y);
+            });
+            
+            return {
+              x: minX,
+              y: minY,
+              width: maxX - minX,
+              height: maxY - minY
+            };
+          }
+          return { x: -25, y: -25, width: 50, height: 50 };
+          
         default:
-          return {
-            x: -25,
-            y: -25,
-            width: 50,
-            height: 50
-          };
+          return { x: -25, y: -25, width: 50, height: 50 };
       }
     } catch (error) {
       console.error('Error getting shape bounds:', error);
@@ -1078,6 +1179,7 @@ export class Renderer {
     }
   }
   
+  // FIXED: Comprehensive parameter scaling for all shape types
   handleParameterScaling(dx, dy) {
     try {
       if (!this.selectedShape) return;
@@ -1092,45 +1194,175 @@ export class Renderer {
       const worldDX = dx * scaleFactor;
       const worldDY = dy * scaleFactor;
       
-      switch (shape.type) {
-        case 'rectangle':
-          if (handle === 'tr' || handle === 'br') {
-            const newWidth = Math.max(5, shape.params.width + worldDX * 2);
+      // For circular shapes, calculate radius change based on distance from center
+      const isCircularShape = ['circle', 'donut', 'spiral', 'polygon', 'arc', 'star', 'cross', 'gear'].includes(shape.type);
+      
+      if (isCircularShape) {
+        // For circular shapes, calculate change based on movement towards/away from center
+        const bounds = this.getShapeBounds(shape);
+        const centerX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
+        
+        // Calculate handle position relative to shape center
+        let handleX, handleY;
+        switch (handle) {
+          case 'tl': handleX = -bounds.width / 2; handleY = -bounds.height / 2; break;
+          case 'tr': handleX = bounds.width / 2; handleY = -bounds.height / 2; break;
+          case 'br': handleX = bounds.width / 2; handleY = bounds.height / 2; break;
+          case 'bl': handleX = -bounds.width / 2; handleY = bounds.height / 2; break;
+        }
+        
+        // Current distance from center to handle
+        const currentDistance = Math.sqrt(handleX * handleX + handleY * handleY);
+        
+        // New handle position after drag
+        const newHandleX = handleX + worldDX;
+        const newHandleY = handleY + worldDY;
+        const newDistance = Math.sqrt(newHandleX * newHandleX + newHandleY * newHandleY);
+        
+        // Radius change is the difference in distances
+        const radiusChange = (newDistance - currentDistance);
+        
+        switch (shape.type) {
+          case 'circle':
+            const newRadius = Math.max(5, shape.params.radius + radiusChange);
+            shapeManager.onCanvasShapeChange(shapeName, 'radius', newRadius);
+            break;
+            
+          case 'polygon':
+          case 'arc':
+            const newPolyRadius = Math.max(5, shape.params.radius + radiusChange);
+            shapeManager.onCanvasShapeChange(shapeName, 'radius', newPolyRadius);
+            break;
+            
+          case 'star':
+            const newOuterRadius = Math.max(5, shape.params.outerRadius + radiusChange);
+            // Maintain proportion between inner and outer radius
+            const ratio = shape.params.innerRadius / shape.params.outerRadius;
+            const newInnerRadius = Math.max(2, newOuterRadius * ratio);
+            shapeManager.onCanvasShapeChange(shapeName, 'outerRadius', newOuterRadius);
+            shapeManager.onCanvasShapeChange(shapeName, 'innerRadius', newInnerRadius);
+            break;
+            
+          case 'donut':
+            const newDonutOuterRadius = Math.max(10, shape.params.outerRadius + radiusChange);
+            // Maintain minimum thickness
+            const newDonutInnerRadius = Math.min(shape.params.innerRadius, newDonutOuterRadius - 5);
+            shapeManager.onCanvasShapeChange(shapeName, 'outerRadius', newDonutOuterRadius);
+            shapeManager.onCanvasShapeChange(shapeName, 'innerRadius', newDonutInnerRadius);
+            break;
+            
+          case 'spiral':
+            const newStartRadius = Math.max(1, shape.params.startRadius + radiusChange * 0.5);
+            const newEndRadius = Math.max(newStartRadius + 5, shape.params.endRadius + radiusChange);
+            shapeManager.onCanvasShapeChange(shapeName, 'startRadius', newStartRadius);
+            shapeManager.onCanvasShapeChange(shapeName, 'endRadius', newEndRadius);
+            break;
+            
+          case 'cross':
+            const newCrossWidth = Math.max(10, shape.params.width + radiusChange * 2);
+            shapeManager.onCanvasShapeChange(shapeName, 'width', newCrossWidth);
+            break;
+            
+          case 'gear':
+            const newDiameter = Math.max(20, shape.params.diameter + radiusChange * 2);
+            shapeManager.onCanvasShapeChange(shapeName, 'diameter', newDiameter);
+            break;
+        }
+      } else {
+        // For rectangular shapes, use directional scaling
+        // Determine scaling direction based on handle
+        const scaleX = (handle === 'tr' || handle === 'br') ? 1 : -1;
+        const scaleY = (handle === 'bl' || handle === 'br') ? 1 : -1;
+        
+        const deltaX = worldDX * scaleX * 2; // *2 because we're scaling from center
+        const deltaY = worldDY * scaleY * 2;
+        
+        switch (shape.type) {
+          case 'rectangle':
+          case 'roundedRectangle':
+          case 'chamferRectangle':
+            const newWidth = Math.max(5, shape.params.width + deltaX);
+            const newHeight = Math.max(5, shape.params.height + deltaY);
             shapeManager.onCanvasShapeChange(shapeName, 'width', newWidth);
-          } else {
-            const newWidth = Math.max(5, shape.params.width - worldDX * 2);
-            shapeManager.onCanvasShapeChange(shapeName, 'width', newWidth);
-          }
-          
-          if (handle === 'tl' || handle === 'tr') {
-            const newHeight = Math.max(5, shape.params.height - worldDY * 2);
             shapeManager.onCanvasShapeChange(shapeName, 'height', newHeight);
-          } else {
-            const newHeight = Math.max(5, shape.params.height + worldDY * 2);
-            shapeManager.onCanvasShapeChange(shapeName, 'height', newHeight);
-          }
-          break;
-          
-        case 'circle':
-          const radiusChange = (Math.abs(worldDX) + Math.abs(worldDY)) / 2 * 
-            (dx > 0 || dy > 0 ? 1 : -1);
-          const newRadius = Math.max(5, shape.params.radius + radiusChange);
-          shapeManager.onCanvasShapeChange(shapeName, 'radius', newRadius);
-          break;
-          
-        default:
-          // Handle other shapes with generic scaling
-          const scaleFactor2 = (Math.abs(worldDX) + Math.abs(worldDY)) / 20 * 
-            (worldDX > 0 || worldDY > 0 ? 1 : -1);
-          
-          if (shape.params.radius) {
-            const newRadius2 = Math.max(5, shape.params.radius + scaleFactor2);
-            shapeManager.onCanvasShapeChange(shapeName, 'radius', newRadius2);
-          }
-          break;
+            break;
+            
+          case 'triangle':
+            const newBase = Math.max(5, shape.params.base + deltaX);
+            const newTriHeight = Math.max(5, shape.params.height + deltaY);
+            shapeManager.onCanvasShapeChange(shapeName, 'base', newBase);
+            shapeManager.onCanvasShapeChange(shapeName, 'height', newTriHeight);
+            break;
+            
+          case 'ellipse':
+            const newRadiusX = Math.max(5, shape.params.radiusX + deltaX / 2);
+            const newRadiusY = Math.max(5, shape.params.radiusY + deltaY / 2);
+            shapeManager.onCanvasShapeChange(shapeName, 'radiusX', newRadiusX);
+            shapeManager.onCanvasShapeChange(shapeName, 'radiusY', newRadiusY);
+            break;
+            
+          case 'arrow':
+            const newLength = Math.max(10, shape.params.length + deltaX);
+            const newHeadWidth = Math.max(5, shape.params.headWidth + deltaY);
+            shapeManager.onCanvasShapeChange(shapeName, 'length', newLength);
+            shapeManager.onCanvasShapeChange(shapeName, 'headWidth', newHeadWidth);
+            break;
+            
+          case 'wave':
+            const newWaveWidth = Math.max(10, shape.params.width + deltaX);
+            const newAmplitude = Math.max(2, shape.params.amplitude + Math.abs(deltaY) / 2);
+            shapeManager.onCanvasShapeChange(shapeName, 'width', newWaveWidth);
+            shapeManager.onCanvasShapeChange(shapeName, 'amplitude', newAmplitude);
+            break;
+            
+          case 'slot':
+            const newSlotLength = Math.max(10, shape.params.length + deltaX);
+            const newSlotWidth = Math.max(5, shape.params.width + Math.abs(deltaY));
+            shapeManager.onCanvasShapeChange(shapeName, 'length', newSlotLength);
+            shapeManager.onCanvasShapeChange(shapeName, 'width', newSlotWidth);
+            break;
+            
+          case 'text':
+            if (shape.params.fontSize) {
+              const fontChange = deltaY / 2;
+              const newFontSize = Math.max(8, shape.params.fontSize + fontChange);
+              shapeManager.onCanvasShapeChange(shapeName, 'fontSize', newFontSize);
+            }
+            break;
+            
+          default:
+            // Generic scaling for unknown shapes - try common parameters
+            if (shape.params.radius) {
+              // Treat unknown shapes with radius as circular
+              const bounds = this.getShapeBounds(shape);
+              let handleX, handleY;
+              switch (handle) {
+                case 'tl': handleX = -bounds.width / 2; handleY = -bounds.height / 2; break;
+                case 'tr': handleX = bounds.width / 2; handleY = -bounds.height / 2; break;
+                case 'br': handleX = bounds.width / 2; handleY = bounds.height / 2; break;
+                case 'bl': handleX = -bounds.width / 2; handleY = bounds.height / 2; break;
+              }
+              
+              const currentDistance = Math.sqrt(handleX * handleX + handleY * handleY);
+              const newHandleX = handleX + worldDX;
+              const newHandleY = handleY + worldDY;
+              const newDistance = Math.sqrt(newHandleX * newHandleX + newHandleY * newHandleY);
+              const radiusChange = (newDistance - currentDistance);
+              
+              const newGenericRadius = Math.max(5, shape.params.radius + radiusChange);
+              shapeManager.onCanvasShapeChange(shapeName, 'radius', newGenericRadius);
+            } else if (shape.params.width && shape.params.height) {
+              const newGenericWidth = Math.max(5, shape.params.width + deltaX);
+              const newGenericHeight = Math.max(5, shape.params.height + deltaY);
+              shapeManager.onCanvasShapeChange(shapeName, 'width', newGenericWidth);
+              shapeManager.onCanvasShapeChange(shapeName, 'height', newGenericHeight);
+            }
+            break;
+        }
       }
       
-      // IMMEDIATE CODE SYNC - Add this to scaling
+      // IMMEDIATE CODE SYNC
       this.notifyShapeChanged(this.selectedShape);
     } catch (error) {
       console.error('Error in handleParameterScaling:', error);
@@ -1157,7 +1389,7 @@ export class Renderer {
       
       shapeManager.onCanvasRotationChange(shapeName, newRotation);
       
-      // IMMEDIATE CODE SYNC - Add this to rotation
+      // IMMEDIATE CODE SYNC
       this.notifyShapeChanged(this.selectedShape);
     } catch (error) {
       console.error('Error in handleRotation:', error);
@@ -1186,7 +1418,7 @@ export class Renderer {
 
       shapeManager.onCanvasPositionChange(shapeName, [newX, newY]);
       
-      // IMMEDIATE CODE SYNC - Add this to dragging
+      // IMMEDIATE CODE SYNC
       this.notifyShapeChanged(this.selectedShape);
     } catch (error) {
       console.error('Error in handleDragging:', error);
@@ -1327,7 +1559,7 @@ export class Renderer {
         this.shapes.delete(selectedName);
         this.selectedShape = null;
         
-        // IMMEDIATE CODE SYNC - Add this to deletion
+        // IMMEDIATE CODE SYNC
         if (this.updateCodeCallback) {
           this.updateCodeCallback({ action: 'delete', name: selectedName });
         }
