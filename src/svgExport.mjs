@@ -24,11 +24,19 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
       addGradientDefinitions(defs, svgNS);
       svg.appendChild(defs);
   
-      // Create main group with coordinate system transformation
+      // Create main group - NO coordinate transformation, use canvas coordinates directly
       const mainGroup = document.createElementNS(svgNS, "g");
-      mainGroup.setAttribute("transform", `translate(${canvas.width/2} ${canvas.height/2}) scale(1, -1)`);
       mainGroup.setAttribute("id", "aqui-shapes");
       svg.appendChild(mainGroup);
+      
+      // Store canvas transform parameters to match renderer exactly
+      const canvasTransform = {
+        offsetX: canvas.width / 2,
+        offsetY: canvas.height / 2,
+        scale: Math.min(canvas.width, canvas.height) / 800,
+        zoomLevel: 1,
+        panOffset: { x: 0, y: 0 }
+      };
       
       let exportedShapes = 0;
       let exportedLayers = 0;
@@ -38,9 +46,8 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
         try {
           // Skip shapes that are in layers (they'll be processed with layers)
           if (!isShapeInAnyLayer(shapeName, interpreter.env.layers)) {
-            const shapeElement = createSVGShape(shape, shapeName, svgNS);
+            const shapeElement = createSVGShape(shape, shapeName, svgNS, canvasTransform);
             if (shapeElement) {
-              applyTransformToSVG(shapeElement, shape.transform);
               mainGroup.appendChild(shapeElement);
               exportedShapes++;
             }
@@ -54,7 +61,7 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
       if (interpreter.env.layers && interpreter.env.layers.size > 0) {
         interpreter.env.layers.forEach((layer, layerName) => {
           try {
-            const layerGroup = createLayerGroup(layer, layerName, interpreter.env.shapes, svgNS);
+            const layerGroup = createLayerGroup(layer, layerName, interpreter.env.shapes, svgNS, canvasTransform);
             if (layerGroup) {
               mainGroup.appendChild(layerGroup);
               exportedLayers++;
@@ -92,13 +99,10 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
   }
   
   // Create layer group with proper organization
-  function createLayerGroup(layer, layerName, shapes, svgNS) {
+  function createLayerGroup(layer, layerName, shapes, svgNS, canvasTransform) {
     const layerGroup = document.createElementNS(svgNS, "g");
     layerGroup.setAttribute("id", `layer-${layerName}`);
     layerGroup.setAttribute("data-layer-name", layerName);
-    
-    // Apply layer transformations
-    applyTransformToSVG(layerGroup, layer.transform);
     
     let shapeCount = 0;
     
@@ -107,9 +111,8 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
       layer.addedShapes.forEach(shapeName => {
         if (shapes.has(shapeName)) {
           const shape = shapes.get(shapeName);
-          const shapeElement = createSVGShape(shape, shapeName, svgNS);
+          const shapeElement = createSVGShape(shape, shapeName, svgNS, canvasTransform);
           if (shapeElement) {
-            applyTransformToSVG(shapeElement, shape.transform);
             layerGroup.appendChild(shapeElement);
             shapeCount++;
           }
@@ -121,13 +124,13 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
   }
   
   // Enhanced shape creation with better parameter support
-  function createSVGShape(shape, shapeName, svgNS) {
+  function createSVGShape(shape, shapeName, svgNS, canvasTransform) {
     if (!shape || !shape.type || !shape.params) {
       console.warn(`Invalid shape data for ${shapeName}`);
       return null;
     }
     
-    const { type, params } = shape;
+    const { type, params, transform } = shape;
     let element = null;
     
     try {
@@ -198,6 +201,9 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
         
         // Apply styling with parameter support
         applyShapeStyle(element, params);
+        
+        // Apply canvas-matching transform
+        applyCanvasTransformToSVG(element, transform, canvasTransform);
       }
       
       return element;
@@ -653,6 +659,51 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
     defs.appendChild(gradient);
   }
   
+  // Canvas-matching transform application - matches renderer exactly
+  function applyCanvasTransformToSVG(element, shapeTransform, canvasTransform) {
+    if (!shapeTransform || !canvasTransform) return;
+    
+    // Use the same coordinate transformation as the renderer
+    const worldX = shapeTransform.position?.[0] || 0;
+    const worldY = shapeTransform.position?.[1] || 0;
+    const rotation = shapeTransform.rotation || 0;
+    const scaleX = shapeTransform.scale?.[0] || 1;
+    const scaleY = shapeTransform.scale?.[1] || 1;
+    
+    // Transform world coordinates to screen coordinates (same as renderer)
+    const screenX = worldX * canvasTransform.scale * canvasTransform.zoomLevel + 
+                   canvasTransform.offsetX + canvasTransform.panOffset.x;
+    const screenY = -worldY * canvasTransform.scale * canvasTransform.zoomLevel + 
+                   canvasTransform.offsetY + canvasTransform.panOffset.y;
+    
+    // Apply canvas scaling to the shape itself
+    const finalScaleX = scaleX * canvasTransform.scale * canvasTransform.zoomLevel;
+    const finalScaleY = scaleY * canvasTransform.scale * canvasTransform.zoomLevel;
+    
+    let transformStr = '';
+    
+    // Translate to screen position
+    transformStr += `translate(${screenX.toFixed(3)}, ${screenY.toFixed(3)}) `;
+    
+    // Apply rotation (negative because canvas Y is flipped)
+    if (rotation !== 0) {
+      transformStr += `rotate(${(-rotation).toFixed(3)}) `;
+    }
+    
+    // Apply final scaling
+    if (finalScaleX !== canvasTransform.scale * canvasTransform.zoomLevel || 
+        finalScaleY !== canvasTransform.scale * canvasTransform.zoomLevel) {
+      transformStr += `scale(${finalScaleX.toFixed(6)}, ${finalScaleY.toFixed(6)}) `;
+    } else {
+      // Apply default canvas scaling
+      transformStr += `scale(${(canvasTransform.scale * canvasTransform.zoomLevel).toFixed(6)}) `;
+    }
+    
+    if (transformStr.trim()) {
+      element.setAttribute("transform", transformStr.trim());
+    }
+  }
+  
   // Enhanced transform application
   function applyTransformToSVG(element, transform) {
     if (!transform) return;
@@ -721,4 +772,4 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
   }
   
   // Export utility functions for external use
-  export { createSVGShape, applyShapeStyle, addAlphaToColor };
+  export { createSVGShape, applyShapeStyle, addAlphaToColor, applyCanvasTransformToSVG };
