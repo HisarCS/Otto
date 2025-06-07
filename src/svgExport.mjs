@@ -1,128 +1,274 @@
-// svgExport.mjs - Create this as a new file
+// svgExport.mjs - Enhanced SVG export with comprehensive fill and styling support
 
-// Main export function
+// Main export function with improved error handling and features
 export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") {
     try {
       if (!interpreter?.env?.shapes) {
         throw new Error('No shapes to export');
       }
   
+      console.log(`🎨 Exporting ${interpreter.env.shapes.size} shapes to SVG...`);
+      
       const svgNS = "http://www.w3.org/2000/svg";
       const svg = document.createElementNS(svgNS, "svg");
       
+      // Enhanced SVG setup with better viewport and styling
       svg.setAttribute("xmlns", svgNS);
       svg.setAttribute("width", canvas.width);
       svg.setAttribute("height", canvas.height);
       svg.setAttribute("viewBox", `0 0 ${canvas.width} ${canvas.height}`);
-  
-      // Create an SVG group for coordinate system transformation
-      const mainGroup = document.createElementNS(svgNS, "g");
-      // Transform to match canvas coordinate system (origin at center, y-axis inverted)
-      mainGroup.setAttribute("transform", `translate(${canvas.width/2} ${canvas.height/2}) scale(1, -1)`);
+      svg.setAttribute("style", "background-color: white;");
       
-      svg.appendChild(mainGroup);
+      // Add definitions for reusable elements
+      const defs = document.createElementNS(svgNS, "defs");
+      addGradientDefinitions(defs, svgNS);
+      svg.appendChild(defs);
   
-      // Process shapes
-      interpreter.env.shapes.forEach((shape) => {
-        const shapeElement = createSVGShape(shape, svgNS);
-        if (shapeElement) {
-          // Apply transformations
-          applyTransformToSVG(shapeElement, shape.transform);
-          mainGroup.appendChild(shapeElement);
+      // Create main group with coordinate system transformation
+      const mainGroup = document.createElementNS(svgNS, "g");
+      mainGroup.setAttribute("transform", `translate(${canvas.width/2} ${canvas.height/2}) scale(1, -1)`);
+      mainGroup.setAttribute("id", "aqui-shapes");
+      svg.appendChild(mainGroup);
+      
+      let exportedShapes = 0;
+      let exportedLayers = 0;
+  
+      // Process individual shapes first
+      interpreter.env.shapes.forEach((shape, shapeName) => {
+        try {
+          // Skip shapes that are in layers (they'll be processed with layers)
+          if (!isShapeInAnyLayer(shapeName, interpreter.env.layers)) {
+            const shapeElement = createSVGShape(shape, shapeName, svgNS);
+            if (shapeElement) {
+              applyTransformToSVG(shapeElement, shape.transform);
+              mainGroup.appendChild(shapeElement);
+              exportedShapes++;
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️ Failed to export shape ${shapeName}:`, error.message);
         }
       });
   
-      // Add layer groups - each layer gets its own group with transformations
-      interpreter.env.layers.forEach((layer) => {
-        const layerGroup = document.createElementNS(svgNS, "g");
-        // Apply layer transformations
-        applyTransformToSVG(layerGroup, layer.transform);
-        
-        // Add all shapes from this layer
-        layer.addedShapes.forEach(shapeName => {
-          if (interpreter.env.shapes.has(shapeName)) {
-            const shape = interpreter.env.shapes.get(shapeName);
-            const shapeElement = createSVGShape(shape, svgNS);
-            if (shapeElement) {
-              // Apply shape-specific transformations
-              applyTransformToSVG(shapeElement, shape.transform);
-              layerGroup.appendChild(shapeElement);
+      // Process layers with proper grouping
+      if (interpreter.env.layers && interpreter.env.layers.size > 0) {
+        interpreter.env.layers.forEach((layer, layerName) => {
+          try {
+            const layerGroup = createLayerGroup(layer, layerName, interpreter.env.shapes, svgNS);
+            if (layerGroup) {
+              mainGroup.appendChild(layerGroup);
+              exportedLayers++;
             }
+          } catch (error) {
+            console.warn(`⚠️ Failed to export layer ${layerName}:`, error.message);
           }
         });
-        
-        mainGroup.appendChild(layerGroup);
-      });
+      }
   
       // Create and trigger download
       const serializer = new XMLSerializer();
-      const svgString = serializer.serializeToString(svg);
-      const blob = new Blob([svgString], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-  
-      return true;
+      const svgString = formatSVGString(serializer.serializeToString(svg));
+      
+      downloadSVG(svgString, filename);
+      
+      console.log(`✅ SVG export completed: ${exportedShapes} shapes, ${exportedLayers} layers`);
+      return { success: true, shapes: exportedShapes, layers: exportedLayers };
+      
     } catch (error) {
-      console.error('SVG Export error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('❌ SVG Export failed:', error);
+      return { success: false, error: error.message };
     }
   }
   
-  function createSVGShape(shape, svgNS) {
-    const { type, params } = shape;
+  // Helper function to check if shape is in any layer
+  function isShapeInAnyLayer(shapeName, layers) {
+    if (!layers) return false;
+    for (const layer of layers.values()) {
+      if (layer.addedShapes && layer.addedShapes.has(shapeName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  // Create layer group with proper organization
+  function createLayerGroup(layer, layerName, shapes, svgNS) {
+    const layerGroup = document.createElementNS(svgNS, "g");
+    layerGroup.setAttribute("id", `layer-${layerName}`);
+    layerGroup.setAttribute("data-layer-name", layerName);
     
-    switch (type) {
-      case 'path':
-        return createSVGPath(params, svgNS);
+    // Apply layer transformations
+    applyTransformToSVG(layerGroup, layer.transform);
+    
+    let shapeCount = 0;
+    
+    // Add all shapes from this layer
+    if (layer.addedShapes) {
+      layer.addedShapes.forEach(shapeName => {
+        if (shapes.has(shapeName)) {
+          const shape = shapes.get(shapeName);
+          const shapeElement = createSVGShape(shape, shapeName, svgNS);
+          if (shapeElement) {
+            applyTransformToSVG(shapeElement, shape.transform);
+            layerGroup.appendChild(shapeElement);
+            shapeCount++;
+          }
+        }
+      });
+    }
+    
+    return shapeCount > 0 ? layerGroup : null;
+  }
+  
+  // Enhanced shape creation with better parameter support
+  function createSVGShape(shape, shapeName, svgNS) {
+    if (!shape || !shape.type || !shape.params) {
+      console.warn(`Invalid shape data for ${shapeName}`);
+      return null;
+    }
+    
+    const { type, params } = shape;
+    let element = null;
+    
+    try {
+      switch (type) {
+        case 'path':
+          element = createSVGPath(params, svgNS);
+          break;
+        case 'circle':
+          element = createSVGCircle(params, svgNS);
+          break;
+        case 'rectangle':
+          element = createSVGRectangle(params, svgNS);
+          break;
+        case 'ellipse':
+          element = createSVGEllipse(params, svgNS);
+          break;
+        case 'polygon':
+          element = createSVGPolygon(params, svgNS);
+          break;
+        case 'star':
+          element = createSVGStar(params, svgNS);
+          break;
+        case 'triangle':
+          element = createSVGTriangle(params, svgNS);
+          break;
+        case 'text':
+          element = createSVGText(params, svgNS);
+          break;
+        case 'arc':
+          element = createSVGArc(params, svgNS);
+          break;
+        case 'roundedRectangle':
+          element = createSVGRoundedRectangle(params, svgNS);
+          break;
+        case 'donut':
+          element = createSVGDonut(params, svgNS);
+          break;
+        case 'gear':
+          element = createSVGGear(params, svgNS);
+          break;
+        case 'arrow':
+          element = createSVGArrow(params, svgNS);
+          break;
+        case 'spiral':
+          element = createSVGSpiral(params, svgNS);
+          break;
+        case 'cross':
+          element = createSVGCross(params, svgNS);
+          break;
+        case 'wave':
+          element = createSVGWave(params, svgNS);
+          break;
+        case 'slot':
+          element = createSVGSlot(params, svgNS);
+          break;
+        case 'chamferRectangle':
+          element = createSVGChamferRectangle(params, svgNS);
+          break;
+        default:
+          console.warn(`SVG export: Using generic export for shape type: ${type}`);
+          element = createSVGGenericShape(type, params, svgNS);
+      }
       
-      case 'circle':
-        return createSVGCircle(params, svgNS);
+      if (element) {
+        // Add shape metadata
+        element.setAttribute("data-shape-name", shapeName);
+        element.setAttribute("data-shape-type", type);
         
-      case 'rectangle':
-        return createSVGRectangle(params, svgNS);
-        
-      case 'ellipse':
-        return createSVGEllipse(params, svgNS);
-        
-      case 'polygon':
-        return createSVGPolygon(params, svgNS);
-        
-      case 'star':
-        return createSVGStar(params, svgNS);
-        
-      case 'triangle':
-        return createSVGTriangle(params, svgNS);
-        
-      case 'text':
-        return createSVGText(params, svgNS);
-        
-      case 'arc':
-        return createSVGArc(params, svgNS);
-        
-      case 'roundedRectangle':
-        return createSVGRoundedRectangle(params, svgNS);
-        
-      case 'donut':
-        return createSVGDonut(params, svgNS);
-        
-      case 'gear':
-        return createSVGGear(params, svgNS);
+        // Apply styling with parameter support
+        applyShapeStyle(element, params);
+      }
       
-      default:
-        console.warn(`SVG export: Using generic export for shape type: ${type}`);
-        return createSVGGenericShape(type, params, svgNS);
+      return element;
+      
+    } catch (error) {
+      console.error(`Error creating SVG element for ${type}:`, error);
+      return createSVGGenericShape(type, params, svgNS);
     }
   }
   
+  // Enhanced styling with comprehensive parameter support
+  function applyShapeStyle(element, params) {
+    // Stroke styling
+    const strokeColor = params.strokeColor || params.color || "#000000";
+    const strokeWidth = params.strokeWidth || params.thickness || 2;
+    element.setAttribute("stroke", strokeColor);
+    element.setAttribute("stroke-width", strokeWidth);
+    
+    // Fill styling with multiple parameter options
+    let fill = "none";
+    
+    if (params.fill === true || params.filled === true) {
+      fill = params.fillColor || params.color || "rgba(0, 0, 0, 0.1)";
+    } else if (params.fill === false || params.filled === false) {
+      fill = "none";
+    } else if (params.fillColor) {
+      fill = params.fillColor;
+    } else if (params.color && !params.strokeColor) {
+      // If only color is specified, use it for stroke and light version for fill
+      fill = addAlphaToColor(params.color, 0.1);
+    }
+    
+    element.setAttribute("fill", fill);
+    
+    // Additional styling options
+    if (params.opacity !== undefined) {
+      element.setAttribute("opacity", params.opacity);
+    }
+    
+    if (params.strokeDashArray) {
+      element.setAttribute("stroke-dasharray", params.strokeDashArray);
+    }
+    
+    // Stroke styling options
+    if (params.strokeLinecap) {
+      element.setAttribute("stroke-linecap", params.strokeLinecap);
+    } else {
+      element.setAttribute("stroke-linecap", "round");
+    }
+    
+    if (params.strokeLinejoin) {
+      element.setAttribute("stroke-linejoin", params.strokeLinejoin);
+    } else {
+      element.setAttribute("stroke-linejoin", "round");
+    }
+  }
+  
+  // Helper function to add alpha to color
+  function addAlphaToColor(color, alpha) {
+    if (color.startsWith('#')) {
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    } else if (color.startsWith('rgb')) {
+      return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+    }
+    return `${color}${Math.round(alpha * 255).toString(16).padStart(2, '0')}`;
+  }
+  
+  // Enhanced path creation with better handling
   function createSVGPath(params, svgNS) {
     const path = document.createElementNS(svgNS, "path");
     let pathData = "";
@@ -139,59 +285,57 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
         return subPathData;
       }).join(" ");
       
-      path.setAttribute("fill", "none");
-    } else if (params.isBezier) {
+    } else if (params.isBezier && params.points) {
       const pts = params.points;
-      pathData = `M ${pts[0][0]} ${pts[0][1]} C ${pts[1][0]} ${pts[1][1]}, ${pts[2][0]} ${pts[2][1]}, ${pts[3][0]} ${pts[3][1]}`;
-      path.setAttribute("fill", "none");
-    } else if (params.points) {
-      const pts = params.points;
-      if (pts.length < 2) return null;
+      if (pts.length >= 4) {
+        pathData = `M ${pts[0][0]} ${pts[0][1]} C ${pts[1][0]} ${pts[1][1]}, ${pts[2][0]} ${pts[2][1]}, ${pts[3][0]} ${pts[3][1]}`;
+      }
       
+    } else if (params.points && params.points.length >= 2) {
+      const pts = params.points;
       pathData = `M ${pts[0][0]} ${pts[0][1]}`;
+      
       for (let i = 1; i < pts.length; i++) {
         pathData += ` L ${pts[i][0]} ${pts[i][1]}`;
       }
-      pathData += " Z";
-      path.setAttribute("fill", params.isHole ? "white" : "rgba(0, 0, 0, 0.1)");
+      
+      if (params.closed !== false && pts.length > 2) {
+        pathData += " Z";
+      }
     }
   
-    path.setAttribute("d", pathData);
-    path.setAttribute("stroke", "#000000");
-    path.setAttribute("stroke-width", "2");
+    if (pathData) {
+      path.setAttribute("d", pathData);
+      return path;
+    }
     
-    return path;
+    return null;
   }
   
+  // Individual shape creators with enhanced parameter support
   function createSVGCircle(params, svgNS) {
     const circle = document.createElementNS(svgNS, "circle");
     circle.setAttribute("cx", 0);
     circle.setAttribute("cy", 0);
-    circle.setAttribute("r", params.radius);
-    circle.setAttribute("stroke", "#000000");
-    circle.setAttribute("stroke-width", "2");
-    circle.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
+    circle.setAttribute("r", params.radius || 50);
     return circle;
   }
   
   function createSVGRectangle(params, svgNS) {
     const rect = document.createElementNS(svgNS, "rect");
-    const width = params.width;
-    const height = params.height;
+    const width = params.width || 100;
+    const height = params.height || 100;
     rect.setAttribute("x", -width/2);
     rect.setAttribute("y", -height/2);
     rect.setAttribute("width", width);
     rect.setAttribute("height", height);
-    rect.setAttribute("stroke", "#000000");
-    rect.setAttribute("stroke-width", "2");
-    rect.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
     return rect;
   }
   
   function createSVGRoundedRectangle(params, svgNS) {
     const rect = document.createElementNS(svgNS, "rect");
-    const width = params.width;
-    const height = params.height;
+    const width = params.width || 100;
+    const height = params.height || 100;
     const radius = params.radius || 10;
     
     rect.setAttribute("x", -width/2);
@@ -200,9 +344,6 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
     rect.setAttribute("height", height);
     rect.setAttribute("rx", radius);
     rect.setAttribute("ry", radius);
-    rect.setAttribute("stroke", "#000000");
-    rect.setAttribute("stroke-width", "2");
-    rect.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
     return rect;
   }
   
@@ -210,16 +351,12 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
     const ellipse = document.createElementNS(svgNS, "ellipse");
     ellipse.setAttribute("cx", 0);
     ellipse.setAttribute("cy", 0);
-    ellipse.setAttribute("rx", params.radiusX);
-    ellipse.setAttribute("ry", params.radiusY);
-    ellipse.setAttribute("stroke", "#000000");
-    ellipse.setAttribute("stroke-width", "2");
-    ellipse.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
+    ellipse.setAttribute("rx", params.radiusX || 50);
+    ellipse.setAttribute("ry", params.radiusY || 30);
     return ellipse;
   }
   
   function createSVGPolygon(params, svgNS) {
-    // Create a regular polygon with N sides
     const polygon = document.createElementNS(svgNS, "polygon");
     const sides = params.sides || 6;
     const radius = params.radius || 50;
@@ -229,13 +366,10 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
       const angle = (i / sides) * Math.PI * 2;
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
-      points += `${x},${y} `;
+      points += `${x.toFixed(2)},${y.toFixed(2)} `;
     }
     
     polygon.setAttribute("points", points.trim());
-    polygon.setAttribute("stroke", "#000000");
-    polygon.setAttribute("stroke-width", "2");
-    polygon.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
     return polygon;
   }
   
@@ -251,13 +385,10 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
       const radius = i % 2 === 0 ? outerRadius : innerRadius;
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
-      pointsStr += `${x},${y} `;
+      pointsStr += `${x.toFixed(2)},${y.toFixed(2)} `;
     }
     
     star.setAttribute("points", pointsStr.trim());
-    star.setAttribute("stroke", "#000000");
-    star.setAttribute("stroke-width", "2");
-    star.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
     return star;
   }
   
@@ -265,12 +396,9 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
     const triangle = document.createElementNS(svgNS, "polygon");
     const base = params.base || 60;
     const height = params.height || 80;
-    const points = `${-base/2},${-height/2} ${base/2},${-height/2} 0,${height/2}`;
+    const points = `${(-base/2).toFixed(2)},${(-height/2).toFixed(2)} ${(base/2).toFixed(2)},${(-height/2).toFixed(2)} 0,${(height/2).toFixed(2)}`;
     
     triangle.setAttribute("points", points);
-    triangle.setAttribute("stroke", "#000000");
-    triangle.setAttribute("stroke-width", "2");
-    triangle.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
     return triangle;
   }
   
@@ -280,46 +408,136 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
     text.setAttribute("y", 0);
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("dominant-baseline", "middle");
-    text.setAttribute("font-family", params.fontFamily || "Arial");
-    text.setAttribute("font-size", params.fontSize || 12);
-    text.setAttribute("stroke", "#000000");
-    text.setAttribute("stroke-width", "1");
-    text.setAttribute("fill", "none");
+    text.setAttribute("font-family", params.fontFamily || "Arial, sans-serif");
+    text.setAttribute("font-size", params.fontSize || 16);
+    
+    if (params.fontWeight) {
+      text.setAttribute("font-weight", params.fontWeight);
+    }
+    
     text.textContent = params.text || "";
     return text;
+  }
+  
+  // New shape creators for missing types
+  function createSVGArrow(params, svgNS) {
+    const path = document.createElementNS(svgNS, "path");
+    const length = params.length || 100;
+    const headWidth = params.headWidth || 20;
+    const headLength = params.headLength || 30;
+    const bodyWidth = params.bodyWidth || 10;
+    
+    const pathData = `M 0,${-bodyWidth/2} L ${length - headLength},${-bodyWidth/2} L ${length - headLength},${-headWidth/2} L ${length},0 L ${length - headLength},${headWidth/2} L ${length - headLength},${bodyWidth/2} L 0,${bodyWidth/2} Z`;
+    
+    path.setAttribute("d", pathData);
+    return path;
+  }
+  
+  function createSVGSpiral(params, svgNS) {
+    const path = document.createElementNS(svgNS, "path");
+    const startRadius = params.startRadius || 10;
+    const endRadius = params.endRadius || 50;
+    const turns = params.turns || 3;
+    const segments = 100;
+    
+    let pathData = "";
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const angle = t * turns * Math.PI * 2;
+      const radius = startRadius + (endRadius - startRadius) * t;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      
+      if (i === 0) {
+        pathData += `M ${x.toFixed(2)} ${y.toFixed(2)}`;
+      } else {
+        pathData += ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
+      }
+    }
+    
+    path.setAttribute("d", pathData);
+    return path;
+  }
+  
+  function createSVGCross(params, svgNS) {
+    const path = document.createElementNS(svgNS, "path");
+    const width = params.width || 100;
+    const thickness = params.thickness || 20;
+    const w = width / 2;
+    const t = thickness / 2;
+    
+    const pathData = `M ${-t},${-w} L ${t},${-w} L ${t},${-t} L ${w},${-t} L ${w},${t} L ${t},${t} L ${t},${w} L ${-t},${w} L ${-t},${t} L ${-w},${t} L ${-w},${-t} L ${-t},${-t} Z`;
+    
+    path.setAttribute("d", pathData);
+    return path;
+  }
+  
+  function createSVGWave(params, svgNS) {
+    const path = document.createElementNS(svgNS, "path");
+    const width = params.width || 100;
+    const amplitude = params.amplitude || 20;
+    const frequency = params.frequency || 2;
+    const segments = 50;
+    
+    let pathData = "";
+    for (let i = 0; i <= segments; i++) {
+      const x = (i / segments) * width - width / 2;
+      const y = Math.sin((x / width) * frequency * Math.PI * 2) * amplitude;
+      
+      if (i === 0) {
+        pathData += `M ${x.toFixed(2)} ${y.toFixed(2)}`;
+      } else {
+        pathData += ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
+      }
+    }
+    
+    path.setAttribute("d", pathData);
+    return path;
+  }
+  
+  function createSVGSlot(params, svgNS) {
+    const path = document.createElementNS(svgNS, "path");
+    const length = params.length || 100;
+    const width = params.width || 20;
+    const radius = width / 2;
+    const centerDist = (length - width) / 2;
+    
+    const pathData = `M ${-centerDist},${-radius} A ${radius},${radius} 0 0,1 ${-centerDist},${radius} L ${centerDist},${radius} A ${radius},${radius} 0 0,1 ${centerDist},${-radius} Z`;
+    
+    path.setAttribute("d", pathData);
+    return path;
+  }
+  
+  function createSVGChamferRectangle(params, svgNS) {
+    const path = document.createElementNS(svgNS, "path");
+    const width = params.width || 100;
+    const height = params.height || 100;
+    const chamfer = params.chamfer || 10;
+    const w = width / 2;
+    const h = height / 2;
+    const c = Math.min(chamfer, width / 2, height / 2);
+    
+    const pathData = `M ${-w + c},${-h} L ${w - c},${-h} L ${w},${-h + c} L ${w},${h - c} L ${w - c},${h} L ${-w + c},${h} L ${-w},${h - c} L ${-w},${-h + c} Z`;
+    
+    path.setAttribute("d", pathData);
+    return path;
   }
   
   function createSVGArc(params, svgNS) {
     const path = document.createElementNS(svgNS, "path");
     const radius = params.radius || 50;
     const startAngle = (params.startAngle || 0) * Math.PI / 180;
-    const endAngle = (params.endAngle || 360) * Math.PI / 180;
+    const endAngle = (params.endAngle || 90) * Math.PI / 180;
     
     const startX = Math.cos(startAngle) * radius;
     const startY = Math.sin(startAngle) * radius;
+    const endX = Math.cos(endAngle) * radius;
+    const endY = Math.sin(endAngle) * radius;
     
-    // For a full circle
-    const isFullCircle = Math.abs(endAngle - startAngle) >= 2 * Math.PI - 0.001;
-    
-    let pathData;
-    if (isFullCircle) {
-      pathData = `M ${startX} ${startY} A ${radius} ${radius} 0 1 1 ${startX - 0.001} ${startY} A ${radius} ${radius} 0 1 1 ${startX} ${startY}`;
-    } else {
-      // For an arc
-      const largeArcFlag = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
-      const sweepFlag = 1; // Always drawing in one direction
-      
-      const endX = Math.cos(endAngle) * radius;
-      const endY = Math.sin(endAngle) * radius;
-      
-      pathData = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${endX} ${endY}`;
-    }
+    const largeArcFlag = Math.abs(endAngle - startAngle) > Math.PI ? 1 : 0;
+    const pathData = `M ${startX.toFixed(2)} ${startY.toFixed(2)} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX.toFixed(2)} ${endY.toFixed(2)}`;
     
     path.setAttribute("d", pathData);
-    path.setAttribute("stroke", "#000000");
-    path.setAttribute("stroke-width", "2");
-    path.setAttribute("fill", "none");
-    
     return path;
   }
   
@@ -328,156 +546,179 @@ export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") 
     const outerRadius = params.outerRadius || 50;
     const innerRadius = params.innerRadius || 20;
     
-    // Create outer circle
-    let pathData = `M ${outerRadius} 0 A ${outerRadius} ${outerRadius} 0 1 0 ${-outerRadius} 0 A ${outerRadius} ${outerRadius} 0 1 0 ${outerRadius} 0 `;
-    
-    // Create inner circle (counter-clockwise to create hole)
-    pathData += `M ${innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 1 ${-innerRadius} 0 A ${innerRadius} ${innerRadius} 0 1 1 ${innerRadius} 0`;
+    const pathData = `M ${outerRadius},0 A ${outerRadius},${outerRadius} 0 1,0 ${-outerRadius},0 A ${outerRadius},${outerRadius} 0 1,0 ${outerRadius},0 M ${innerRadius},0 A ${innerRadius},${innerRadius} 0 1,1 ${-innerRadius},0 A ${innerRadius},${innerRadius} 0 1,1 ${innerRadius},0`;
     
     path.setAttribute("d", pathData);
-    path.setAttribute("stroke", "#000000");
-    path.setAttribute("stroke-width", "2");
-    path.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
     path.setAttribute("fill-rule", "evenodd");
-    
     return path;
   }
   
   function createSVGGear(params, svgNS) {
     const path = document.createElementNS(svgNS, "path");
-    const N = params.teeth || 12;
+    const teeth = params.teeth || 12;
     const diameter = params.diameter || 100;
     const r = diameter / 2;
+    const toothHeight = r * 0.2;
+    const toothWidth = (Math.PI * 2 * r) / (teeth * 3);
     
-    // Simplified gear SVG for export
     let pathData = "";
     
-    for (let i = 0; i < N; i++) {
-      const angle1 = (i / N) * Math.PI * 2;
-      const angle2 = ((i + 0.4) / N) * Math.PI * 2;
-      const angle3 = ((i + 0.5) / N) * Math.PI * 2;
-      const angle4 = ((i + 0.6) / N) * Math.PI * 2;
-      const angle5 = ((i + 1) / N) * Math.PI * 2;
+    for (let i = 0; i < teeth; i++) {
+      const angle1 = (i / teeth) * Math.PI * 2;
+      const angle2 = ((i + 0.3) / teeth) * Math.PI * 2;
+      const angle3 = ((i + 0.7) / teeth) * Math.PI * 2;
+      const angle4 = ((i + 1) / teeth) * Math.PI * 2;
       
       const x1 = Math.cos(angle1) * r;
       const y1 = Math.sin(angle1) * r;
       const x2 = Math.cos(angle2) * r;
       const y2 = Math.sin(angle2) * r;
-      const x3 = Math.cos(angle3) * (r * 1.2);
-      const y3 = Math.sin(angle3) * (r * 1.2);
-      const x4 = Math.cos(angle4) * (r * 1.2);
-      const y4 = Math.sin(angle4) * (r * 1.2);
-      const x5 = Math.cos(angle5) * r;
-      const y5 = Math.sin(angle5) * r;
+      const x3 = Math.cos(angle2) * (r + toothHeight);
+      const y3 = Math.sin(angle2) * (r + toothHeight);
+      const x4 = Math.cos(angle3) * (r + toothHeight);
+      const y4 = Math.sin(angle3) * (r + toothHeight);
+      const x5 = Math.cos(angle3) * r;
+      const y5 = Math.sin(angle3) * r;
+      const x6 = Math.cos(angle4) * r;
+      const y6 = Math.sin(angle4) * r;
       
       if (i === 0) {
-        pathData += `M ${x1} ${y1} `;
+        pathData += `M ${x1.toFixed(2)},${y1.toFixed(2)}`;
       }
       
-      pathData += `L ${x2} ${y2} L ${x3} ${y3} L ${x4} ${y4} L ${x5} ${y5} `;
+      pathData += ` L ${x2.toFixed(2)},${y2.toFixed(2)} L ${x3.toFixed(2)},${y3.toFixed(2)} L ${x4.toFixed(2)},${y4.toFixed(2)} L ${x5.toFixed(2)},${y5.toFixed(2)} L ${x6.toFixed(2)},${y6.toFixed(2)}`;
     }
     
-    pathData += "Z";
-    
+    pathData += " Z";
     path.setAttribute("d", pathData);
-    path.setAttribute("stroke", "#000000");
-    path.setAttribute("stroke-width", "2");
-    path.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
-    
-    // Add shaft if specified
-    if (params.shaft) {
-      const shaftGroup = document.createElementNS(svgNS, "g");
-      shaftGroup.appendChild(path);
-      
-      const shaftElement = document.createElementNS(svgNS, 
-        params.shaft.toLowerCase() === "circle" ? "circle" : "rect");
-      
-      const shaftSize = params.shaftSize || diameter * 0.2;
-      
-      if (params.shaft.toLowerCase() === "circle") {
-        shaftElement.setAttribute("cx", 0);
-        shaftElement.setAttribute("cy", 0);
-        shaftElement.setAttribute("r", shaftSize / 2);
-      } else {
-        const halfSize = shaftSize / 2;
-        shaftElement.setAttribute("x", -halfSize);
-        shaftElement.setAttribute("y", -halfSize);
-        shaftElement.setAttribute("width", shaftSize);
-        shaftElement.setAttribute("height", shaftSize);
-      }
-      
-      shaftElement.setAttribute("stroke", "#000000");
-      shaftElement.setAttribute("stroke-width", "2");
-      shaftElement.setAttribute("fill", "rgba(0, 0, 0, 0.2)");
-      
-      shaftGroup.appendChild(shaftElement);
-      return shaftGroup;
-    }
-    
     return path;
   }
   
-  // Generic shape creator for unsupported shapes by approximating with a path
+  // Enhanced generic shape creator
   function createSVGGenericShape(type, params, svgNS) {
-    const path = document.createElementNS(svgNS, "path");
-    let pathData = "";
-    
-    // Default fallback - create a rectangle with the shape type text
-    const size = 30;
-    pathData = `M ${-size} ${-size} L ${size} ${-size} L ${size} ${size} L ${-size} ${size} Z`;
-    path.setAttribute("fill", "rgba(0, 0, 0, 0.1)");
-    
-    path.setAttribute("d", pathData);
-    path.setAttribute("stroke", "#000000");
-    path.setAttribute("stroke-width", "2");
-    path.setAttribute("data-original-type", type);
-    
-    // Add a text label with the shape type
     const group = document.createElementNS(svgNS, "g");
-    group.appendChild(path);
     
+    // Create a placeholder rectangle
+    const rect = document.createElementNS(svgNS, "rect");
+    const size = 60;
+    rect.setAttribute("x", -size/2);
+    rect.setAttribute("y", -size/2);
+    rect.setAttribute("width", size);
+    rect.setAttribute("height", size);
+    rect.setAttribute("fill", "rgba(255, 0, 0, 0.1)");
+    rect.setAttribute("stroke", "red");
+    rect.setAttribute("stroke-width", "2");
+    rect.setAttribute("stroke-dasharray", "5,5");
+    
+    group.appendChild(rect);
+    
+    // Add explanatory text
     const text = document.createElementNS(svgNS, "text");
     text.setAttribute("x", 0);
     text.setAttribute("y", 0);
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("dominant-baseline", "middle");
-    text.setAttribute("font-family", "Arial");
-    text.setAttribute("font-size", 12);
-    text.setAttribute("fill", "#000000");
-    text.textContent = type;
+    text.setAttribute("font-family", "Arial, sans-serif");
+    text.setAttribute("font-size", "10");
+    text.setAttribute("fill", "red");
+    text.textContent = type.toUpperCase();
     
     group.appendChild(text);
+    
     return group;
   }
   
+  // Add gradient definitions for enhanced styling
+  function addGradientDefinitions(defs, svgNS) {
+    // Add a default gradient
+    const gradient = document.createElementNS(svgNS, "linearGradient");
+    gradient.setAttribute("id", "defaultGradient");
+    gradient.setAttribute("x1", "0%");
+    gradient.setAttribute("y1", "0%");
+    gradient.setAttribute("x2", "100%");
+    gradient.setAttribute("y2", "100%");
+    
+    const stop1 = document.createElementNS(svgNS, "stop");
+    stop1.setAttribute("offset", "0%");
+    stop1.setAttribute("stop-color", "#FF5722");
+    stop1.setAttribute("stop-opacity", "0.8");
+    
+    const stop2 = document.createElementNS(svgNS, "stop");
+    stop2.setAttribute("offset", "100%");
+    stop2.setAttribute("stop-color", "#FF9800");
+    stop2.setAttribute("stop-opacity", "0.4");
+    
+    gradient.appendChild(stop1);
+    gradient.appendChild(stop2);
+    defs.appendChild(gradient);
+  }
+  
+  // Enhanced transform application
   function applyTransformToSVG(element, transform) {
     if (!transform) return;
     
-    const translateX = transform.position[0] || 0;
-    const translateY = transform.position[1] || 0;
+    const translateX = transform.position?.[0] || 0;
+    const translateY = transform.position?.[1] || 0;
     const rotate = transform.rotation || 0;
-    const scaleX = transform.scale[0] || 1;
-    const scaleY = transform.scale[1] || 1;
+    const scaleX = transform.scale?.[0] || 1;
+    const scaleY = transform.scale?.[1] || 1;
     
-    // SVG transforms are applied in the opposite order of their listing
     let transformStr = '';
     
-    // Scale first
-    if (scaleX !== 1 || scaleY !== 1) {
-      transformStr += `scale(${scaleX}, ${scaleY}) `;
-    }
-    
-    // Then rotate
-    if (rotate !== 0) {
-      transformStr += `rotate(${-rotate}) `; // Negative because SVG rotation direction
-    }
-    
-    // Then translate
+    // Translate first
     if (translateX !== 0 || translateY !== 0) {
-      transformStr += `translate(${translateX}, ${translateY}) `;
+      transformStr += `translate(${translateX.toFixed(2)}, ${translateY.toFixed(2)}) `;
     }
     
-    if (transformStr) {
+    // Then rotate (negative because SVG Y-axis is flipped)
+    if (rotate !== 0) {
+      transformStr += `rotate(${(-rotate).toFixed(2)}) `;
+    }
+    
+    // Finally scale
+    if (scaleX !== 1 || scaleY !== 1) {
+      transformStr += `scale(${scaleX.toFixed(3)}, ${scaleY.toFixed(3)}) `;
+    }
+    
+    if (transformStr.trim()) {
       element.setAttribute("transform", transformStr.trim());
     }
   }
+  
+  // Format SVG string for better readability
+  function formatSVGString(svgString) {
+    // Add XML declaration and improve formatting
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<!-- Generated by Aqui Design Tool -->\n${svgString}`;
+  }
+  
+  // Enhanced download function
+  function downloadSVG(svgString, filename) {
+    try {
+      const blob = new Blob([svgString], { 
+        type: 'image/svg+xml;charset=utf-8' 
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
+      console.log(`📁 SVG downloaded as: ${filename}`);
+      
+    } catch (error) {
+      console.error('❌ Download failed:', error);
+      throw new Error(`Failed to download SVG: ${error.message}`);
+    }
+  }
+  
+  // Export utility functions for external use
+  export { createSVGShape, applyShapeStyle, addAlphaToColor };
