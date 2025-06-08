@@ -8,12 +8,6 @@
   <b>A graphical programming language for parametric design education</b>
 </p>
 <p align="center">
-  <a href="https://github.com/HisarCS/Aqui/stargazers"><img src="https://img.shields.io/github/stars/HisarCS/Aqui" alt="Stars Badge"/></a>
-  <a href="https://github.com/HisarCS/Aqui/network/members"><img src="https://img.shields.io/github/forks/HisarCS/Aqui" alt="Forks Badge"/></a>
-  <a href="https://github.com/HisarCS/Aqui/issues"><img src="https://img.shields.io/github/issues/HisarCS/Aqui" alt="Issues Badge"/></a>
-  <a href="https://github.com/HisarCS/Aqui/blob/main/LICENSE"><img src="https://img.shields.io/github/license/HisarCS/Aqui" alt="License Badge"/></a>
-</p>
-<p align="center">
   <a href="https://github.com/HisarCS/Aqui/tree/main/Docs">Documentation</a> •
   <a href="https://github.com/HisarCS/Aqui/blob/main/LICENSE">License</a> 
 </p>
