@@ -1467,17 +1467,17 @@ export class Renderer {
   
   handleKeyDown(event) {
     try {
-      // Handle grid toggle for any state (not just when shape is selected)
-      if (event.key.toLowerCase() === 'g') {
-        event.preventDefault();
-        this.isGridEnabled = !this.isGridEnabled;
-        this.updateGridButtonState();
-        this.redraw();
-        return;
-      }
-      
+
+      if (event.key.toLowerCase() === ';') {
+      event.preventDefault();
+      this.isGridEnabled = !this.isGridEnabled;
+      this.updateGridButtonState();
+      this.redraw();
+      return;
+    }
+
       if (!this.selectedShape) return;
-      
+
       const shapeName = shapeManager.findShapeName(this.selectedShape);
       if (!shapeName) return;
       
