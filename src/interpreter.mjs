@@ -1,4 +1,4 @@
-// interpreter.mjs
+// interpreter.mjs - FIXED VERSION with proper boolean integration
 import { Environment } from './environment.mjs';
 import { booleanOperator } from './BooleanOperators.mjs';
 import { TurtleDrawer } from './turtleDrawer.mjs';
@@ -11,6 +11,34 @@ export class Interpreter {
         this.currentReturn = null;
         this.functionCallCounters = new Map();
         this.turtleDrawer = new TurtleDrawer();
+        
+        // Color resolution map for named colors
+        this.colorMap = {
+            'red': '#FF0000',
+            'green': '#008000',
+            'blue': '#0000FF',
+            'yellow': '#FFFF00',
+            'orange': '#FFA500',
+            'purple': '#800080',
+            'pink': '#FFC0CB',
+            'brown': '#A52A2A',
+            'black': '#000000',
+            'white': '#FFFFFF',
+            'gray': '#808080',
+            'grey': '#808080',
+            'lightgray': '#D3D3D3',
+            'lightgrey': '#D3D3D3',
+            'darkgray': '#A9A9A9',
+            'darkgrey': '#A9A9A9',
+            'cyan': '#00FFFF',
+            'magenta': '#FF00FF',
+            'lime': '#00FF00',
+            'navy': '#000080',
+            'teal': '#008080',
+            'silver': '#C0C0C0',
+            'gold': '#FFD700',
+            'transparent': 'transparent'
+        };
     }
 
     interpret(ast) {
@@ -61,12 +89,139 @@ export class Interpreter {
                 return this.evaluateDraw(node);
             case 'draw_command':
                 return this.evaluateDrawCommand(node);
+            case 'fill_statement':
+                return this.evaluateFillStatement(node);
+            case 'style_block':
+                return this.evaluateStyleBlock(node);
             default:
                 throw new Error(`Unknown node type: ${node.type}`);
         }
     }
 
-    // Add method to evaluate draw statements
+    // FIXED: Enhanced boolean operation evaluation with proper shape consumption
+    evaluateBooleanOperation(node) {
+        const { operation, name, shapes: shapeNames } = node;
+        const shapes = [];
+
+        console.log(`🔧 FIXED: Evaluating boolean operation: ${operation} -> ${name}`);
+        console.log(`🔧 Input shapes: ${shapeNames.join(', ')}`);
+
+        // Collect input shapes
+        for (const shapeName of shapeNames) {
+            try {
+                const shape = this.env.getShape(shapeName);
+                if (!shape) {
+                    throw new Error(`Shape not found: ${shapeName}`);
+                }
+                shapes.push({
+                    ...shape,
+                    name: shapeName
+                });
+                console.log(`✅ Found input shape: ${shapeName} (${shape.type})`);
+            } catch (error) {
+                throw new Error(`Error in boolean operation ${operation}: ${error.message}`);
+            }
+        }
+
+        // Perform the boolean operation
+        let result;
+        try {
+            switch (operation) {
+                case 'union':
+                    result = this.booleanOperator.performUnion(shapes);
+                    break;
+                case 'difference':
+                    result = this.booleanOperator.performDifference(shapes);
+                    break;
+                case 'intersection':
+                    result = this.booleanOperator.performIntersection(shapes);
+                    break;
+                default:
+                    throw new Error(`Unknown boolean operation: ${operation}`);
+            }
+        } catch (error) {
+            throw new Error(`Failed to perform ${operation}: ${error.message}`);
+        }
+
+        console.log(`🎯 Boolean operation result:`, {
+            name: result.name,
+            type: result.type,
+            hasHoles: result.params.hasHoles,
+            pointCount: result.params.points ? result.params.points.length : 0
+        });
+
+        // CRITICAL FIX: Mark input shapes as consumed and hide them
+        for (const shapeName of shapeNames) {
+            if (this.env.shapes.has(shapeName)) {
+                const originalShape = this.env.shapes.get(shapeName);
+                // Mark as consumed so renderer won't display it
+                originalShape._consumedByBoolean = true;
+                console.log(`🚫 Marked ${shapeName} as consumed by boolean operation`);
+            }
+        }
+
+        // Add the result shape to environment
+        result.name = name;
+        this.env.addShape(name, result);
+        console.log(`✅ Added boolean result shape: ${name}`);
+
+        return result;
+    }
+
+    // New method to evaluate fill statements
+    evaluateFillStatement(node) {
+        try {
+            const targetShape = this.env.getShape(node.target);
+            if (!targetShape) {
+                throw new Error(`Shape not found for fill: ${node.target}`);
+            }
+            
+            // Set fill properties
+            targetShape.params.fill = node.fill;
+            if (node.fillColor) {
+                targetShape.params.fillColor = this.resolveColor(node.fillColor);
+            }
+            
+            return targetShape;
+        } catch (error) {
+            console.warn(`Fill statement error: ${error.message}`);
+            return null;
+        }
+    }
+
+    // New method to evaluate style blocks
+    evaluateStyleBlock(node) {
+        try {
+            const targetShape = this.env.getShape(node.target);
+            if (!targetShape) {
+                throw new Error(`Shape not found for style: ${node.target}`);
+            }
+            
+            // Apply all style properties
+            for (const [styleName, styleValue] of Object.entries(node.styles)) {
+                const resolvedValue = this.evaluateExpression(styleValue);
+                targetShape.params[styleName] = this.resolveStyleValue(styleName, resolvedValue);
+            }
+            
+            return targetShape;
+        } catch (error) {
+            console.warn(`Style block error: ${error.message}`);
+            return null;
+        }
+    }
+
+    // Helper method to resolve style values
+    resolveStyleValue(styleName, value) {
+        const colorProperties = ['color', 'fillcolor', 'strokecolor', 'fill', 'stroke'];
+        
+        if (colorProperties.includes(styleName.toLowerCase())) {
+            return this.resolveColor(value);
+        }
+        
+        return value;
+    }
+
+    // Enhanced method to evaluate draw statements
     evaluateDraw(node) {
         // Reset the turtle drawer
         this.turtleDrawer.reset();
@@ -99,7 +254,11 @@ export class Interpreter {
             params: {
                 points: allPoints,
                 subPaths: paths,
-                isTurtlePath: true
+                isTurtlePath: true,
+                // Default styling for drawn paths
+                fill: false,
+                strokeColor: '#000000',
+                strokeWidth: 2
             },
             transform: {
                 position: [0, 0],
@@ -213,49 +372,6 @@ export class Interpreter {
         return returnValue !== null ? returnValue : result;
     }
 
-    evaluateBooleanOperation(node) {
-        const { operation, name, shapes: shapeNames } = node;
-        const shapes = [];
-
-        for (const shapeName of shapeNames) {
-            try {
-                const shape = this.env.getShape(shapeName);
-                if (!shape) {
-                    throw new Error(`Shape not found: ${shapeName}`);
-                }
-                shapes.push({
-                    ...shape,
-                    name: shapeName
-                });
-            } catch (error) {
-                throw new Error(`Error in boolean operation ${operation}: ${error.message}`);
-            }
-        }
-
-        let result;
-        try {
-            switch (operation) {
-                case 'union':
-                    result = this.booleanOperator.performUnion(shapes);
-                    break;
-                case 'difference':
-                    result = this.booleanOperator.performDifference(shapes);
-                    break;
-                case 'intersection':
-                    result = this.booleanOperator.performIntersection(shapes);
-                    break;
-                default:
-                    throw new Error(`Unknown boolean operation: ${operation}`);
-            }
-        } catch (error) {
-            throw new Error(`Failed to perform ${operation}: ${error.message}`);
-        }
-
-        result.name = name;
-        this.env.addShape(name, result);
-        return result;
-    }
-
     evaluateForLoop(node) {
         const start = this.evaluateExpression(node.start);
         const end = this.evaluateExpression(node.end);
@@ -319,6 +435,7 @@ export class Interpreter {
         return value;
     }
 
+    // Enhanced shape evaluation with comprehensive fill and color support
     evaluateShape(node) {
         // Create a unique name for shapes in function calls
         let shapeName = node.name;
@@ -330,11 +447,103 @@ export class Interpreter {
 
         const params = {};
         for (const [key, expr] of Object.entries(node.params)) {
-            params[key] = this.evaluateExpression(expr);
+            const evaluatedValue = this.evaluateExpression(expr);
+            params[key] = this.processShapeParameter(key, evaluatedValue);
         }
         
+        // Apply shape-specific defaults and process fill parameters
+        this.processShapeFillParameters(node.shapeType, params);
+        
         const shape = this.env.createShapeWithName(node.shapeType, shapeName, params);
+        console.log(`✅ Created shape: ${shapeName} (${node.shapeType})`);
         return shape;
+    }
+
+    // New method to process shape parameters with special handling for colors and fills
+    processShapeParameter(key, value) {
+        const colorParams = ['color', 'fillcolor', 'strokecolor', 'fill', 'stroke', 'background', 'border'];
+        
+        if (colorParams.includes(key.toLowerCase())) {
+            // Handle color parameters
+            if (typeof value === 'string') {
+                return this.resolveColor(value);
+            } else if (typeof value === 'boolean' && key.toLowerCase() === 'fill') {
+                // Boolean fill parameter
+                return value;
+            }
+        }
+        
+        return value;
+    }
+
+    // New method to process fill parameters for shapes
+    processShapeFillParameters(shapeType, params) {
+        // Handle various fill parameter combinations
+        if (params.fill === true || params.filled === true) {
+            // Enable fill
+            params.fill = true;
+            
+            // Set default fill color if none specified
+            if (!params.fillColor && !params.color) {
+                params.fillColor = '#808080'; // Default gray
+            } else if (params.color && !params.fillColor) {
+                // Use color as fill color if no specific fill color is set
+                params.fillColor = this.resolveColor(params.color);
+            }
+        } else if (params.fillColor) {
+            // If fillColor is specified, enable fill
+            params.fill = true;
+            params.fillColor = this.resolveColor(params.fillColor);
+        }
+        
+        // Handle stroke parameters
+        if (params.strokeColor) {
+            params.strokeColor = this.resolveColor(params.strokeColor);
+        }
+        
+        // Set default opacity if not specified
+        if (params.opacity === undefined && params.alpha !== undefined) {
+            params.opacity = params.alpha;
+        }
+        
+        // Shape-specific fill defaults
+        const textShapes = ['text'];
+        if (textShapes.includes(shapeType) && params.fill === undefined && params.fillColor === undefined) {
+            // Text shapes are filled by default
+            params.fill = true;
+            params.fillColor = '#000000'; // Black text by default
+        }
+    }
+
+    // Enhanced color resolution method
+    resolveColor(colorValue) {
+        if (typeof colorValue !== 'string') {
+            return colorValue;
+        }
+        
+        // Handle hex colors
+        if (colorValue.startsWith('#')) {
+            return colorValue;
+        }
+        
+        // Handle rgb/rgba colors
+        if (colorValue.startsWith('rgb')) {
+            return colorValue;
+        }
+        
+        // Handle hsl/hsla colors
+        if (colorValue.startsWith('hsl')) {
+            return colorValue;
+        }
+        
+        // Handle named colors
+        const namedColor = this.colorMap[colorValue.toLowerCase()];
+        if (namedColor) {
+            return namedColor;
+        }
+        
+        // Return as-is if not recognized
+        return colorValue;
     }
 
     evaluateLayer(node) {
@@ -385,6 +594,7 @@ export class Interpreter {
         return target;
     }
 
+    // Enhanced expression evaluation with color support
     evaluateExpression(expr) {
         switch (expr.type) {
             case 'number':
@@ -393,6 +603,8 @@ export class Interpreter {
                 return expr.value;
             case 'boolean':
                 return expr.value;
+            case 'color':
+                return this.resolveColor(expr.value);
             case 'identifier':
                 if (expr.name.startsWith('param.')) {
                     const paramName = expr.name.split('.')[1];
@@ -491,5 +703,48 @@ export class Interpreter {
         if (Array.isArray(value)) return value.length > 0;
         if (value === null || value === undefined) return false;
         return true;
+    }
+
+    // Helper method to validate and normalize color values
+    validateColor(color) {
+        if (typeof color !== 'string') {
+            return false;
+        }
+        
+        // Check hex colors
+        if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(color)) {
+            return true;
+        }
+        
+        // Check rgb/rgba colors
+        if (/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+\s*)?\)$/.test(color)) {
+            return true;
+        }
+        
+        // Check hsl/hsla colors
+        if (/^hsla?\(\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*(,\s*[\d.]+\s*)?\)$/.test(color)) {
+            return true;
+        }
+        
+        // Check named colors
+        return !!this.colorMap[color.toLowerCase()];
+    }
+
+    // Method to get shape fill information for debugging
+    getShapeFillInfo(shapeName) {
+        const shape = this.env.shapes.get(shapeName);
+        if (!shape) {
+            return null;
+        }
+        
+        return {
+            shapeName,
+            shapeType: shape.type,
+            fill: shape.params.fill,
+            fillColor: shape.params.fillColor,
+            color: shape.params.color,
+            strokeColor: shape.params.strokeColor,
+            opacity: shape.params.opacity
+        };
     }
 }
