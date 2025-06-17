@@ -1,4 +1,4 @@
-// svgExport.mjs
+// svgExport.mjs - Enhanced SVG export with comprehensive fill and styling support
 
 // Main export function with improved error handling and features
 export function exportToSVG(interpreter, canvas, filename = "aqui_drawing.svg") {
