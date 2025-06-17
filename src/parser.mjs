@@ -1,4 +1,4 @@
-// parser.mjs with draw command support
+// parser.mjs - Complete parser with enhanced fill and color support
 import { Token } from './lexer.mjs';
 
 export class Parser {
@@ -21,7 +21,7 @@ export class Parser {
     }
   }
 
-  // New method to parse draw statements
+  // Enhanced method to parse draw statements
   parseDrawStatement() {
     this.eat('DRAW');
     const name = this.currentToken.value;
@@ -202,6 +202,21 @@ export class Parser {
       return { type: 'number', value: token.value };
     } 
     
+    if (token.type === 'STRING') {
+      this.eat('STRING');
+      return { type: 'string', value: token.value };
+    }
+    
+    if (token.type === 'HEXCOLOR') {
+      this.eat('HEXCOLOR');
+      return { type: 'color', value: token.value };
+    }
+    
+    if (token.type === 'COLORNAME') {
+      this.eat('COLORNAME');
+      return { type: 'color', value: token.value };
+    }
+    
     if (token.type === 'TRUE' || token.type === 'FALSE') {
       this.eat(token.type);
       return { type: 'boolean', value: token.type === 'TRUE' };
@@ -257,7 +272,7 @@ export class Parser {
     this.error(`Unexpected token in factor: ${token.type}`);
   }
 
-  // New method for parsing function definitions
+  // Enhanced method for parsing function definitions
   parseFunctionDefinition() {
     this.eat('DEF');
     const functionName = this.currentToken.value;
@@ -300,7 +315,7 @@ export class Parser {
     };
   }
 
-  // New method for parsing function calls
+  // Enhanced method for parsing function calls
   parseFunctionCall(functionName) {
     this.eat('LPAREN');
     const args = [];
@@ -323,7 +338,7 @@ export class Parser {
     };
   }
 
-  // Parse if statements
+  // Parse if statements with enhanced condition handling
   parseIfStatement() {
     this.eat('IF');
     const condition = this.parseCondition();
@@ -333,7 +348,7 @@ export class Parser {
     while (this.currentToken.type !== 'RBRACE' && this.currentToken.type !== 'EOF') {
       thenBranch.push(this.parseStatement());
     }
-    this.eat('RBRACE');  // Make sure we consume the closing brace
+    this.eat('RBRACE');
     
     let elseBranch = [];
     if (this.currentToken.type === 'ELSE') {
@@ -389,6 +404,7 @@ export class Parser {
     return { type: 'param', name, value };
   }
 
+  // Enhanced shape parsing with comprehensive fill and styling support
   parseShape() {
     this.eat('SHAPE');
     const shapeType = this.currentToken.value;
@@ -400,25 +416,130 @@ export class Parser {
     }
     this.eat('LBRACE');
     const params = {};
+    
     while (this.currentToken.type !== 'RBRACE') {
       const paramName = this.currentToken.value;
-      if (this.currentToken.type !== 'IDENTIFIER' && this.currentToken.type !== 'POSITION') {
+      
+      // Handle all possible parameter types including enhanced fill properties
+      if (!this.isValidPropertyToken(this.currentToken.type)) {
         this.error(`Expected property name, got ${this.currentToken.type}`);
       }
+      
       this.eat(this.currentToken.type);
       this.eat('COLON');
-      params[paramName] = this.parseExpression();
+      
+      // Parse the parameter value with enhanced type support
+      const paramValue = this.parsePropertyValue();
+      params[paramName] = paramValue;
     }
+    
     this.eat('RBRACE');
     return { type: 'shape', shapeType, name: shapeName, params };
   }
 
+  // Helper method to check if token is a valid property
+  isValidPropertyToken(tokenType) {
+    const validTokens = [
+      'IDENTIFIER', 'POSITION', 'FILL', 'FILLED', 'FILLCOLOR', 'COLOR', 
+      'STROKECOLOR', 'STROKEWIDTH', 'OPACITY', 'VISIBLE', 'HIDDEN',
+      'STYLE', 'TRANSPARENT', 'STROKE'
+    ];
+    return validTokens.includes(tokenType);
+  }
+
+  // Enhanced property value parsing with color and boolean support
+  parsePropertyValue() {
+    const token = this.currentToken;
+    
+    // Handle different value types
+    switch (token.type) {
+      case 'TRUE':
+      case 'FALSE':
+        this.eat(token.type);
+        return { type: 'boolean', value: token.type === 'TRUE' };
+        
+      case 'HEXCOLOR':
+        this.eat('HEXCOLOR');
+        return { type: 'color', value: token.value };
+        
+      case 'COLORNAME':
+        this.eat('COLORNAME');
+        return { type: 'color', value: this.resolveColorName(token.value) };
+        
+      case 'STRING':
+        this.eat('STRING');
+        return { type: 'string', value: token.value };
+        
+      case 'NUMBER':
+        this.eat('NUMBER');
+        return { type: 'number', value: token.value };
+        
+      case 'LBRACKET':
+        return this.parseArray();
+        
+      case 'IDENTIFIER':
+        // Could be a color name or parameter reference
+        if (this.isColorName(token.value)) {
+          this.eat('IDENTIFIER');
+          return { type: 'color', value: this.resolveColorName(token.value) };
+        } else {
+          return this.parseExpression();
+        }
+        
+      default:
+        return this.parseExpression();
+    }
+  }
+
+  // Helper method to check if a string is a color name
+  isColorName(value) {
+    const colorNames = [
+      'red', 'green', 'blue', 'yellow', 'orange', 'purple', 'pink', 'brown',
+      'black', 'white', 'gray', 'grey', 'lightgray', 'lightgrey', 'darkgray', 
+      'darkgrey', 'cyan', 'magenta', 'lime', 'navy', 'teal', 'silver', 'gold'
+    ];
+    return colorNames.includes(value.toLowerCase());
+  }
+
+  // Helper method to resolve color names to hex values
+  resolveColorName(colorName) {
+    const colorMap = {
+      'red': '#FF0000',
+      'green': '#008000',
+      'blue': '#0000FF',
+      'yellow': '#FFFF00',
+      'orange': '#FFA500',
+      'purple': '#800080',
+      'pink': '#FFC0CB',
+      'brown': '#A52A2A',
+      'black': '#000000',
+      'white': '#FFFFFF',
+      'gray': '#808080',
+      'grey': '#808080',
+      'lightgray': '#D3D3D3',
+      'lightgrey': '#D3D3D3',
+      'darkgray': '#A9A9A9',
+      'darkgrey': '#A9A9A9',
+      'cyan': '#00FFFF',
+      'magenta': '#FF00FF',
+      'lime': '#00FF00',
+      'navy': '#000080',
+      'teal': '#008080',
+      'silver': '#C0C0C0',
+      'gold': '#FFD700'
+    };
+    
+    return colorMap[colorName.toLowerCase()] || colorName;
+  }
+
+  // Enhanced layer parsing
   parseLayer() {
     this.eat('LAYER');
     const name = this.currentToken.value;
     this.eat('IDENTIFIER');
     this.eat('LBRACE');
     const commands = [];
+    
     while (this.currentToken.type !== 'RBRACE') {
       if (this.currentToken.type === 'IF') {
         commands.push(this.parseIfStatement());
@@ -437,10 +558,12 @@ export class Parser {
         this.error(`Unknown layer command: ${this.currentToken.type}`);
       }
     }
+    
     this.eat('RBRACE');
     return { type: 'layer', name, commands };
   }
 
+  // Enhanced boolean operation parsing
   parseBooleanOperation() {
     // Store the operation type (union/difference/intersection)
     const operation = this.currentToken.type.toLowerCase();
@@ -481,13 +604,14 @@ export class Parser {
     };
   }
 
-
+  // Enhanced transform parsing
   parseTransform() {
     this.eat('TRANSFORM');
     const target = this.currentToken.value;
     this.eat('IDENTIFIER');
     this.eat('LBRACE');
     const operations = [];
+    
     while (this.currentToken.type !== 'RBRACE') {
       if (this.currentToken.type === 'IF') {
         operations.push(this.parseIfStatement());
@@ -507,31 +631,40 @@ export class Parser {
         this.error(`Unknown transform command: ${this.currentToken.type}`);
       }
     }
+    
     this.eat('RBRACE');
     return { type: 'transform', target, operations };
   }
 
+  // Enhanced statement parsing with comprehensive support
   parseStatement() {
     let statement;
+    
     switch (this.currentToken.type) {
       case 'IF':
         statement = this.parseIfStatement();
         break;
+        
       case 'PARAM':
         statement = this.parseParam();
         break;
+        
       case 'SHAPE':
         statement = this.parseShape();
         break;
+        
       case 'LAYER':
         statement = this.parseLayer();
         break;
+        
       case 'TRANSFORM':
         statement = this.parseTransform();
         break;
+        
       case 'FOR':
         statement = this.parseForLoop();
         break;
+        
       case 'ADD':
         this.eat('ADD');
         statement = { 
@@ -540,6 +673,7 @@ export class Parser {
         };
         this.eat('IDENTIFIER');
         break;
+        
       case 'ROTATE':
         this.eat('ROTATE');
         this.eat('COLON');
@@ -548,17 +682,21 @@ export class Parser {
           angle: this.parseExpression()
         };
         break;
+        
       case 'UNION':
       case 'DIFFERENCE':
       case 'INTERSECTION':
         statement = this.parseBooleanOperation();
         break;
+        
       case 'DEF':
         statement = this.parseFunctionDefinition();
         break;
+        
       case 'DRAW':
         statement = this.parseDrawStatement();
         break;
+        
       case 'IDENTIFIER':
         // Check if this is a function call
         const name = this.currentToken.value;
@@ -569,12 +707,15 @@ export class Parser {
           this.error(`Unexpected identifier: ${name}`);
         }
         break;
+        
       default:
         this.error(`Unexpected token: ${this.currentToken.type}`);
     }
+    
     return statement;
   }
 
+  // Enhanced for loop parsing
   parseForLoop() {
     this.eat('FOR');
     const iterator = this.currentToken.value;
@@ -607,6 +748,7 @@ export class Parser {
     };
   }
 
+  // Enhanced union parsing (legacy support)
   parseUnion() {
     this.eat('UNION');
     const name = this.currentToken.value;
@@ -634,11 +776,182 @@ export class Parser {
     };
   }
 
+  // New method to parse fill statements (standalone fill commands)
+  parseFillStatement() {
+    this.eat('FILL');
+    const target = this.currentToken.value;
+    this.eat('IDENTIFIER');
+    
+    let fillValue = true; // Default to true
+    let fillColor = '#808080'; // Default gray
+    
+    // Check if there's a color or boolean value specified
+    if (this.currentToken.type === 'COLON') {
+      this.eat('COLON');
+      const value = this.parsePropertyValue();
+      
+      if (value.type === 'boolean') {
+        fillValue = value.value;
+      } else if (value.type === 'color') {
+        fillValue = true;
+        fillColor = value.value;
+      }
+    }
+    
+    return {
+      type: 'fill_statement',
+      target,
+      fill: fillValue,
+      fillColor: fillColor
+    };
+  }
+
+  // New method to parse style blocks
+  parseStyleBlock() {
+    this.eat('STYLE');
+    const target = this.currentToken.value;
+    this.eat('IDENTIFIER');
+    this.eat('LBRACE');
+    
+    const styles = {};
+    
+    while (this.currentToken.type !== 'RBRACE') {
+      const styleName = this.currentToken.value;
+      
+      if (!this.isValidPropertyToken(this.currentToken.type)) {
+        this.error(`Expected style property name, got ${this.currentToken.type}`);
+      }
+      
+      this.eat(this.currentToken.type);
+      this.eat('COLON');
+      
+      const styleValue = this.parsePropertyValue();
+      styles[styleName] = styleValue;
+    }
+    
+    this.eat('RBRACE');
+    
+    return {
+      type: 'style_block',
+      target,
+      styles
+    };
+  }
+
+  // Enhanced main parse method
   parse() {
     const statements = [];
+    
     while (this.currentToken.type !== 'EOF') {
-      statements.push(this.parseStatement());
+      try {
+        const statement = this.parseStatement();
+        if (statement) {
+          statements.push(statement);
+        }
+      } catch (error) {
+        // Enhanced error recovery
+        console.error(`Parse error: ${error.message}`);
+        
+        // Skip tokens until we find a reasonable recovery point
+        while (this.currentToken.type !== 'EOF' && 
+               this.currentToken.type !== 'RBRACE' &&
+               this.currentToken.type !== 'SHAPE' &&
+               this.currentToken.type !== 'LAYER' &&
+               this.currentToken.type !== 'PARAM') {
+          this.currentToken = this.lexer.getNextToken();
+        }
+        
+        // Re-throw the error to stop parsing
+        throw error;
+      }
     }
+    
     return statements;
+  }
+
+  // Utility method to peek at the next token without consuming it
+  peekToken() {
+    // Save current state
+    const savedPos = this.lexer.position;
+    const savedLine = this.lexer.line;
+    const savedCol = this.lexer.column;
+    const savedChar = this.lexer.currentChar;
+    
+    // Get next token
+    const nextToken = this.lexer.getNextToken();
+    
+    // Restore state
+    this.lexer.position = savedPos;
+    this.lexer.line = savedLine;
+    this.lexer.column = savedCol;
+    this.lexer.currentChar = savedChar;
+    
+    return nextToken;
+  }
+
+  // Helper method to check if current context expects a color value
+  expectsColorValue(paramName) {
+    const colorParams = [
+      'color', 'fillcolor', 'fill', 'strokecolor', 'stroke', 
+      'background', 'border'
+    ];
+    return colorParams.includes(paramName.toLowerCase());
+  }
+
+  // Helper method to validate parameter combinations
+  validateParameters(params) {
+    // Check for conflicting fill parameters
+    if (params.fill && params.filled) {
+      console.warn('Both "fill" and "filled" specified, using "fill"');
+      delete params.filled;
+    }
+    
+    // Check for conflicting color parameters
+    if (params.color && params.fillColor) {
+      console.warn('Both "color" and "fillColor" specified, using "fillColor" for fill');
+    }
+    
+    // Set default fill behavior
+    if (params.fill === true && !params.fillColor && !params.color) {
+      params.fillColor = '#808080'; // Default gray fill
+    }
+    
+    return params;
+  }
+
+  // Enhanced error reporting with context
+  errorWithContext(message) {
+    const context = this.getParsingContext();
+    throw new Error(`${message}\nContext: ${context}\nNear: ${this.currentToken.value || this.currentToken.type}`);
+  }
+
+  // Get current parsing context for better error messages
+  getParsingContext() {
+    // Simple context tracking - in a full implementation, you'd maintain a context stack
+    return `at line ${this.currentToken.line}, column ${this.currentToken.column}`;
+  }
+
+  // Method to handle default values for shape parameters
+  applyDefaultParameters(shapeType, params) {
+    const defaults = {
+      circle: { radius: 50, fill: false },
+      rectangle: { width: 100, height: 100, fill: false },
+      triangle: { base: 60, height: 80, fill: false },
+      ellipse: { radiusX: 60, radiusY: 40, fill: false },
+      polygon: { radius: 50, sides: 6, fill: false },
+      star: { outerRadius: 50, innerRadius: 20, points: 5, fill: false },
+      text: { fontSize: 16, fontFamily: 'Arial', fill: true, fillColor: '#000000' }
+    };
+    
+    const shapeDefaults = defaults[shapeType] || {};
+    
+    // Apply defaults for missing parameters
+    Object.keys(shapeDefaults).forEach(key => {
+      if (!(key in params)) {
+        params[key] = shapeDefaults[key];
+      }
+    });
+    
+    return params;
   }
 }
