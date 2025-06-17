@@ -24,7 +24,7 @@ const interactiveMode = true; // Interactive mode is always on
 
 // Initialize when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('🚀 Initializing Aqui application...');
+  console.log('Initializing Aqui application...');
   
   // Initialize the application components
   initUI();
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { exportToSVG }
     ] = modules;
     
-    console.log('📦 Modules loaded successfully');
+    console.log('Modules loaded successfully');
     
     // Initialize 2D functionality with the globally available Renderer
     init2D(Lexer, Parser, Interpreter, window.AquiRenderer, ParameterManager, exportToSVG);
@@ -55,9 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load documentation
     initDocs();
     
-    console.log('✅ Application initialized successfully');
+    console.log('Application initialized successfully');
   }).catch(error => {
-    console.error("❌ Error loading modules:", error);
+    console.error("Error loading modules:", error);
     document.getElementById('error-panel').innerHTML = 
       `<div class="error-message">Error loading modules: ${error.message}</div>`;
     document.getElementById('error-panel').classList.add('visible');
@@ -127,7 +127,7 @@ function initUI() {
 
 // Initialize 2D functionality
 function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportToSVG) {
-  console.log('🔧 Initializing 2D functionality...');
+  console.log('Initializing 2D functionality...');
   
   const canvas = document.getElementById('canvas');
   const runButton = document.getElementById('run-button');
@@ -168,19 +168,19 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
     matchBrackets: true
   });
 
-  console.log('✏️ CodeMirror editor initialized');
+  console.log('✏CodeMirror editor initialized');
 
   // Initialize the renderer FIRST
   renderer = new Renderer(canvas);
   renderer.shapes = new Map(); // Ensure shapes is initialized
   
-  console.log('🎨 Renderer initialized');
+  console.log('Renderer initialized');
   
   // Register renderer with ShapeManager immediately
   shapeManager.registerRenderer(renderer);
   shapeManager.registerEditor(editor);
   
-  console.log('🔗 ShapeManager connections established');
+  console.log('ShapeManager connections established');
   
   // Always set up interactive callbacks since interactive mode is always on
   renderer.setUpdateCodeCallback(updateCodeFromShapeChange);
@@ -394,12 +394,12 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
             }, 1200);
           }
           
-          console.log('✅ Parameter manager refreshed with', window.interpreter.env.shapes.size, 'shapes');
+          console.log('Parameter manager refreshed with', window.interpreter.env.shapes.size, 'shapes');
         } else {
           throw new Error("No shapes available in interpreter");
         }
       } catch (e) {
-        console.error("❌ Error updating shapes:", e);
+        console.error("Error updating shapes:", e);
         const updateButton = this.container.querySelector('.update-button');
         
         if (updateButton) {
@@ -418,7 +418,7 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
 
   // Create parameter manager when button is clicked
   paramsButton.addEventListener('click', () => {
-    console.log('📊 Parameters button clicked');
+    console.log('Parameters button clicked');
     
     if (!parameterManager && window.interpreter) {
       console.log('🔧 Creating parameter manager...');
@@ -433,7 +433,7 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
       parameterManager.toggleMenu();
       parameterManager.refreshShapeList();
     } else {
-      console.warn('⚠️ No interpreter available for parameter manager');
+      console.warn('No interpreter available for parameter manager');
     }
   });
 
@@ -465,7 +465,7 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
   // Function to update editor code when shapes change via interactive mode
   function updateCodeFromShapeChange(change) {
     try {
-      console.log('🔄 Updating code from shape change:', change);
+      console.log('Updating code from shape change:', change);
       
       const code = editor.getValue();
       
@@ -527,7 +527,7 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
           // Update the editor without triggering change event
           const newCode = lines.join('\n');
           if (newCode !== code) {
-            console.log('📝 Code updated successfully');
+            console.log('Code updated successfully');
             editor.operation(() => {
               editor.setValue(newCode);
             });
@@ -565,10 +565,10 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
           editor.setValue(newLines.join('\n'));
         });
         
-        console.log('🗑️ Shape deleted from code');
+        console.log('Shape deleted from code');
       }
     } catch (error) {
-      console.error("❌ Error updating code:", error);
+      console.error("Error updating code:", error);
     }
   }
   
@@ -626,13 +626,13 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
       renderer.clear();
       
       const code = editor.getValue();
-      console.log('📝 Code length:', code.length, 'characters');
+      console.log('Code length:', code.length, 'characters');
       
       const lexer = new Lexer(code);
       const parser = new Parser(lexer);
       const ast = parser.parse();
       
-      console.log('🌲 AST generated with', ast.length, 'nodes');
+      console.log('AST generated with', ast.length, 'nodes');
       astOutput.textContent = JSON.stringify(ast, null, 2);
 
       // Create NEW interpreter instance
@@ -663,10 +663,10 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
       }
       
       displayErrors([]);
-      console.log('✅ Code execution completed successfully');
+      console.log('Code execution completed successfully');
 
     } catch (error) {
-      console.error('❌ Code execution error:', error);
+      console.error('Code execution error:', error);
       displayErrors(error);
     }
   };
@@ -709,12 +709,12 @@ function init2D(Lexer, Parser, Interpreter, Renderer, ParameterManager, exportTo
     }
   });
 
-  console.log('🎛️ Event listeners attached');
+  console.log('Event listeners attached');
 
   // Initial run
   runCode();
   
-  console.log('🏁 2D initialization completed');
+  console.log('2D initialization completed');
 }
 
 // Documentation content
@@ -743,5 +743,5 @@ function initThreeJs() {
 
 // Export runCode globally for console access
 window.runCode = function() {
-  console.log('⚠️ Global runCode called before initialization');
+  console.log('Global runCode called before initialization');
 };
