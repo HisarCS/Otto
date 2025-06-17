@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     import('./parser.mjs'),
     import('./interpreter.mjs'),
     import('./turtleDrawer.mjs'),
-    import('./2DParameters.mjs'),
+    import('./2Dparameters.mjs'),
     import('./svgExport.mjs')
   ]).then(modules => {
     const [
