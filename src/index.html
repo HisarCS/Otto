@@ -18,6 +18,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
+  <!-- CRITICAL: Martinez-Rueda Boolean Operations Library -->
+  <script src="https://unpkg.com/polygon-clipping@0.15.3/dist/polygon-clipping.umd.min.js"></script>
+
   <!-- Custom CSS -->
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -61,7 +64,13 @@
         Errors
         <span class="error-count" id="error-count">0</span>
       </button>
-      <button class="button" id="export-svg">Export SVG</button>
+      <div class="export-container">
+        <button class="button" id="export-button">Export ▼</button>
+        <div class="export-menu" id="export-menu">
+          <button class="export-option" id="export-svg">Export SVG</button>
+          <button class="export-option" id="export-dxf">Export DXF</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -88,6 +97,13 @@
   <script>
     window.THREE = THREE;
     console.log("THREE.js initialized globally:", !!window.THREE);
+    
+    // CRITICAL: Verify Martinez-Rueda library is loaded
+    if (window.polygonClipping) {
+      console.log("Martinez-Rueda polygon-clipping library loaded successfully");
+    } else {
+      console.error("Martinez-Rueda polygon-clipping library failed to load!");
+    }
   </script>
 
   <!-- Main application script -->
