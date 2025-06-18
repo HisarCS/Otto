@@ -131,6 +131,59 @@ body {
   background: #ffcdd2;
 }
 
+/* Export Menu Styles */
+.export-container {
+  position: relative;
+  display: inline-block;
+}
+
+.export-menu {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 5px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 1000;
+  min-width: 120px;
+}
+
+.export-menu.show {
+  display: block;
+}
+
+.export-option {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 14px;
+  color: #333;
+}
+
+.export-option:hover {
+  background: #f0f0f0;
+}
+
+.export-option:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.export-option:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+.export-option:only-child {
+  border-radius: 4px;
+}
+
 .panel {
   position: absolute;
   bottom: 48px;
