@@ -6,6 +6,7 @@ import { Interpreter } from './interpreter.mjs';
 import { Renderer } from './renderer.mjs';
 import { ParameterManager } from './2Dparameters.mjs';
 import { CodeRunner } from './codeRunner.js';
+import { shapeManager } from './shapeManager.mjs';
 import { exportToSVG } from './svgExport.mjs';
 import { exportToDXF } from './dxfExport.mjs';
 
@@ -24,9 +25,14 @@ document.addEventListener('DOMContentLoaded', function() {
   setupCodeMirror();
   loadDocumentation();
   
+  // Ensure everything is properly connected after initialization
+  setTimeout(() => {
+    ensureProperConnections();
+  }, 100);
+  
   // Run initial code if present
-  if (editor.getValue().trim()) {
-    codeRunner.runCode();
+  if (editor && editor.getValue().trim()) {
+    runCode();
   }
 });
 
@@ -36,10 +42,10 @@ function initializeComponents() {
   const astOutput = document.getElementById('ast-output');
   const errorOutput = document.getElementById('error-output');
   
-  // Initialize renderer
+  // Initialize renderer first
   renderer = new Renderer(canvas);
   
-  // Initialize parameter manager (will be properly connected after editor is ready)
+  // Initialize parameter manager
   parameterManager = new ParameterManager(canvas, null, null, runCode);
   
   // Initialize code runner with all dependencies
@@ -54,13 +60,16 @@ function initializeComponents() {
     parameterManager
   );
   
-  // Set up shape update callback
+  // CRITICAL: Register all components with shapeManager for coordination
+  shapeManager.registerRenderer(renderer);
+  shapeManager.registerParameterManager(parameterManager);
+  
+  // Set up shape update callback from renderer to handle code updates
   renderer.setUpdateCodeCallback((changeInfo) => {
-    // Handle shape changes from canvas interactions
-    console.log('Shape changed:', changeInfo);
+    handleShapeChangeFromCanvas(changeInfo);
   });
   
-  console.log('Components initialized');
+  console.log('Components initialized with shapeManager coordination');
 }
 
 function setupCodeMirror() {
@@ -119,6 +128,9 @@ function setupCodeMirror() {
   
   // Update code runner with editor reference
   codeRunner.editor = editor;
+  
+  // Register editor with shapeManager for code updates
+  shapeManager.registerEditor(editor);
   
   // Now properly connect parameter manager with editor and run function
   parameterManager.editor = editor;
@@ -199,9 +211,15 @@ function setupParameterMenu() {
     paramButton.className = 'button';
     paramButton.textContent = 'Parameters';
     
-    // Insert after the errors button
-    const errorsButton = document.getElementById('view-errors');
-    errorsButton.parentNode.insertBefore(paramButton, errorsButton.nextSibling);
+    // Insert before the export container
+    const exportContainer = document.querySelector('.export-container');
+    if (exportContainer) {
+      exportContainer.parentNode.insertBefore(paramButton, exportContainer);
+    } else {
+      // Fallback: insert after the errors button
+      const errorsButton = document.getElementById('view-errors');
+      errorsButton.parentNode.insertBefore(paramButton, errorsButton.nextSibling);
+    }
   }
   
   paramButton.addEventListener('click', () => {
@@ -315,14 +333,59 @@ function switchTab(tabId) {
   }
 }
 
+function ensureProperConnections() {
+  // Double-check that all components are properly registered with shapeManager
+  if (renderer && !shapeManager.renderer) {
+    shapeManager.registerRenderer(renderer);
+  }
+  
+  if (parameterManager && !shapeManager.parameterManager) {
+    shapeManager.registerParameterManager(parameterManager);
+  }
+  
+  if (editor && !shapeManager.editor) {
+    shapeManager.registerEditor(editor);
+  }
+  
+  // Ensure parameter manager has all necessary references
+  if (parameterManager) {
+    parameterManager.editor = editor;
+    parameterManager.runCode = runCode;
+    
+    // Set AST if we have a current interpreter
+    const interpreter = codeRunner.getInterpreter();
+    if (interpreter) {
+      parameterManager.interpreter = interpreter;
+      shapeManager.registerInterpreter(interpreter);
+    }
+  }
+  
+  console.log('All component connections verified');
+}
+
+function handleShapeChangeFromCanvas(changeInfo) {
+  // This handles updates from canvas interactions (drag, resize, rotate)
+  // The shapeManager system automatically coordinates between canvas and sliders
+  console.log('Shape changed from canvas:', changeInfo);
+  
+  // The actual code update is handled by the shapeManager system
+  // through the parameter manager's updateCodeInEditor method
+}
+
 function runCode() {
   try {
     codeRunner.runCode();
     
-    // Update parameter manager with latest interpreter
-    if (parameterManager && codeRunner.getInterpreter()) {
-      parameterManager.interpreter = codeRunner.getInterpreter();
-      parameterManager.updateWithLatestInterpreter();
+    // Register interpreter with shapeManager for real-time coordination
+    const interpreter = codeRunner.getInterpreter();
+    if (interpreter) {
+      shapeManager.registerInterpreter(interpreter);
+      
+      // Update parameter manager with latest interpreter
+      if (parameterManager) {
+        parameterManager.interpreter = interpreter;
+        parameterManager.updateWithLatestInterpreter();
+      }
     }
     
     hideErrorPanel();
@@ -499,9 +562,14 @@ window.aqui = {
   renderer,
   codeRunner,
   parameterManager,
+  shapeManager,
   runCode,
   exportSVG: handleSVGExport,
   exportDXF: handleDXFExport
 };
 
-console.log('Aqui application initialized');
+// Enable debug logging for development
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  shapeManager.enableDebugLogging(true);
+}
+
