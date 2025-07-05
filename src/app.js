@@ -1,106 +1,66 @@
-// app.js - Complete Aqui application with SVG and DXF export
-
 import { Lexer } from './lexer.mjs';
 import { Parser } from './parser.mjs';
 import { Interpreter } from './interpreter.mjs';
 import { Renderer } from './renderer.mjs';
 import { ParameterManager } from './2Dparameters.mjs';
-import { CodeRunner } from './codeRunner.js';
 import { shapeManager } from './shapeManager.mjs';
 import { exportToSVG } from './svgExport.mjs';
 import { exportToDXF } from './dxfExport.mjs';
 
-// Global variables
 let editor;
 let canvas;
 let renderer;
-let codeRunner;
+let interpreter;
 let parameterManager;
 let currentTab = 'editor-tab';
+let currentPanel = null;
+let astOutput;
+let errorOutput;
+let errorCount;
 
-// Initialize the application
+window.interpreter = null;
+
 document.addEventListener('DOMContentLoaded', function() {
   initializeComponents();
   setupEventHandlers();
   setupCodeMirror();
   loadDocumentation();
   
-  // Ensure everything is properly connected after initialization
   setTimeout(() => {
     ensureProperConnections();
+    if (editor && editor.getValue().trim()) {
+      runCode();
+    }
   }, 100);
-  
-  // Run initial code if present
-  if (editor && editor.getValue().trim()) {
-    runCode();
-  }
 });
 
 function initializeComponents() {
-  // Get DOM elements
   canvas = document.getElementById('canvas');
-  const astOutput = document.getElementById('ast-output');
-  const errorOutput = document.getElementById('error-output');
-  
-  // Initialize renderer first
+  astOutput = document.getElementById('ast-output');
+  errorOutput = document.getElementById('error-output');
+  errorCount = document.getElementById('error-count');
+
   renderer = new Renderer(canvas);
+  renderer.shapes = new Map();
   
-  // Initialize parameter manager
-  parameterManager = new ParameterManager(canvas, null, null, runCode);
-  
-  // Initialize code runner with all dependencies
-  codeRunner = new CodeRunner(
-    Lexer,
-    Parser, 
-    Interpreter,
-    renderer,
-    null, // Editor will be set after CodeMirror initialization
-    displayErrors,
-    astOutput,
-    parameterManager
-  );
-  
-  // CRITICAL: Register all components with shapeManager for coordination
   shapeManager.registerRenderer(renderer);
-  shapeManager.registerParameterManager(parameterManager);
   
-  // Set up shape update callback from renderer to handle code updates
-  renderer.setUpdateCodeCallback((changeInfo) => {
-    handleShapeChangeFromCanvas(changeInfo);
-  });
-  
-  console.log('Components initialized with shapeManager coordination');
+  renderer.setUpdateCodeCallback(updateCodeFromShapeChange);
 }
 
 function setupCodeMirror() {
   const textarea = document.getElementById('code-editor');
   
-  // Define Aqui language mode for syntax highlighting
   CodeMirror.defineSimpleMode('aqui', {
     start: [
-      // Comments
       {regex: /\/\/.*/, token: 'comment'},
-      
-      // Keywords
       {regex: /\b(?:shape|param|layer|transform|add|rotate|scale|position|if|else|for|from|to|step|def|return|union|difference|intersection|draw|forward|backward|right|left|goto|penup|pendown|fill|fillColor|color|strokeColor|strokeWidth|opacity)\b/, token: 'keyword'},
-      
-      // Shape types
       {regex: /\b(?:circle|rectangle|triangle|ellipse|polygon|star|arc|roundedRectangle|path|arrow|text|donut|spiral|cross|wave|slot|chamferRectangle|gear)\b/, token: 'variable-2'},
-      
-      // Numbers
       {regex: /\d+\.?\d*/, token: 'number'},
-      
-      // Strings
       {regex: /"(?:[^\\]|\\.)*?"/, token: 'string'},
-      
-      // Colors
       {regex: /#[0-9a-fA-F]{3,8}/, token: 'string-2'},
       {regex: /\b(?:red|green|blue|yellow|orange|purple|pink|brown|black|white|gray|grey|cyan|magenta|lime|navy|teal|silver|gold)\b/, token: 'string-2'},
-      
-      // Operators
       {regex: /[+\-*\/=<>!]+/, token: 'operator'},
-      
-      // Brackets
       {regex: /[\{\[\(]/, indent: true},
       {regex: /[\}\]\)]/, dedent: true}
     ],
@@ -126,28 +86,17 @@ function setupCodeMirror() {
     }
   });
   
-  // Update code runner with editor reference
-  codeRunner.editor = editor;
-  
-  // Register editor with shapeManager for code updates
   shapeManager.registerEditor(editor);
   
-  // Now properly connect parameter manager with editor and run function
-  parameterManager.editor = editor;
-  parameterManager.runCode = runCode;
-  
-  // Auto-run on changes (debounced)
   let timeout;
   editor.on('change', () => {
     clearTimeout(timeout);
-    timeout = setTimeout(runCode, 500);
+    timeout = setTimeout(runCode, 300);
   });
 }
 
 function setupEventHandlers() {
-  // Tab switching
   const tabButtons = document.querySelectorAll('.tab-btn');
-  const tabContents = document.querySelectorAll('.tab-content');
   
   tabButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -156,27 +105,21 @@ function setupEventHandlers() {
     });
   });
   
-  // Footer buttons
   document.getElementById('run-button').addEventListener('click', runCode);
-  document.getElementById('view-ast').addEventListener('click', toggleASTPanel);
-  document.getElementById('view-errors').addEventListener('click', toggleErrorPanel);
+  document.getElementById('view-ast').addEventListener('click', () => togglePanel(document.getElementById('ast-panel')));
+  document.getElementById('view-errors').addEventListener('click', () => togglePanel(document.getElementById('error-panel')));
   
-  // Parameter menu functionality
   setupParameterMenu();
-  
-  // Export menu functionality
   setupExportMenu();
   
-  // Canvas resize handler
   window.addEventListener('resize', () => {
-    if (renderer) {
+    if (renderer && currentTab === 'editor-tab') {
       renderer.setupCanvas();
+      runCode();
     }
   });
   
-  // Keyboard shortcuts
   document.addEventListener('keydown', (event) => {
-    // Toggle grid with 'G' key
     if (event.key.toLowerCase() === 'g' && !event.ctrlKey && !event.metaKey) {
       if (renderer && document.activeElement !== editor.getWrapperElement().querySelector('textarea')) {
         event.preventDefault();
@@ -186,7 +129,6 @@ function setupEventHandlers() {
       }
     }
     
-    // Toggle parameter panel with 'P' key
     if (event.key.toLowerCase() === 'p' && !event.ctrlKey && !event.metaKey) {
       const activeElement = document.activeElement;
       const isInEditor = activeElement && (
@@ -203,7 +145,6 @@ function setupEventHandlers() {
 }
 
 function setupParameterMenu() {
-  // Create parameter menu toggle button if it doesn't exist
   let paramButton = document.getElementById('params-button');
   if (!paramButton) {
     paramButton = document.createElement('button');
@@ -211,20 +152,26 @@ function setupParameterMenu() {
     paramButton.className = 'button';
     paramButton.textContent = 'Parameters';
     
-    // Insert before the export container
     const exportContainer = document.querySelector('.export-container');
     if (exportContainer) {
       exportContainer.parentNode.insertBefore(paramButton, exportContainer);
     } else {
-      // Fallback: insert after the errors button
       const errorsButton = document.getElementById('view-errors');
       errorsButton.parentNode.insertBefore(paramButton, errorsButton.nextSibling);
     }
   }
   
   paramButton.addEventListener('click', () => {
-    if (parameterManager) {
+    if (!parameterManager && window.interpreter) {
+      parameterManager = new EnhancedParameterManager(canvas, window.interpreter, editor, runCode);
+      shapeManager.registerParameterManager(parameterManager);
+    } else if (parameterManager) {
+      if (parameterManager.interpreter !== window.interpreter) {
+        parameterManager.interpreter = window.interpreter;
+        shapeManager.registerInterpreter(window.interpreter);
+      }
       parameterManager.toggleMenu();
+      parameterManager.refreshShapeList();
     }
   });
 }
@@ -235,86 +182,334 @@ function setupExportMenu() {
   const exportSVG = document.getElementById('export-svg');
   const exportDXF = document.getElementById('export-dxf');
   
-  // Toggle export menu
   exportButton.addEventListener('click', (event) => {
     event.stopPropagation();
     exportMenu.classList.toggle('show');
   });
   
-  // Close menu when clicking outside
   document.addEventListener('click', (event) => {
     if (!exportButton.contains(event.target) && !exportMenu.contains(event.target)) {
       exportMenu.classList.remove('show');
     }
   });
   
-  // SVG Export
   exportSVG.addEventListener('click', () => {
     exportMenu.classList.remove('show');
     handleSVGExport();
   });
   
-  // DXF Export
   exportDXF.addEventListener('click', () => {
     exportMenu.classList.remove('show');
     handleDXFExport();
   });
 }
 
+class EnhancedParameterManager extends ParameterManager {
+  constructor(canvas, interpreter, editor, runCode) {
+    super(canvas, interpreter, editor, runCode);
+    shapeManager.registerParameterManager(this);
+    this.addUpdateButton();
+  }
+  
+  addUpdateButton() {
+    const updateButton = document.createElement('button');
+    updateButton.className = 'update-button';
+    updateButton.textContent = 'Refresh';
+    
+    updateButton.style.position = 'absolute';
+    updateButton.style.bottom = '15px';
+    updateButton.style.left = '15px';
+    updateButton.style.padding = '8px 12px';
+    updateButton.style.fontSize = '13px';
+    updateButton.style.fontFamily = 'monospace';
+    updateButton.style.backgroundColor = '#FF5722';
+    updateButton.style.color = 'white';
+    updateButton.style.border = 'none';
+    updateButton.style.borderRadius = '4px';
+    updateButton.style.cursor = 'pointer';
+    updateButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+    updateButton.style.transition = 'all 0.2s ease-in-out';
+    
+    updateButton.addEventListener('mouseover', () => {
+      updateButton.style.backgroundColor = '#E64A19';
+      updateButton.style.boxShadow = '0 3px 6px rgba(0,0,0,0.25)';
+      updateButton.style.transform = 'translateY(-1px)';
+    });
+    
+    updateButton.addEventListener('mouseout', () => {
+      updateButton.style.backgroundColor = '#FF5722';
+      updateButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+      updateButton.style.transform = 'translateY(0)';
+    });
+    
+    updateButton.addEventListener('click', () => {
+      this.updateWithLatestInterpreter();
+    });
+    
+    this.container.appendChild(updateButton);
+    this.container.style.paddingBottom = '50px';
+  }
+  
+  updateWithLatestInterpreter() {
+    try {
+      const updateButton = this.container.querySelector('.update-button');
+      
+      if (window.interpreter && window.interpreter.env && window.interpreter.env.shapes) {
+        const currentSelectedShape = this.currentShape;
+        this.interpreter = window.interpreter;
+        shapeManager.registerInterpreter(window.interpreter);
+        shapeManager.refreshShapes();
+        this.refreshShapeList();
+        
+        if (currentSelectedShape && this.shapeSelector) {
+          for (let i = 0; i < this.shapeSelector.options.length; i++) {
+            if (this.shapeSelector.options[i].value === currentSelectedShape) {
+              this.shapeSelector.selectedIndex = i;
+              this.onShapeSelected();
+              break;
+            }
+          }
+        }
+        
+        if (updateButton) {
+          const originalText = updateButton.textContent;
+          updateButton.textContent = '✓ Updated!';
+          updateButton.style.backgroundColor = '#4CAF50';
+          
+          setTimeout(() => {
+            updateButton.textContent = originalText;
+            updateButton.style.backgroundColor = '#FF5722';
+          }, 1200);
+        }
+      } else {
+        throw new Error("No shapes available in interpreter");
+      }
+    } catch (e) {
+      const updateButton = this.container.querySelector('.update-button');
+      
+      if (updateButton) {
+        const originalText = updateButton.textContent;
+        updateButton.textContent = '✗ Error!';
+        updateButton.style.backgroundColor = '#dc3545';
+        
+        setTimeout(() => {
+          updateButton.textContent = originalText;
+          updateButton.style.backgroundColor = '#FF5722';
+        }, 1200);
+      }
+    }
+  }
+}
+
+function updateCodeFromShapeChange(change) {
+  try {
+    const code = editor.getValue();
+    
+    if (change.action === 'update') {
+      const lines = code.split('\n');
+      let inShapeBlock = false;
+      let shapeStartLine = -1;
+      let shapeEndLine = -1;
+      let braceCount = 0;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        if (line.startsWith('shape ') && line.includes(change.name)) {
+          inShapeBlock = true;
+          shapeStartLine = i;
+          if (line.includes('{')) braceCount++;
+        } else if (inShapeBlock) {
+          if (line.includes('{')) braceCount++;
+          if (line.includes('}')) braceCount--;
+          
+          if (braceCount === 0) {
+            shapeEndLine = i;
+            break;
+          }
+        }
+      }
+      
+      if (shapeStartLine >= 0 && shapeEndLine >= 0) {
+        updateShapeProperty(lines, shapeStartLine, shapeEndLine, 'position', 
+                          `[${change.shape.transform.position[0]}, ${change.shape.transform.position[1]}]`);
+        
+        if (change.shape.transform.rotation !== 0) {
+          updateShapeProperty(lines, shapeStartLine, shapeEndLine, 'rotation', 
+                            change.shape.transform.rotation);
+        }
+        
+        if (change.shape.transform.scale[0] !== 1 || change.shape.transform.scale[1] !== 1) {
+          updateShapeProperty(lines, shapeStartLine, shapeEndLine, 'scale', 
+                            `[${change.shape.transform.scale[0]}, ${change.shape.transform.scale[1]}]`);
+        }
+        
+        for (const [key, value] of Object.entries(change.shape.params)) {
+          if (typeof value === 'number' || typeof value === 'string') {
+            let formattedValue = value;
+            if (typeof value === 'string') {
+              formattedValue = `"${value}"`;
+            }
+            updateShapeProperty(lines, shapeStartLine, shapeEndLine, key, formattedValue);
+          }
+        }
+        
+        const newCode = lines.join('\n');
+        if (newCode !== code) {
+          editor.operation(() => {
+            editor.setValue(newCode);
+          });
+        }
+      }
+    } else if (change.action === 'delete') {
+      const lines = code.split('\n');
+      let newLines = [];
+      let skipLines = false;
+      let braceCounter = 0;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        if (line.startsWith('shape ') && line.includes(change.name)) {
+          skipLines = true;
+          braceCounter = 0;
+          if (line.includes('{')) braceCounter++;
+        } else if (skipLines) {
+          if (line.includes('{')) braceCounter++;
+          if (line.includes('}')) braceCounter--;
+          
+          if (braceCounter === 0) {
+            skipLines = false;
+            continue;
+          }
+        } else {
+          newLines.push(lines[i]);
+        }
+      }
+      
+      editor.operation(() => {
+        editor.setValue(newLines.join('\n'));
+      });
+    }
+  } catch (error) {
+    //
+  }
+}
+
+function updateShapeProperty(lines, startLine, endLine, propName, value) {
+  let propFound = false;
+  
+  for (let i = startLine; i <= endLine; i++) {
+    const trimmedLine = lines[i].trim();
+    if (trimmedLine.startsWith(propName + ':') || trimmedLine.startsWith(propName + ' :')) {
+      const colonIndex = lines[i].indexOf(':');
+      const indentMatch = lines[i].match(/^(\s*)/);
+      const indent = indentMatch ? indentMatch[1] : '';
+      
+      lines[i] = `${indent}${propName}: ${value}`;
+      propFound = true;
+      break;
+    }
+  }
+  
+  if (!propFound) {
+    for (let i = startLine; i <= endLine; i++) {
+      if (lines[i].includes('{')) {
+        const nextLine = lines[i + 1];
+        let indent = '    ';
+        if (nextLine) {
+          const indentMatch = nextLine.match(/^(\s*)/);
+          if (indentMatch && indentMatch[1]) {
+            indent = indentMatch[1];
+          }
+        }
+        
+        lines.splice(i + 1, 0, `${indent}${propName}: ${value}`);
+        break;
+      }
+    }
+  }
+  
+  return lines;
+}
+
+function runCode() {
+  try {
+    renderer.clear();
+    
+    const code = editor.getValue();
+    const lexer = new Lexer(code);
+    const parser = new Parser(lexer);
+    const ast = parser.parse();
+    
+    astOutput.textContent = JSON.stringify(ast, null, 2);
+
+    interpreter = new Interpreter();
+    const result = interpreter.interpret(ast);
+    
+    window.interpreter = interpreter;
+    
+    if (!renderer.shapes) {
+      renderer.shapes = new Map();
+    }
+    
+    renderer.setShapes(result.shapes);
+    shapeManager.registerInterpreter(interpreter);
+    
+    if (parameterManager && parameterManager.menuVisible) {
+      setTimeout(() => {
+        parameterManager.updateWithLatestInterpreter();
+      }, 100);
+    }
+    
+    displayErrors([]);
+    hideErrorPanel();
+
+  } catch (error) {
+    displayErrors([error]);
+  }
+}
+
 function handleSVGExport() {
   try {
-    const interpreter = codeRunner.getInterpreter();
-    if (!interpreter) {
+    if (!window.interpreter) {
       alert('No shapes to export. Please run some code first.');
       return;
     }
     
-    console.log('Starting SVG export...');
-    const result = exportToSVG(interpreter, canvas);
+    const result = exportToSVG(window.interpreter, canvas);
     
-    if (result.success) {
-      console.log(`SVG export successful: ${result.shapes} shapes, ${result.layers} layers`);
-    } else {
-      console.error('SVG export failed:', result.error);
-      alert('SVG export failed: ' + result.error);
+    if (!result.success && result.error) {
+      displayErrors([{ message: `SVG Export failed: ${result.error}` }]);
     }
   } catch (error) {
-    console.error('SVG export error:', error);
-    alert('SVG export failed: ' + error.message);
+    displayErrors([{ message: `SVG Export failed: ${error.message}` }]);
   }
 }
 
 function handleDXFExport() {
   try {
-    const interpreter = codeRunner.getInterpreter();
-    if (!interpreter) {
+    if (!window.interpreter) {
       alert('No shapes to export. Please run some code first.');
       return;
     }
     
-    console.log('Starting DXF export...');
-    const result = exportToDXF(interpreter, canvas);
+    const result = exportToDXF(window.interpreter, canvas);
     
-    if (result.success) {
-      console.log(`DXF export successful: ${result.shapes} shapes, ${result.layers} layers`);
-    } else {
-      console.error('DXF export failed:', result.error);
-      alert('DXF export failed: ' + result.error);
+    if (!result.success && result.error) {
+      displayErrors([{ message: `DXF Export failed: ${result.error}` }]);
     }
   } catch (error) {
-    console.error('DXF export error:', error);
-    alert('DXF export failed: ' + error.message);
+    displayErrors([{ message: `DXF Export failed: ${error.message}` }]);
   }
 }
 
 function switchTab(tabId) {
-  // Update tab buttons
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('active');
   });
   document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
   
-  // Update tab content
   document.querySelectorAll('.tab-content').forEach(content => {
     content.classList.remove('active');
   });
@@ -322,19 +517,18 @@ function switchTab(tabId) {
   
   currentTab = tabId;
   
-  // Refresh editor if switching back to editor tab
   if (tabId === 'editor-tab' && editor) {
     setTimeout(() => {
       editor.refresh();
       if (renderer) {
         renderer.setupCanvas();
+        runCode();
       }
     }, 100);
   }
 }
 
 function ensureProperConnections() {
-  // Double-check that all components are properly registered with shapeManager
   if (renderer && !shapeManager.renderer) {
     shapeManager.registerRenderer(renderer);
   }
@@ -347,59 +541,18 @@ function ensureProperConnections() {
     shapeManager.registerEditor(editor);
   }
   
-  // Ensure parameter manager has all necessary references
   if (parameterManager) {
     parameterManager.editor = editor;
     parameterManager.runCode = runCode;
     
-    // Set AST if we have a current interpreter
-    const interpreter = codeRunner.getInterpreter();
-    if (interpreter) {
-      parameterManager.interpreter = interpreter;
-      shapeManager.registerInterpreter(interpreter);
+    if (window.interpreter) {
+      parameterManager.interpreter = window.interpreter;
+      shapeManager.registerInterpreter(window.interpreter);
     }
-  }
-  
-  console.log('All component connections verified');
-}
-
-function handleShapeChangeFromCanvas(changeInfo) {
-  // This handles updates from canvas interactions (drag, resize, rotate)
-  // The shapeManager system automatically coordinates between canvas and sliders
-  console.log('Shape changed from canvas:', changeInfo);
-  
-  // The actual code update is handled by the shapeManager system
-  // through the parameter manager's updateCodeInEditor method
-}
-
-function runCode() {
-  try {
-    codeRunner.runCode();
-    
-    // Register interpreter with shapeManager for real-time coordination
-    const interpreter = codeRunner.getInterpreter();
-    if (interpreter) {
-      shapeManager.registerInterpreter(interpreter);
-      
-      // Update parameter manager with latest interpreter
-      if (parameterManager) {
-        parameterManager.interpreter = interpreter;
-        parameterManager.updateWithLatestInterpreter();
-      }
-    }
-    
-    hideErrorPanel();
-  } catch (error) {
-    console.error('Error running code:', error);
-    displayErrors([error]);
   }
 }
 
 function displayErrors(errors) {
-  const errorOutput = document.getElementById('error-output');
-  const errorCount = document.getElementById('error-count');
-  const errorButton = document.getElementById('view-errors');
-  
   if (!Array.isArray(errors)) {
     errors = [errors];
   }
@@ -408,13 +561,12 @@ function displayErrors(errors) {
     errorOutput.textContent = 'No errors';
     errorCount.textContent = '0';
     errorCount.classList.remove('visible');
-    errorButton.classList.remove('error');
+    document.getElementById('view-errors').classList.remove('error');
     return;
   }
   
-  // Display errors
   errorOutput.innerHTML = '';
-  errors.forEach((error, index) => {
+  errors.forEach((error) => {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
     
@@ -428,7 +580,6 @@ function displayErrors(errors) {
     
     errorOutput.appendChild(errorDiv);
     
-    // Add location info if available
     if (error.line || error.column) {
       const locationDiv = document.createElement('div');
       locationDiv.className = 'error-location';
@@ -437,38 +588,41 @@ function displayErrors(errors) {
     }
   });
   
-  // Update error count
   errorCount.textContent = errors.length.toString();
   errorCount.classList.add('visible');
-  errorButton.classList.add('error');
+  document.getElementById('view-errors').classList.add('error');
   
-  // Auto-show error panel if there are errors
   showErrorPanel();
 }
 
-function toggleASTPanel() {
-  const panel = document.getElementById('ast-panel');
-  panel.classList.toggle('visible');
-}
-
-function toggleErrorPanel() {
-  const panel = document.getElementById('error-panel');
-  panel.classList.toggle('visible');
+function togglePanel(panel) {
+  if (currentPanel) {
+    currentPanel.classList.remove('visible');
+  }
+  if (currentPanel !== panel) {
+    panel.classList.add('visible');
+    currentPanel = panel;
+  } else {
+    currentPanel = null;
+  }
 }
 
 function showErrorPanel() {
   const panel = document.getElementById('error-panel');
   panel.classList.add('visible');
+  currentPanel = panel;
 }
 
 function hideErrorPanel() {
   const panel = document.getElementById('error-panel');
   panel.classList.remove('visible');
+  if (currentPanel === panel) {
+    currentPanel = null;
+  }
 }
 
 async function loadDocumentation() {
   try {
-    // Since we don't have a docs file, create basic documentation
     const basicDocs = `
 # Aqui Design Language
 
@@ -539,37 +693,19 @@ shape circle myCircle {
       markdownContent.innerHTML = `<pre>${basicDocs}</pre>`;
     }
   } catch (error) {
-    console.error('Error loading documentation:', error);
+    //
   }
 }
 
-// Utility functions
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
+window.runCode = runCode;
 
-// Global access for debugging
 window.aqui = {
   editor,
   renderer,
-  codeRunner,
+  interpreter,
   parameterManager,
   shapeManager,
   runCode,
   exportSVG: handleSVGExport,
   exportDXF: handleDXFExport
 };
-
-// Enable debug logging for development
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-  shapeManager.enableDebugLogging(true);
-}
-
