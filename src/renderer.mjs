@@ -1739,25 +1739,107 @@ class TransformManager {
 
     switch (type) {
       case 'rectangle':
+      case 'roundedRectangle':
+      case 'chamferRectangle':
         return {
           x: -params.width / 2, y: -params.height / 2,
           width: params.width, height: params.height
         };
+        
       case 'circle':
         return {
           x: -params.radius, y: -params.radius,
           width: params.radius * 2, height: params.radius * 2
         };
+        
       case 'triangle':
         return {
           x: -params.base / 2, y: -params.height / 2,
           width: params.base, height: params.height
         };
+        
       case 'ellipse':
         return {
           x: -params.radiusX, y: -params.radiusY,
           width: params.radiusX * 2, height: params.radiusY * 2
         };
+        
+      case 'polygon':
+      case 'arc':
+        const radius = params.radius || 25;
+        return {
+          x: -radius, y: -radius,
+          width: radius * 2, height: radius * 2
+        };
+        
+      case 'star':
+        const outerRadius = params.outerRadius || 25;
+        return {
+          x: -outerRadius, y: -outerRadius,
+          width: outerRadius * 2, height: outerRadius * 2
+        };
+        
+      case 'donut':
+        const donutRadius = params.outerRadius || 25;
+        return {
+          x: -donutRadius, y: -donutRadius,
+          width: donutRadius * 2, height: donutRadius * 2
+        };
+        
+      case 'spiral':
+        const spiralRadius = Math.max(params.startRadius || 5, params.endRadius || 25);
+        return {
+          x: -spiralRadius, y: -spiralRadius,
+          width: spiralRadius * 2, height: spiralRadius * 2
+        };
+        
+      case 'cross':
+        const crossWidth = params.width || 50;
+        return {
+          x: -crossWidth / 2, y: -crossWidth / 2,
+          width: crossWidth, height: crossWidth
+        };
+        
+      case 'gear':
+        const gearRadius = (params.diameter || 50) / 2;
+        return {
+          x: -gearRadius, y: -gearRadius,
+          width: gearRadius * 2, height: gearRadius * 2
+        };
+        
+      case 'arrow':
+        const arrowLength = params.length || 50;
+        const arrowHeight = Math.max(params.headWidth || 15, params.bodyWidth || 5);
+        return {
+          x: 0, y: -arrowHeight / 2,
+          width: arrowLength, height: arrowHeight
+        };
+        
+      case 'text':
+        const fontSize = params.fontSize || 12;
+        const textLength = (params.text || '').length;
+        const estimatedWidth = fontSize * 0.6 * textLength;
+        return {
+          x: -estimatedWidth / 2, y: -fontSize / 2,
+          width: estimatedWidth, height: fontSize
+        };
+        
+      case 'wave':
+        const waveWidth = params.width || 50;
+        const waveHeight = (params.amplitude || 10) * 2;
+        return {
+          x: -waveWidth / 2, y: -waveHeight / 2,
+          width: waveWidth, height: waveHeight
+        };
+        
+      case 'slot':
+        const slotLength = params.length || 50;
+        const slotWidth = params.width || 10;
+        return {
+          x: -slotLength / 2, y: -slotWidth / 2,
+          width: slotLength, height: slotWidth
+        };
+        
       case 'path':
         if (params.points && params.points.length > 0) {
           let minX = Infinity, maxX = -Infinity;
@@ -1776,6 +1858,7 @@ class TransformManager {
           return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
         }
         return { x: -25, y: -25, width: 50, height: 50 };
+        
       default:
         return { x: -25, y: -25, width: 50, height: 50 };
     }
@@ -1785,12 +1868,16 @@ class TransformManager {
     const worldDX = dx * (1 / scaleFactor);
     const worldDY = dy * (1 / scaleFactor);
 
-    const isCircularShape = ['circle', 'donut', 'spiral', 'polygon', 'arc', 'star', 'cross', 'gear'].includes(shape.type);
+    const circularShapes = ['circle', 'donut', 'spiral', 'polygon', 'arc', 'star', 'gear'];
+    const rectangularShapes = ['rectangle', 'roundedRectangle', 'chamferRectangle', 'triangle', 'ellipse', 'slot', 'cross'];
+    const customShapes = ['arrow', 'text', 'wave'];
 
-    if (isCircularShape) {
+    if (circularShapes.includes(shape.type)) {
       this.handleCircularScaling(shape, activeHandle, worldDX, worldDY, shapeName, shapeManager);
-    } else {
+    } else if (rectangularShapes.includes(shape.type)) {
       this.handleRectangularScaling(shape, activeHandle, worldDX, worldDY, shapeName, shapeManager);
+    } else if (customShapes.includes(shape.type)) {
+      this.handleCustomScaling(shape, activeHandle, worldDX, worldDY, shapeName, shapeManager);
     }
   }
 
@@ -1816,12 +1903,38 @@ class TransformManager {
         const newRadius = Math.max(5, shape.params.radius + radiusChange);
         shapeManager.onCanvasShapeChange(shapeName, 'radius', newRadius);
         break;
+        
       case 'polygon':
       case 'arc':
         const newPolyRadius = Math.max(5, shape.params.radius + radiusChange);
         shapeManager.onCanvasShapeChange(shapeName, 'radius', newPolyRadius);
         break;
-      // Add other circular shape cases...
+        
+      case 'donut':
+        const outerRadius = Math.max(10, shape.params.outerRadius + radiusChange);
+        const innerRadius = Math.max(2, Math.min(outerRadius - 5, shape.params.innerRadius + radiusChange * 0.5));
+        shapeManager.onCanvasShapeChange(shapeName, 'outerRadius', outerRadius);
+        shapeManager.onCanvasShapeChange(shapeName, 'innerRadius', innerRadius);
+        break;
+        
+      case 'spiral':
+        const newStartRadius = Math.max(1, shape.params.startRadius + radiusChange * 0.3);
+        const newEndRadius = Math.max(newStartRadius + 5, shape.params.endRadius + radiusChange);
+        shapeManager.onCanvasShapeChange(shapeName, 'startRadius', newStartRadius);
+        shapeManager.onCanvasShapeChange(shapeName, 'endRadius', newEndRadius);
+        break;
+        
+      case 'star':
+        const newOuterRadius = Math.max(10, shape.params.outerRadius + radiusChange);
+        const newInnerRadius = Math.max(2, Math.min(newOuterRadius - 5, shape.params.innerRadius + radiusChange * 0.6));
+        shapeManager.onCanvasShapeChange(shapeName, 'outerRadius', newOuterRadius);
+        shapeManager.onCanvasShapeChange(shapeName, 'innerRadius', newInnerRadius);
+        break;
+        
+      case 'gear':
+        const newDiameter = Math.max(20, shape.params.diameter + radiusChange * 2);
+        shapeManager.onCanvasShapeChange(shapeName, 'diameter', newDiameter);
+        break;
     }
   }
 
@@ -1841,11 +1954,71 @@ class TransformManager {
         shapeManager.onCanvasShapeChange(shapeName, 'width', newWidth);
         shapeManager.onCanvasShapeChange(shapeName, 'height', newHeight);
         break;
-      // Add other rectangular shape cases...
+        
+      case 'triangle':
+        const newBase = Math.max(5, shape.params.base + deltaX);
+        const newTriangleHeight = Math.max(5, shape.params.height + deltaY);
+        shapeManager.onCanvasShapeChange(shapeName, 'base', newBase);
+        shapeManager.onCanvasShapeChange(shapeName, 'height', newTriangleHeight);
+        break;
+        
+      case 'ellipse':
+        const newRadiusX = Math.max(2, shape.params.radiusX + deltaX / 2);
+        const newRadiusY = Math.max(2, shape.params.radiusY + deltaY / 2);
+        shapeManager.onCanvasShapeChange(shapeName, 'radiusX', newRadiusX);
+        shapeManager.onCanvasShapeChange(shapeName, 'radiusY', newRadiusY);
+        break;
+        
+      case 'slot':
+        const newSlotLength = Math.max(10, shape.params.length + deltaX);
+        const newSlotWidth = Math.max(5, shape.params.width + deltaY);
+        shapeManager.onCanvasShapeChange(shapeName, 'length', newSlotLength);
+        shapeManager.onCanvasShapeChange(shapeName, 'width', newSlotWidth);
+        break;
+        
+      case 'cross':
+        const newCrossWidth = Math.max(10, shape.params.width + deltaX);
+        const newThickness = Math.max(2, shape.params.thickness + deltaY);
+        shapeManager.onCanvasShapeChange(shapeName, 'width', newCrossWidth);
+        shapeManager.onCanvasShapeChange(shapeName, 'thickness', newThickness);
+        break;
+    }
+  }
+
+  handleCustomScaling(shape, handle, worldDX, worldDY, shapeName, shapeManager) {
+    const scaleX = (handle === 'tr' || handle === 'br') ? 1 : -1;
+    const scaleY = (handle === 'bl' || handle === 'br') ? 1 : -1;
+
+    const deltaX = worldDX * scaleX * 2;
+    const deltaY = worldDY * scaleY * 2;
+
+    switch (shape.type) {
+      case 'arrow':
+        const newLength = Math.max(20, shape.params.length + deltaX);
+        const newHeadWidth = Math.max(5, shape.params.headWidth + deltaY);
+        const newHeadLength = Math.max(5, Math.min(newLength * 0.8, shape.params.headLength + deltaX * 0.3));
+        const newBodyWidth = Math.max(2, shape.params.bodyWidth + deltaY * 0.3);
+        shapeManager.onCanvasShapeChange(shapeName, 'length', newLength);
+        shapeManager.onCanvasShapeChange(shapeName, 'headWidth', newHeadWidth);
+        shapeManager.onCanvasShapeChange(shapeName, 'headLength', newHeadLength);
+        shapeManager.onCanvasShapeChange(shapeName, 'bodyWidth', newBodyWidth);
+        break;
+        
+      case 'text':
+        const scaleFactor = Math.max(0.5, 1 + (deltaX + deltaY) / 200);
+        const newFontSize = Math.max(6, shape.params.fontSize * scaleFactor);
+        shapeManager.onCanvasShapeChange(shapeName, 'fontSize', newFontSize);
+        break;
+        
+      case 'wave':
+        const newWaveWidth = Math.max(20, shape.params.width + deltaX);
+        const newAmplitude = Math.max(2, shape.params.amplitude + deltaY / 2);
+        shapeManager.onCanvasShapeChange(shapeName, 'width', newWaveWidth);
+        shapeManager.onCanvasShapeChange(shapeName, 'amplitude', newAmplitude);
+        break;
     }
   }
 }
-
 // DEBUG VISUALIZER
 class DebugVisualizer {
   constructor(ctx) {
