@@ -26,21 +26,21 @@ export class Environment {
         return shape;
     }
   
-    createShape(type, name, params) {
-        const shape = {
-            type,
-            id: `${type}_${name}_${Date.now()}`,
-            params: { ...params },
-            transform: {
-                position: params.position || [0, 0],
-                rotation: 0,
-                scale: [1, 1]
-            },
-            layerName: null  
-        };
-        this.shapes.set(name, shape);
-        return shape;
-    }
+   createShape(type, name, params) {
+    const shape = {
+      type,
+      id: `${type}_${name}_${Date.now()}`,
+      params: { ...params },
+      transform: {
+        position: params.position || [0, 0],
+        rotation: params.rotation || 0,
+        scale: params.scale || [1, 1]
+      },
+      layerName: null  
+    };
+    this.shapes.set(name, shape);
+    return shape;
+  }
   
     // New method to create a shape with a specific name
     createShapeWithName(type, name, params) {
@@ -50,7 +50,7 @@ export class Environment {
             params: { ...params },
             transform: {
                 position: params.position || [0, 0],
-                rotation: 0,
+                rotation: params.rotation || 0,
                 scale: [1, 1]
             },
             layerName: null  
