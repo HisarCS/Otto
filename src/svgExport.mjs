@@ -1,4 +1,6 @@
 // svgExport.mjs
+const MM_TO_PIXELS = 3.7795275591;
+const PIXELS_TO_MM = 1 / MM_TO_PIXELS;
 
 function mmToPx(mmValue) {
   return typeof mmValue === 'number' ? mmValue * MM_TO_PIXELS : mmValue;
