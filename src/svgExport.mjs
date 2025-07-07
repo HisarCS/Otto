@@ -1,6 +1,6 @@
 // svgExport.mjs
-const MM_TO_PIXELS = 3.7795275591;
-const PIXELS_TO_MM = 1 / MM_TO_PIXELS;
+const MM_TO_PIXELS = 96 / 25.4;
+
 
 function mmToPx(mmValue) {
   return typeof mmValue === 'number' ? mmValue * MM_TO_PIXELS : mmValue;
@@ -380,8 +380,8 @@ function applyRendererTransformToSVG(element, transform, canvasTransform) {
   const screenY = -worldY * canvasTransform.scale * canvasTransform.zoomLevel + canvasTransform.panOffset.y;
   
   // Apply canvas scaling to the shape itself
-  const finalScaleX = scale[0] * canvasTransform.scale * canvasTransform.zoomLevel;
-  const finalScaleY = scale[1] * canvasTransform.scale * canvasTransform.zoomLevel;
+  const finalScaleX = scale[0];
+  const finalScaleY = scale[1];
   
   let transformStr = '';
   
