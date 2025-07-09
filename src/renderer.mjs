@@ -1,4 +1,4 @@
-// renderer.mjs - Main assembly file orchestrating all renderer components
+// renderer.mjs - Fixed scale renderer without zoom functionality
 
 import { CoordinateSystem } from './renderer/coordinateSystem.mjs';
 import { ShapeStyleManager } from './renderer/styleManager.mjs';
@@ -60,6 +60,7 @@ export class Renderer {
   setupCanvas() {
     this.coordinateSystem.setupCanvas();
     this.createGridToggleButton();
+    // REMOVED: createZoomControls() - no zoom functionality
     this.redraw();
   }
 
@@ -222,7 +223,7 @@ export class Renderer {
         shape.transform, 
         this.coordinateSystem.transformX(shape.transform.position[0]),
         this.coordinateSystem.transformY(shape.transform.position[1]),
-        this.coordinateSystem.scale * this.coordinateSystem.zoomLevel
+        1 // TRUE 1:1 scale - always exactly 1
       );
 
       this.ctx.save();
@@ -235,7 +236,7 @@ export class Renderer {
       // Render the shape
       this.renderingEngine.renderShape(shape, styleContext, isSelected, isHovered);
 
-      // CRITICAL FIX: Draw selection UI BEFORE restore, while still in transformed context
+      // Draw selection UI in transformed context
       if (isSelected) {
         this.drawSelectionUIInContext(shape, shapeName);
       }
@@ -244,10 +245,10 @@ export class Renderer {
         this.drawHoverUIInContext(shape);
       }
 
-      // Restore context AFTER drawing selection UI
+      // Restore context after drawing selection UI
       this.ctx.restore();
 
-      // Draw elements that should be in screen space (not transformed)
+      // Draw elements in screen space
       if (isSelected && shape.params.operation && this.selectionSystem.showOperationLabels) {
         this.selectionSystem.drawOperationLabel(shape, shape.params.operation);
       }
@@ -264,8 +265,9 @@ export class Renderer {
   drawSelectionUIInContext(shape, shapeName) {
     // Get bounds in local space
     const bounds = this.transformManager.calculateBounds(shape);
-    const scaledWidth = bounds.width * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
-    const scaledHeight = bounds.height * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    // TRUE 1:1 scale - no scaling factors
+    const scaledWidth = bounds.width;
+    const scaledHeight = bounds.height;
 
     // Draw bounding box in local transformed space
     const padding = 8;
@@ -292,8 +294,9 @@ export class Renderer {
 
   drawHoverUIInContext(shape) {
     const bounds = this.transformManager.calculateBounds(shape);
-    const scaledWidth = bounds.width * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
-    const scaledHeight = bounds.height * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    // TRUE 1:1 scale - no scaling factors
+    const scaledWidth = bounds.width;
+    const scaledHeight = bounds.height;
 
     this.ctx.strokeStyle = this.selectionSystem.hoverColor + '80';
     this.ctx.lineWidth = 2;
@@ -561,18 +564,10 @@ export class Renderer {
     }
   }
 
-  zoomIn() {
-    this.coordinateSystem.zoom(1.1, this.canvas.width / 2, this.canvas.height / 2);
-    this.redraw();
-  }
-
-  zoomOut() {
-    this.coordinateSystem.zoom(0.9, this.canvas.width / 2, this.canvas.height / 2);
-    this.redraw();
-  }
+  // REMOVED: zoomIn(), zoomOut() - no zoom functionality
 
   resetView() {
-    this.coordinateSystem.setZoomLevel(1);
+    // Only reset pan, no zoom
     this.coordinateSystem.setPanOffset(0, 0);
     this.redraw();
   }
@@ -600,15 +595,9 @@ export class Renderer {
 
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
-    const width = maxX - minX;
-    const height = maxY - minY;
 
-    const scaleX = this.canvas.width / (width + 100);
-    const scaleY = this.canvas.height / (height + 100);
-    const scale = Math.min(scaleX, scaleY, 3);
-
-    this.coordinateSystem.setZoomLevel(scale);
-    this.coordinateSystem.setPanOffset(-centerX * this.coordinateSystem.scale * scale, centerY * this.coordinateSystem.scale * scale);
+    // Center the view on the shapes (no scaling, TRUE 1:1)
+    this.coordinateSystem.setPanOffset(-centerX, centerY);
     
     this.redraw();
   }
@@ -636,11 +625,12 @@ export class Renderer {
     return {
       canvas: bounds,
       viewport: viewport,
-      zoom: this.coordinateSystem.zoomLevel,
+      scale: this.coordinateSystem.scale, // Always 1
       pan: this.coordinateSystem.panOffset,
       shapeCount: this.shapes.size,
       selectedShape: this.selectedShape ? this.findShapeName(this.selectedShape) : null,
-      debugMode: this.debugMode
+      debugMode: this.debugMode,
+      pixelsToMm: this.coordinateSystem.pixelsToMm // Always 1
     };
   }
 
