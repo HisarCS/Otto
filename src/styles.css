@@ -6,7 +6,7 @@
 
 html, body {
   height: 100vh;
-  overflow: hidden;
+
 }
 
 body {
@@ -74,7 +74,7 @@ body {
 }
 
 .editor-panel {
-  width: 50%;
+  width: 30%;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #ccc;
@@ -87,8 +87,8 @@ body {
 }
 
 .visualization-panel {
-  width: 50%;
-  position: relative;
+  width: 70%;
+
 }
 
 #canvas {
@@ -1003,5 +1003,383 @@ body {
   .canvas-tool-button:hover {
     background: rgba(55, 65, 81, 1);
     color: #FF5722;
+  }
+}
+
+/* Drag & Drop Shape Palette Styles */
+
+/* Toggle Button - positioned on right side of top area */
+.palette-toggle-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #6B7280;
+  transition: all 0.2s ease;
+  z-index: 100;
+  font-weight: bold;
+}
+
+.palette-toggle-button:hover {
+  background: rgba(255, 255, 255, 1);
+  color: #FF5722;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Main Palette Container */
+.shape-palette-container {
+  position: fixed;
+  top: 70px;
+  right: 16px;
+  width: 280px;
+  max-height: 400px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shape-palette-container.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: all;
+}
+
+/* Palette Header */
+.palette-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.palette-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.close-palette {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.close-palette:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #374151;
+}
+
+/* Palette Content */
+.palette-content {
+  padding: 16px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar */
+.palette-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.palette-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.palette-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.palette-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Palette Grid */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 12px;
+}
+
+/* Individual Palette Items */
+.palette-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid transparent;
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+}
+
+.palette-item:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: #FF5722;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 87, 34, 0.2);
+}
+
+.palette-item:active,
+.palette-item.dragging {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+/* Shape Icons */
+.shape-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 6px;
+  color: #6B7280;
+  transition: color 0.2s ease;
+}
+
+.palette-item:hover .shape-icon {
+  color: #FF5722;
+}
+
+.shape-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Shape Names */
+.shape-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  text-align: center;
+  line-height: 1.2;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.palette-item:hover .shape-name {
+  color: #374151;
+}
+
+/* Drag Preview */
+.drag-preview {
+  position: fixed;
+  width: 70px;
+  height: auto;
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0.8;
+  transform: scale(1.1);
+  transition: none;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: 2px solid #FF5722;
+}
+
+.drag-preview.over-canvas {
+  opacity: 1;
+  background: rgba(255, 87, 34, 0.1);
+  border-color: #FF5722;
+  box-shadow: 0 8px 24px rgba(255, 87, 34, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .shape-palette-container {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: 300px;
+  }
+  
+  .palette-grid {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 8px;
+  }
+  
+  .palette-item {
+    padding: 8px 4px;
+  }
+  
+  .shape-icon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .shape-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .shape-name {
+    font-size: 10px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .shape-palette-container {
+    background: rgba(31, 41, 55, 0.95);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+  }
+  
+  .palette-header {
+    border-bottom-color: rgba(75, 85, 99, 0.3);
+  }
+  
+  .palette-header h3 {
+    color: #F3F4F6;
+  }
+  
+  .close-palette {
+    color: #9CA3AF;
+  }
+  
+  .close-palette:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #F3F4F6;
+  }
+  
+  .palette-item {
+    background: rgba(55, 65, 81, 0.7);
+  }
+  
+  .palette-item:hover {
+    background: rgba(55, 65, 81, 1);
+    border-color: #FF5722;
+  }
+  
+  .shape-icon {
+    color: #D1D5DB;
+  }
+  
+  .palette-item:hover .shape-icon {
+    color: #FF5722;
+  }
+  
+  .shape-name {
+    color: #D1D5DB;
+  }
+  
+  .palette-item:hover .shape-name {
+    color: #F3F4F6;
+  }
+  
+  .palette-toggle-button {
+    background: rgba(55, 65, 81, 0.9);
+    color: #D1D5DB;
+  }
+  
+  .palette-toggle-button:hover {
+    background: rgba(55, 65, 81, 1);
+    color: #FF5722;
+  }
+}
+
+/* Animation for shape creation feedback */
+@keyframes shapeCreated {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.palette-item.shape-created {
+  animation: shapeCreated 0.4s ease-out;
+}
+
+/* Enhanced visual feedback */
+.palette-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 8px;
+  background: linear-gradient(45deg, transparent, rgba(255, 87, 34, 0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.palette-item:hover::before {
+  opacity: 1;
+}
+
+/* Accessibility improvements */
+.palette-item:focus {
+  outline: 2px solid #FF5722;
+  outline-offset: 2px;
+}
+
+.palette-toggle-button:focus {
+  outline: 2px solid #FF5722;
+  outline-offset: 2px;
+}
+
+/* Smooth entrance animation */
+.palette-grid .palette-item {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+.palette-grid .palette-item:nth-child(1) { animation-delay: 0.05s; }
+.palette-grid .palette-item:nth-child(2) { animation-delay: 0.1s; }
+.palette-grid .palette-item:nth-child(3) { animation-delay: 0.15s; }
+.palette-grid .palette-item:nth-child(4) { animation-delay: 0.2s; }
+.palette-grid .palette-item:nth-child(5) { animation-delay: 0.25s; }
+.palette-grid .palette-item:nth-child(6) { animation-delay: 0.3s; }
+.palette-grid .palette-item:nth-child(7) { animation-delay: 0.35s; }
+.palette-grid .palette-item:nth-child(8) { animation-delay: 0.4s; }
+.palette-grid .palette-item:nth-child(9) { animation-delay: 0.45s; }
+.palette-grid .palette-item:nth-child(10) { animation-delay: 0.5s; }
+.palette-grid .palette-item:nth-child(11) { animation-delay: 0.55s; }
+.palette-grid .palette-item:nth-child(12) { animation-delay: 0.6s; }
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
