@@ -6,12 +6,14 @@ import { ParameterManager } from './2Dparameters.mjs';
 import { shapeManager } from './shapeManager.mjs';
 import { exportToSVG } from './svgExport.mjs';
 import { exportToDXF } from './dxfExport.mjs';
+import { DragDropSystem } from './dragDropSystem.mjs';
 
 let editor;
 let canvas;
 let renderer;
 let interpreter;
 let parameterManager;
+let dragDropSystem;
 let currentTab = 'editor-tab';
 let currentPanel = null;
 let astOutput;
@@ -28,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   setTimeout(() => {
     ensureProperConnections();
+    applyNewLayout();
     if (editor && editor.getValue().trim()) {
       runCode();
     }
@@ -44,8 +47,19 @@ function initializeComponents() {
   renderer.shapes = new Map();
   
   shapeManager.registerRenderer(renderer);
-  
   renderer.setUpdateCodeCallback(updateCodeFromShapeChange);
+  
+  initializeDragDropSystem();
+}
+
+function initializeDragDropSystem() {
+  try {
+    dragDropSystem = new DragDropSystem(renderer, null, shapeManager);
+    window.dragDropSystem = dragDropSystem;
+  } catch (error) {
+    const toggleBtn = document.querySelector('.palette-toggle-button');
+    if (toggleBtn) toggleBtn.style.display = 'none';
+  }
 }
 
 function setupCodeMirror() {
@@ -88,6 +102,10 @@ function setupCodeMirror() {
   
   shapeManager.registerEditor(editor);
   
+  if (dragDropSystem) {
+    dragDropSystem.editor = editor;
+  }
+  
   let timeout;
   editor.on('change', () => {
     clearTimeout(timeout);
@@ -113,10 +131,7 @@ function setupEventHandlers() {
   setupExportMenu();
   
   window.addEventListener('resize', () => {
-    if (renderer && currentTab === 'editor-tab') {
-      renderer.setupCanvas();
-      runCode();
-    }
+    forceCanvasResize();
   });
   
   document.addEventListener('keydown', (event) => {
@@ -139,6 +154,38 @@ function setupEventHandlers() {
       if (parameterManager && !isInEditor) {
         event.preventDefault();
         parameterManager.toggleMenu();
+      }
+    }
+    
+    if (event.key.toLowerCase() === 's' && event.ctrlKey && !event.shiftKey) {
+      event.preventDefault();
+      if (dragDropSystem) {
+        dragDropSystem.togglePalette();
+      }
+      return;
+    }
+    
+    if (event.ctrlKey && event.shiftKey && dragDropSystem) {
+      const shapeShortcuts = {
+        'c': 'circle',
+        'r': 'rectangle',
+        't': 'triangle',
+        'e': 'ellipse',
+        'o': 'polygon',
+        's': 'star',
+        'a': 'arc',
+        'g': 'gear',
+        'd': 'donut'
+      };
+      
+      const shapeType = shapeShortcuts[event.key.toLowerCase()];
+      if (shapeType) {
+        event.preventDefault();
+        const canvasRect = canvas.getBoundingClientRect();
+        const centerX = canvasRect.width / 2;
+        const centerY = canvasRect.height / 2;
+        const worldPos = renderer.coordinateSystem.screenToWorld(centerX, centerY);
+        dragDropSystem.createShapeAtPosition(shapeType, worldPos.x, worldPos.y);
       }
     }
   });
@@ -202,6 +249,31 @@ function setupExportMenu() {
     exportMenu.classList.remove('show');
     handleDXFExport();
   });
+}
+
+function forceCanvasResize() {
+  if (renderer && currentTab === 'editor-tab') {
+    setTimeout(() => {
+      renderer.setupCanvas();
+      renderer.redraw();
+      
+      if (editor) {
+        editor.refresh();
+      }
+    }, 100);
+  }
+}
+
+function applyNewLayout() {
+  const editorPanel = document.querySelector('.editor-panel');
+  const visualPanel = document.querySelector('.visualization-panel');
+  
+  if (editorPanel && visualPanel) {
+    editorPanel.style.width = '30%';
+    visualPanel.style.width = '70%';
+    
+    forceCanvasResize();
+  }
 }
 
 class EnhancedParameterManager extends ParameterManager {
@@ -392,7 +464,6 @@ function updateCodeFromShapeChange(change) {
       });
     }
   } catch (error) {
-    //
   }
 }
 
@@ -541,6 +612,15 @@ function ensureProperConnections() {
     shapeManager.registerEditor(editor);
   }
   
+  if (dragDropSystem) {
+    if (!dragDropSystem.editor && editor) {
+      dragDropSystem.editor = editor;
+    }
+    if (!dragDropSystem.shapeManager) {
+      dragDropSystem.shapeManager = shapeManager;
+    }
+  }
+  
   if (parameterManager) {
     parameterManager.editor = editor;
     parameterManager.runCode = runCode;
@@ -676,14 +756,19 @@ shape circle myCircle {
 - **Export**: SVG and DXF formats supported
 - **Grid**: Toggle with 'G' key
 - **Parameter Panel**: Toggle with 'P' key
+- **Shape Palette**: Toggle with Ctrl+S or click ⊞ button
 
 ### Keyboard Shortcuts
 - **Shift+Enter**: Run code
 - **G**: Toggle grid
 - **P**: Toggle parameter panel
+- **Ctrl+S**: Toggle shape palette
 - **Delete**: Remove selected shape
 - **Arrow keys**: Move selected shape
 - **R**: Rotate selected shape
+- **Ctrl+Shift+C**: Create circle at center
+- **Ctrl+Shift+R**: Create rectangle at center
+- **Ctrl+Shift+T**: Create triangle at center
     `;
     
     const markdownContent = document.getElementById('markdown-content');
@@ -693,7 +778,6 @@ shape circle myCircle {
       markdownContent.innerHTML = `<pre>${basicDocs}</pre>`;
     }
   } catch (error) {
-    //
   }
 }
 
@@ -705,7 +789,9 @@ window.aqui = {
   interpreter,
   parameterManager,
   shapeManager,
+  dragDropSystem,
   runCode,
   exportSVG: handleSVGExport,
   exportDXF: handleDXFExport
 };
+
