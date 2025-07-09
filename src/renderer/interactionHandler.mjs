@@ -1,4 +1,4 @@
-// interactionHandler.mjs - All mouse and keyboard interactions
+// interactionHandler.mjs - TRUE 1:1 interaction handler
 
 export class InteractionHandler {
   constructor(renderer) {
@@ -105,6 +105,7 @@ export class InteractionHandler {
   handleWheel(event) {
     event.preventDefault();
     
+    // Only handle panning with Ctrl+wheel (NO ZOOM)
     if (event.ctrlKey) {
       const panSensitivity = 2;
       
@@ -121,15 +122,8 @@ export class InteractionHandler {
       }
       
       this.renderer.redraw();
-    } else {
-      const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
-      const rect = this.canvas.getBoundingClientRect();
-      const mouseX = event.clientX - rect.left;
-      const mouseY = event.clientY - rect.top;
-      
-      this.coordinateSystem.zoom(zoomFactor, mouseX, mouseY);
-      this.renderer.redraw();
     }
+    // Regular wheel scrolling is ignored (no zoom)
   }
   
   handleKeyDown(event) {
@@ -251,8 +245,9 @@ export class InteractionHandler {
     const rotatedY = dy * Math.cos(angle) - dx * Math.sin(angle);
     
     const bounds = this.renderer.transformManager.calculateBounds(shape);
-    const scaledWidth = bounds.width * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
-    const scaledHeight = bounds.height * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    // TRUE 1:1 scale - no scaling factors
+    const scaledWidth = bounds.width;
+    const scaledHeight = bounds.height;
     
     return (
       Math.abs(rotatedX) <= scaledWidth / 2 &&
@@ -268,8 +263,9 @@ export class InteractionHandler {
     const shapeY = this.coordinateSystem.transformY(shape.transform.position[1]);
     
     const bounds = this.renderer.transformManager.calculateBounds(shape);
-    const scaledWidth = bounds.width * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
-    const scaledHeight = bounds.height * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    // TRUE 1:1 scale - no scaling factors
+    const scaledWidth = bounds.width;
+    const scaledHeight = bounds.height;
     const halfWidth = scaledWidth / 2;
     const halfHeight = scaledHeight / 2;
     
@@ -395,12 +391,13 @@ export class InteractionHandler {
     const shapeName = this.renderer.findShapeName(this.selectedShape);
     if (!shapeName) return;
     
+    // TRUE 1:1 scale - no scaling factors
     this.renderer.transformManager.handleParameterScaling(
       this.selectedShape, 
       this.activeHandle, 
       dx, 
       dy, 
-      this.coordinateSystem.scale * this.coordinateSystem.zoomLevel,
+      1, // TRUE 1:1 scale
       shapeName,
       this.renderer.shapeManager
     );
@@ -437,8 +434,9 @@ export class InteractionHandler {
     
     const shape = this.selectedShape;
     
-    const worldDX = dx / (this.coordinateSystem.scale * this.coordinateSystem.zoomLevel);
-    const worldDY = -dy / (this.coordinateSystem.scale * this.coordinateSystem.zoomLevel);
+    // TRUE 1:1 scale - direct pixel to mm conversion
+    const worldDX = dx;  // No scaling needed - 1 pixel = 1 mm
+    const worldDY = -dy; // Just flip Y axis
     
     let newX = shape.transform.position[0] + worldDX;
     let newY = shape.transform.position[1] + worldDY;
