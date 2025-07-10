@@ -1,13 +1,3 @@
-// renderer.mjs - Fixed scale renderer without zoom functionality
-
-import { CoordinateSystem } from "./renderer/coordinateSystem.mjs";
-import { ShapeStyleManager } from "./renderer/styleManager.mjs";
-import { InteractionHandler } from "./renderer/interactionHandler.mjs";
-import { ShapeRenderer } from "./renderer/shapeRenderer.mjs";
-import { PathRenderer } from "./renderer/pathRenderer.mjs";
-import { BooleanOperationRenderer } from "./renderer/booleanRenderer.mjs";
-import { SelectionSystem } from "./renderer/selectionSystem.mjs";
-import { HandleSystem } from "./renderer/handleSystem.mjs";
 import { DebugVisualizer } from "./renderer/debugVisualizer.mjs";
 import { TransformManager } from "./renderer/transformManager.mjs";
 import { shapeManager } from "./shapeManager.mjs";
