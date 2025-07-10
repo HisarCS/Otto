@@ -1,0 +1,57 @@
+shape rectangle base {
+  rotation: 0
+  position: [0, 0]
+  width: 350
+  height: 200
+  fill: true
+  fillColor: "#000000"
+}
+shape circle tape1 {
+  radius: 30
+  position: [-104, 24]
+  fill: true
+  fillColor: "#ffffff"
+}
+shape circle tape2 {
+  radius: 30
+  position: [-104, -44]
+  fill: true
+  fillColor: "#ffffff"
+}
+shape text tapeText {
+    fillColor: "#ffffff"
+    text: "Tape"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-106, 68]
+}
+shape text penText {
+    fillColor: "#ffffff"
+    text: "Marker"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-4, 73]
+}
+shape rectangle marker {
+    rotation: 90
+    width: 124
+    height: 71
+    position: [107, -9]
+    fill: true
+    fillColor: "#ffffff"
+}
+shape text multimeterText {
+    fillColor: "#ffffff"
+    text: "Multimeter"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [107, 70]
+}
+shape rectangle multimetre {
+    rotation: 90
+    width: 134
+    height: 31
+    position: [0, -12]
+    fill: true
+    fillColor: "#ffffff"
+}

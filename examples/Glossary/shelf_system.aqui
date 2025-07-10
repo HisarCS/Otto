@@ -1,0 +1,54 @@
+shape rectangle back {
+  rotation: 0
+  position: [-251, -34]
+  width: 200
+  height: 480
+  fill: true
+  fillColor: "#000000"
+}
+shape rectangle rod1 {
+  rotation: 0
+  position: [307, -32]
+  width: 30
+  height: 480
+  fill: true
+  fillColor: "#000000"
+}
+shape rectangle rod2 {
+  rotation: 0
+  position: [203, -33]
+  width: 30
+  height: 480
+  fill: true
+  fillColor: "#000000"
+}
+shape rectangle base1 {
+  rotation: 0
+  position: [19, -153]
+  width: 200
+  height: 200
+  fill: true
+  fillColor: "#000000"
+}
+shape rectangle base3 {
+  rotation: 0
+  position: [17, 87]
+  width: 200
+  height: 200
+  fill: true
+  fillColor: "#000000"
+}
+shape text two {
+    text: "Filaments"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-254, -42]
+  	fillColor: "#ffffff"
+}
+shape text three {
+    text: "Finished Prints"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-253, 187]
+  	fillColor: "#ffffff"
+}
