@@ -25,6 +25,10 @@ import {
   HalfLapFemale,
   CrossLapVertical,
   CrossLapHorizontal,
+  SlotBoard,
+  TabBoard,
+  FingerCombMale,
+  FingerCombFemale,
 } from "../Shapes.mjs";
 
 export class ShapeRenderer {
@@ -243,6 +247,23 @@ export class ShapeRenderer {
             params.headWidth || 30,
             params.headLength || 25,
           );
+        case "slotBoard": 
+          return new SlotBoard(
+            params.width || 120,
+            params.height || 40,
+            params.slotCount || 3,
+            params.slotWidth || 20,
+            params.slotDepth || 20,
+            params.slotPosition !== undefined ? params.slotPosition : 0
+          );
+        case "tabBoard":
+          return new TabBoard(
+            params.width || 120,
+            params.height || 40,
+            params.tabCount || 3,
+            params.tabWidth || 20,
+            params.tabDepth || 20,
+          );
         case "donut":
           return new Donut(params.outerRadius || 50, params.innerRadius || 20);
         case "spiral":
@@ -287,7 +308,7 @@ export class ShapeRenderer {
           return new FingerJointPin(
             params.width || 200,
             params.fingerCount || 6,
-            params.fingerWidth || null, // Auto-calculate if not provided
+            params.fingerWidth || null,
             params.depth || 50,
             params.thickness || 20,
           );
@@ -295,10 +316,24 @@ export class ShapeRenderer {
           return new FingerJointSocket(
             params.width || 200,
             params.fingerCount || 6,
-            params.fingerWidth || null, // Auto-calculate if not provided
+            params.fingerWidth || null,
             params.depth || 50,
             params.thickness || 20,
           );
+        case "fingerCombMale":
+          return new FingerCombMale(
+            params.width || 200,
+            params.height || 80,
+            params.toothCount || 8,
+            params.toothDepth || 15
+          );
+        case "fingerCombFemale":
+          return new FingerCombFemale(
+            params.width || 200,
+            params.height || 80,
+            params.toothCount || 8,
+            params.toothDepth || 15
+          );   
         case "halfLapMale":
           return new HalfLapMale(
             params.width || 100,
@@ -345,6 +380,26 @@ export class ShapeRenderer {
           y: -radius,
           width: radius * 2,
           height: radius * 2,
+        };
+
+      case "slotBoard":
+          return new SlotBoard(
+            params.width || 120,
+            params.height || 40,
+            params.slotCount || 3,
+            params.slotWidth || 20,
+            params.slotDepth || 20,
+            params.slotPosition !== undefined ? params.slotPosition : 0  // FIXED: Check for undefined
+          );
+      case "tabBoard":
+        const slotTabWidth = params.width || 120;
+        const slotTabHeight = params.height || 40;
+        const tabDepth = params.tabDepth || 20;
+        return {
+          x: -slotTabWidth / 2,
+          y: -(slotTabHeight + tabDepth) / 2,
+          width: slotTabWidth,
+          height: slotTabHeight + tabDepth,
         };
 
       case "triangle":
@@ -497,6 +552,18 @@ export class ShapeRenderer {
           y: -waveHeight / 2,
           width: waveWidth,
           height: waveHeight,
+        };
+
+      case "fingerCombMale":
+      case "fingerCombFemale":
+        const combWidth = params.width || 200;
+        const combDepth = params.depth || 50;
+        const combThickness = params.thickness || 20;
+        return {
+          x: -combWidth / 2,
+          y: -(combDepth + combThickness) / 2,
+          width: combWidth,
+          height: combDepth + combThickness,
         };
 
       case "slot":
@@ -762,6 +829,58 @@ export class ShapeRenderer {
     return true;
   }
 
+  renderFingerCombMale(params, styleContext, isSelected, isHovered) {
+    const shapeInstance = this.createShapeInstance('fingerCombMale', params);
+    if (!shapeInstance) return false;
+
+    const points = shapeInstance.getPoints();
+    if (!points || points.length === 0) return false;
+
+    this.ctx.save();
+    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = '#000000';
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      this.ctx.lineTo(points[i].x, points[i].y);
+    }
+    this.ctx.closePath();
+
+    if (styleContext.shouldFill) {
+      this.ctx.fill();
+    }
+    this.ctx.stroke();
+    this.ctx.restore();
+    return true;
+  }
+
+  renderFingerCombFemale(params, styleContext, isSelected, isHovered) {
+    const shapeInstance = this.createShapeInstance('fingerCombMale', params);
+    if (!shapeInstance) return false;
+
+    const points = shapeInstance.getPoints();
+    if (!points || points.length === 0) return false;
+
+    this.ctx.save();
+    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = '#000000';
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      this.ctx.lineTo(points[i].x, points[i].y);
+    }
+    this.ctx.closePath();
+
+    if (styleContext.shouldFill) {
+      this.ctx.fill();
+    }
+    this.ctx.stroke();
+    this.ctx.restore();
+    return true;
+  }
+
   renderFingerJointSocket(params, styleContext, isSelected, isHovered) {
     const shapeInstance = this.createShapeInstance("fingerJointSocket", params);
     if (!shapeInstance) return false;
@@ -850,6 +969,87 @@ export class ShapeRenderer {
       "crossLapHorizontal",
       params,
     );
+    if (!shapeInstance) return false;
+
+    const points = shapeInstance.getPoints();
+    if (!points || points.length === 0) return false;
+
+    this.ctx.save();
+    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = "#000000";
+
+    this.ctx.beginPath();
+    this.ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      this.ctx.lineTo(points[i].x, points[i].y);
+    }
+    this.ctx.closePath();
+
+    if (styleContext.shouldFill) {
+      this.ctx.fill();
+    }
+    this.ctx.stroke();
+    this.ctx.restore();
+    return true;
+  }
+
+  renderSlotBoard(params, styleContext, isSelected, isHovered) {
+    const shapeInstance = this.createShapeInstance("slotBoard", params);
+    if (!shapeInstance) return false;
+
+    const points = shapeInstance.getPoints();
+    if (!points || points.length === 0) return false;
+
+    this.ctx.save();
+    this.ctx.lineWidth = 1;
+    this.ctx.strokeStyle = "#000000";
+
+    // Draw outer rectangle (first 5 points)
+    const outerPoints = points.slice(0, 5);
+
+    this.ctx.beginPath();
+    this.ctx.moveTo(outerPoints[0].x, outerPoints[0].y);
+    for (let i = 1; i < outerPoints.length; i++) {
+      this.ctx.lineTo(outerPoints[i].x, outerPoints[i].y);
+    }
+    this.ctx.closePath();
+
+    // Fill and stroke outer shape first
+    if (styleContext.shouldFill) {
+      this.ctx.fill();
+    }
+    this.ctx.stroke();
+
+    // Draw slot cutouts (remaining points in groups of 5)
+    if (points.length > 5) {
+      let currentIndex = 5;
+      while (currentIndex + 4 < points.length) {
+        const slotPoints = points.slice(currentIndex, currentIndex + 5);
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(slotPoints[0].x, slotPoints[0].y);
+        for (let i = 1; i < 4; i++) {
+          // Only use first 4 points for rectangle
+          this.ctx.lineTo(slotPoints[i].x, slotPoints[i].y);
+        }
+        this.ctx.closePath();
+
+        // Cut out the slot with white fill and black outline
+        this.ctx.fillStyle = "#FFFFFF"; // Force white fill for cutouts
+        this.ctx.fill();
+        this.ctx.strokeStyle = "#000000";
+        this.ctx.stroke();
+
+        currentIndex += 5;
+      }
+    }
+
+    this.ctx.restore();
+    return true;
+  }
+
+  renderTabBoard(params, styleContext, isSelected, isHovered) {
+    const shapeInstance = this.createShapeInstance("tabBoard", params);
     if (!shapeInstance) return false;
 
     const points = shapeInstance.getPoints();
