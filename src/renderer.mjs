@@ -743,6 +743,20 @@ class ModularRenderingEngine {
             isSelected,
             isHovered,
           );
+        case "slotBoard":
+          return this.shapeRenderer.renderSlotBoard(
+            params,
+            styleContext,
+            isSelected,
+            isHovered,
+          );
+        case "tabBoard":
+          return this.shapeRenderer.renderTabBoard(
+            params,
+            styleContext,
+            isSelected,
+            isHovered,
+          );
         case "text":
           return this.shapeRenderer.renderText(
             params,
@@ -820,6 +834,10 @@ class ModularRenderingEngine {
             isSelected,
             isHovered,
           );
+      case 'fingerCombMale':
+        return this.shapeRenderer.renderFingerCombMale(params, styleContext, isSelected, isHovered);
+      case 'fingerCombFemale':
+        return this.shapeRenderer.renderFingerCombFemale(params, styleContext, isSelected, isHovered);
         default:
           return this.shapeRenderer.renderGenericShape(
             type,
