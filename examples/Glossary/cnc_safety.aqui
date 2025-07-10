@@ -1,0 +1,57 @@
+shape rectangle base {
+  rotation: 0
+  position: [0, 21]
+  width: 317
+  height: 428
+  fill: true
+  fillColor: "#000000"
+}
+shape text headin {
+    text: "CNC Machine Safety Checklist"
+    fontSize: 22.01055109430528
+    fontFamily: "Arial"
+    position: [3, 212]
+  	fillColor: "#ffffff"
+}
+shape text one {
+    text: "1) Safety glasses on"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-53, 146]
+  	fillColor: "#ffffff"
+}
+shape text two {
+    text: "2) No loose clothes/jewelry"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-23, 89]
+  	fillColor: "#ffffff"
+}
+shape text three {
+    text: "3) Material clamped"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-54, 33]
+  	fillColor: "#ffffff"
+}
+shape text four {
+    text: "4) Tool secured"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-73, -22]
+  	fillColor: "#ffffff"
+}
+shape text five {
+    text: "5) Dust extraction on"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-51, -85]
+  	fillColor: "#ffffff"
+}
+shape text six {
+    text: "6) Emergency stop visible"
+    fontSize: 20
+    fontFamily: "Arial"
+    position: [-28, -142]
+  	fillColor: "#ffffff"
+}

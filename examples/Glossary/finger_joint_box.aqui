@@ -1,0 +1,532 @@
+param length 150   
+param width 70   
+param height 60     
+param wallThickness 5     
+shape rectangle base {
+  width: length
+  heght: width
+}
+shape rectangle finger_1 {
+  width: 10
+  height: wallThickness
+  position: [-70, 52]
+}
+shape rectangle finger_2 {
+  width: 10
+  height: wallThickness
+  position: [-50, 52]
+}
+shape rectangle finger_3 {
+  width: 10
+  height: wallThickness
+  position: [-30, 52]
+}
+shape rectangle finger_4 {
+  width: 10
+  height: wallThickness
+  position: [-10, 52]
+}
+shape rectangle finger_5 {
+  width: 10
+  height: wallThickness
+  position: [10, 52]
+}
+shape rectangle finger_6 {
+  width: 10
+  height: wallThickness
+  position: [30, 52]
+}
+shape rectangle finger_7 {
+  width: 10
+  height: wallThickness
+  position: [50, 52]
+}
+shape rectangle finger_8 {
+  width: 10
+  height: wallThickness
+  position: [70, 52]
+}
+union fbase {
+  add base
+  add finger_1
+  add finger_2
+  add finger_3
+  add finger_4
+  add finger_5
+  add finger_6
+  add finger_7
+  add finger_8
+}
+shape rectangle finger_1 {
+  width: 10
+  height: wallThickness
+  position: [-70, -52]
+}
+shape rectangle finger_2 {
+  width: 10
+  height: wallThickness
+  position: [-50, -52]
+}
+shape rectangle finger_3 {
+  width: 10
+  height: wallThickness
+  position: [-30, -52]
+}
+shape rectangle finger_4 {
+  width: 10
+  height: wallThickness
+  position: [-10, -52]
+}
+shape rectangle finger_5 {
+  width: 10
+  height: wallThickness
+  position: [10, -52]
+}
+shape rectangle finger_6 {
+  width: 10
+  height: wallThickness
+  position: [30, -52]
+}
+shape rectangle finger_7 {
+  width: 10
+  height: wallThickness
+  position: [50, -52]
+}
+shape rectangle finger_8 {
+  width: 10
+  height: wallThickness
+  position: [70, -52]
+}
+union fbase {
+  add fbase
+  add finger_1
+  add finger_2
+  add finger_3
+  add finger_4
+  add finger_5
+  add finger_6
+  add finger_7
+  add finger_8
+}
+shape rectangle finger_1 {
+  width: wallThickness
+  height: 20
+  position: [-77, 44.5]
+}
+shape rectangle finger_2 {
+  width: wallThickness
+  height: 20
+  position: [-77, 15]
+}
+shape rectangle finger_3 {
+  width: wallThickness
+  height: 20
+  position: [-77, -15]
+}
+shape rectangle finger_4 {
+  width: wallThickness
+  height: 20
+  position: [-77, -44.5]
+}
+union nbase {
+  add fbase
+  add finger_1
+  add finger_2
+  add finger_3
+  add finger_4
+}
+shape rectangle finger_1 {
+  width: wallThickness
+  height: 20
+  position: [77, 44.5]
+}
+shape rectangle finger_2 {
+  width: wallThickness
+  height: 20
+  position: [77, 15]
+}
+shape rectangle finger_3 {
+  width: wallThickness
+  height: 20
+  position: [77, -15]
+}
+shape rectangle finger_4 {
+  width: wallThickness
+  height: 20
+  position: [77, -44.5]
+}
+union cbase {
+  add nbase
+  add finger_1
+  add finger_2
+  add finger_3
+  add finger_4
+}
+shape rectangle bpanel {
+  width: 150
+  height: 60
+  position: [0, -120]
+}
+shape rectangle finger_1a {
+  width: wallThickness
+  height: 5
+  position: [77, -92.5]
+}
+shape rectangle finger_2a {
+  width: wallThickness
+  height: 10
+  position: [77, -110]
+}
+shape rectangle finger_3a {
+  width: wallThickness
+  height: 10
+  position: [77, -128]
+}
+shape rectangle finger_4a {
+  width: wallThickness
+  height: 5
+  position: [77, -147.5]
+}
+union b {
+  add bpanel
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+}
+shape rectangle finger_1a {
+  width: wallThickness
+  height: 5
+  position: [-77, -92.5]
+}
+shape rectangle finger_2a {
+  width: wallThickness
+  height: 10
+  position: [-77, -110]
+}
+shape rectangle finger_3a {
+  width: wallThickness
+  height: 10
+  position: [-77, -128]
+}
+shape rectangle finger_4a {
+  width: wallThickness
+  height: 5
+  position: [-77, -147.5]
+}
+union fb {
+  add b
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+}
+shape rectangle fpanel {
+  width: 150
+  height: 60
+  position: [0, 120]
+}
+shape rectangle finger_1a {
+  width: wallThickness
+  height: 5
+  position: [77, 92.5]
+}
+shape rectangle finger_2a {
+  width: wallThickness
+  height: 10
+  position: [77, 110]
+}
+shape rectangle finger_3a {
+  width: wallThickness
+  height: 10
+  position: [77, 128]
+}
+shape rectangle finger_4a {
+  width: wallThickness
+  height: 5
+  position: [77, 147.5]
+}
+union f {
+  add fpanel
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+}
+shape rectangle finger_1a {
+  width: wallThickness
+  height: 5
+  position: [-77, 92.5]
+}
+shape rectangle finger_2a {
+  width: wallThickness
+  height: 10
+  position: [-77, 110]
+}
+shape rectangle finger_3a {
+  width: wallThickness
+  height: 10
+  position: [-77, 128]
+}
+shape rectangle finger_4a {
+  width: wallThickness
+  height: 5
+  position: [-77, 147.5]
+}
+union ft {
+  add f
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+}
+shape rectangle lpanel {
+  width: height
+  height: 100
+  position: [-150, 0]
+}
+shape rectangle rpanel {
+  width: height
+  height: 100
+  position: [150, 0]
+}
+shape rectangle finger_1a {
+  width: 5
+  height: wallThickness
+  position: [122.5, 52]
+}
+shape rectangle finger_2a {
+  width: 10
+  height: wallThickness
+  position: [140, 52]
+}
+shape rectangle finger_3a {
+  width: 10
+  height: wallThickness
+  position: [158, 52]
+}
+shape rectangle finger_4a {
+  width: 5
+  height: wallThickness
+  position: [177.5, 52]
+}
+union c {
+  add rpanel
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+}
+shape rectangle finger_1a {
+  width: 5
+  height: wallThickness
+  position: [122.5, -52]
+}
+shape rectangle finger_2a {
+  width: 10
+  height: wallThickness
+  position: [140, -52]
+}
+shape rectangle finger_3a {
+  width: 10
+  height: wallThickness
+  position: [158, -52]
+}
+shape rectangle finger_4a {
+  width: 5
+  height: wallThickness
+  position: [177.5, -52]
+}
+union dr {
+  add c
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+}
+shape rectangle finger_1a {
+  width: 5
+  height: wallThickness
+  position: [-122.5, 52]
+}
+shape rectangle finger_2a {
+  width: 10
+  height: wallThickness
+  position: [-140, 52]
+}
+shape rectangle finger_3a {
+  width: 10
+  height: wallThickness
+  position: [-158, 52]
+}
+shape rectangle finger_4a {
+  width: 5
+  height: wallThickness
+  position: [-177.5, 52]
+}
+union h {
+  add lpanel
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+}
+shape rectangle finger_1a {
+  width: 5
+  height: wallThickness
+  position: [-122.5, -52]
+}
+shape rectangle finger_2a {
+  width: 10
+  height: wallThickness
+  position: [-140, -52]
+}
+shape rectangle finger_3a {
+  width: 10
+  height: wallThickness
+  position: [-158, -52]
+}
+shape rectangle finger_4a {
+  width: 5
+  height: wallThickness
+  position: [-177.5, -52]
+}
+union yl {
+  add h
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+}
+shape rectangle finger_1a {
+  width: wallThickness
+  height: 8
+  position: [-118, -0]
+}
+shape rectangle finger_2a {
+  width: wallThickness
+  height: 8
+  position: [-118, 30]
+}
+shape rectangle finger_3a {
+  width: wallThickness
+  height: 8
+  position: [-118, -30]
+}
+union fl {
+  add yl
+  add finger_1a
+  add finger_2a
+  add finger_3a
+}
+shape rectangle finger_1a {
+  width: wallThickness
+  height: 8
+  position: [118, -0]
+}
+shape rectangle finger_2a {
+  width: wallThickness
+  height: 8
+  position: [118, 30]
+}
+shape rectangle finger_3a {
+  width: wallThickness
+  height: 8
+  position: [118, -30]
+}
+union fr {
+  add dr
+  add finger_1a
+  add finger_2a
+  add finger_3a
+}
+shape rectangle finger_1a {
+  width: 10
+  height: wallThickness
+  position: [0, 88]
+}
+shape rectangle finger_2a {
+  width: 10
+  height: wallThickness
+  position: [20, 88]
+}
+shape rectangle finger_3a {
+  width: 10
+  height: wallThickness
+  position: [40, 88]
+}
+shape rectangle finger_4a {
+  width: 10
+  height: wallThickness
+  position: [60, 88]
+}
+shape rectangle finger_5a {
+  width: 10
+  height: wallThickness
+  position: [-20, 88]
+}
+shape rectangle finger_6a {
+  width: 10
+  height: wallThickness
+  position: [-40, 88]
+}
+shape rectangle finger_7a {
+  width: 10
+  height: wallThickness
+  position: [-60, 88]
+}
+union top {
+  add ft
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+  add finger_5a
+  add finger_6a
+  add finger_7a
+}
+shape rectangle finger_1a {
+  width: 10
+  height: wallThickness
+  position: [0, -88]
+}
+shape rectangle finger_2a {
+  width: 10
+  height: wallThickness
+  position: [20, -88]
+}
+shape rectangle finger_3a {
+  width: 10
+  height: wallThickness
+  position: [40, -88]
+}
+shape rectangle finger_4a {
+  width: 10
+  height: wallThickness
+  position: [60, -88]
+}
+shape rectangle finger_5a {
+  width: 10
+  height: wallThickness
+  position: [-20, -88]
+}
+shape rectangle finger_6a {
+  width: 10
+  height: wallThickness
+  position: [-40, -88]
+}
+shape rectangle finger_7a {
+  width: 10
+  height: wallThickness
+  position: [-60, -88]
+}
+union bottom {
+  add fb
+  add finger_1a
+  add finger_2a
+  add finger_3a
+  add finger_4a
+  add finger_5a
+  add finger_6a
+  add finger_7a
+}
