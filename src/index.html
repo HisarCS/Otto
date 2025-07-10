@@ -21,6 +21,8 @@
   <!-- CRITICAL: Martinez-Rueda Boolean Operations Library -->
   <script src="https://unpkg.com/polygon-clipping@0.15.3/dist/polygon-clipping.umd.min.js"></script>
 
+  <script src="examples.js"></script>
+
   <!-- Custom CSS -->
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -30,6 +32,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="editor-tab">AQUI</button>
       <button class="tab-btn" data-tab="docs-tab">Docs</button>
+      <button class="tab-btn" data-tab="examples-tab">Examples</button>
     </div>
   </div>
 
@@ -77,6 +80,53 @@
   <!-- Documentation Tab -->
   <div class="tab-content" id="docs-tab">
     <div class="docs-content" id="markdown-content"></div>
+  </div>
+
+  <div class="tab-content" id="examples-tab">
+    <section class="examples-menu">
+      <h1 class="examples-menu__title">AQUI Examples</h1>
+      <p class="examples-menu__description">Select a design below to view its code and details.</p>
+      <div class="examples-grid">
+        <!-- Card 1 -->
+        <div class="example-card" data-example="finger-joint-box">
+          <h2>Finger-Joint Box</h2>
+          <img src="/Images/finger-joint-box.png" alt="Finger-Joint Box" />
+        </div>
+        <!-- Card 2 -->
+        <div class="example-card" data-example="puzzle-tiles-grid">
+          <h2>Puzzle Tiles Grid</h2>
+          <img src="/Images/puzzle-tiles-grid.png" alt="Puzzle Tiles Grid" />
+        </div>
+        <!-- Card 3 -->
+        <div class="example-card" data-example="mini-desk-organizer">
+          <h2>Mini Desk Organizer</h2>
+          <img src="/Images/mini-desk-organizer.png" alt="Mini Desk Organizer" />
+        </div>
+        <!-- Card 4 -->
+        <div class="example-card" data-example="ruler">
+          <h2>Ruler</h2>
+          <img src="/Images/ruler.png" alt="Ruler" />
+        </div>
+        <!-- Card 5 -->
+        <div class="example-card" data-example="cnc-safety-checklist">
+          <h2>CNC Safety Checklist</h2>
+          <img src="/Images/cnc-safety-checklist.png" alt="CNC Safety Checklist" />
+        </div>
+        <!-- Card 6 -->
+        <div class="example-card" data-example="shelf-system">
+          <h2>3D Printing Shelf System</h2>
+          <img src="/Images/shelf-system.png" alt="3D Printing Shelf System" />
+        </div>
+      </div>
+    </section>
+    <section class="example-detail" aria-hidden="true">
+      <button class="detail-back">Back</button>
+      <img class="detail-image" src="" alt="Example Code" />
+      <div class="detail-panels">
+        <pre class="detail-code"></pre>
+        <div class="detail-info"></div>
+      </div>
+    </section>
   </div>
 
   <!-- Shape Properties Modal -->
