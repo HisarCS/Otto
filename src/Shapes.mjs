@@ -211,25 +211,69 @@ class RoundedRectangle extends Shape {
         const h = this.height/2;
         const r = this.radius;
 
-        // Helper function for corner arcs
-        const addCorner = (centerX, centerY, startAngle) => {
-            for (let i = 0; i <= segmentsPerCorner; i++) {
-                const angle = startAngle + (i / segmentsPerCorner) * Math.PI/2;
-                points.push({
-                    x: centerX + Math.cos(angle) * r,
-                    y: centerY + Math.sin(angle) * r
-                });
-            }
-        };
+        // If radius is 0, return regular rectangle
+        if (r <= 0) {
+            return [
+                { x: -w, y: -h },
+                { x: w, y: -h },
+                { x: w, y: h },
+                { x: -w, y: h }
+            ].map(p => this.transformPoint(p));
+        }
 
-        // Top right corner
-        addCorner(w - r, -h + r, 0);
-        // Bottom right corner
-        addCorner(w - r, h - r, Math.PI/2);
-        // Bottom left corner
-        addCorner(-w + r, h - r, Math.PI);
-        // Top left corner
-        addCorner(-w + r, -h + r, -Math.PI/2);
+        // Start from top-left corner and go clockwise
+        
+        // Top edge (left to right)
+        points.push({ x: -w + r, y: -h });
+        points.push({ x: w - r, y: -h });
+        
+        // Top-right corner arc
+        for (let i = 0; i <= segmentsPerCorner; i++) {
+            const angle = -Math.PI/2 + (i / segmentsPerCorner) * (Math.PI/2);
+            points.push({
+                x: (w - r) + Math.cos(angle) * r,
+                y: (-h + r) + Math.sin(angle) * r
+            });
+        }
+        
+        // Right edge (top to bottom)
+        points.push({ x: w, y: -h + r });
+        points.push({ x: w, y: h - r });
+        
+        // Bottom-right corner arc
+        for (let i = 0; i <= segmentsPerCorner; i++) {
+            const angle = 0 + (i / segmentsPerCorner) * (Math.PI/2);
+            points.push({
+                x: (w - r) + Math.cos(angle) * r,
+                y: (h - r) + Math.sin(angle) * r
+            });
+        }
+        
+        // Bottom edge (right to left)
+        points.push({ x: w - r, y: h });
+        points.push({ x: -w + r, y: h });
+        
+        // Bottom-left corner arc
+        for (let i = 0; i <= segmentsPerCorner; i++) {
+            const angle = Math.PI/2 + (i / segmentsPerCorner) * (Math.PI/2);
+            points.push({
+                x: (-w + r) + Math.cos(angle) * r,
+                y: (h - r) + Math.sin(angle) * r
+            });
+        }
+        
+        // Left edge (bottom to top)
+        points.push({ x: -w, y: h - r });
+        points.push({ x: -w, y: -h + r });
+        
+        // Top-left corner arc
+        for (let i = 0; i <= segmentsPerCorner; i++) {
+            const angle = Math.PI + (i / segmentsPerCorner) * (Math.PI/2);
+            points.push({
+                x: (-w + r) + Math.cos(angle) * r,
+                y: (-h + r) + Math.sin(angle) * r
+            });
+        }
 
         return points.map(p => this.transformPoint(p));
     }
@@ -438,6 +482,7 @@ class Spiral extends Shape {
 }
 
 // 15. Cross
+
 class Cross extends Shape {
     constructor(width, thickness) {
         super();
@@ -448,14 +493,23 @@ class Cross extends Shape {
     getPoints() {
         const w = this.width/2;
         const t = this.thickness/2;
+        
+        // Simple cross outline points - like rectangle but for cross shape
         const points = [
-            { x: -t, y: -w }, { x: t, y: -w },
-            { x: t, y: -t }, { x: w, y: -t },
-            { x: w, y: t }, { x: t, y: t },
-            { x: t, y: w }, { x: -t, y: w },
-            { x: -t, y: t }, { x: -w, y: t },
-            { x: -w, y: -t }, { x: -t, y: -t }
+            { x: -t, y: -w },   // Top-left of vertical
+            { x: t, y: -w },    // Top-right of vertical
+            { x: t, y: -t },    // Inner corner
+            { x: w, y: -t },    // Top-right of horizontal
+            { x: w, y: t },     // Bottom-right of horizontal
+            { x: t, y: t },     // Inner corner
+            { x: t, y: w },     // Bottom-right of vertical
+            { x: -t, y: w },    // Bottom-left of vertical
+            { x: -t, y: t },    // Inner corner
+            { x: -w, y: t },    // Bottom-left of horizontal
+            { x: -w, y: -t },   // Top-left of horizontal
+            { x: -t, y: -t }    // Inner corner (back to start)
         ];
+        
         return points.map(p => this.transformPoint(p));
     }
 }
@@ -646,7 +700,417 @@ class PolygonWithHoles extends Shape {
         return points.map(p => this.transformPoint(p));
     }
 }
-// Utility functions for shape operations
+
+// 21. Dovetail Pin
+class DovetailPin extends Shape {
+    constructor(width, jointCount, depth, angle, thickness = 20) {
+        super();
+        this.width = width;
+        this.jointCount = jointCount;
+        this.depth = depth;
+        this.angle = angle;
+        this.thickness = thickness; // Board thickness
+    }
+
+    getPoints() {
+        const spacing = this.width / this.jointCount;
+        const pinRatio = 0.6;
+        const pinBaseWidth = spacing * pinRatio;
+        const angleRad = this.angle * Math.PI / 180;
+        const taper = Math.tan(angleRad) * this.depth;
+        const pinTopWidth = pinBaseWidth + (2 * taper);
+
+        const points = [];
+        const startX = -this.width / 2;
+        const startY = -this.depth / 2;
+
+        // Start at bottom left
+        points.push({ x: startX, y: startY });
+
+        // Draw bottom edge with pins
+        for (let i = 0; i < this.jointCount; i++) {
+            const centerX = startX + (i + 0.5) * spacing;
+            
+            if (i % 2 === 0) {
+                // Pin - dovetail shape
+                const baseHalf = pinBaseWidth / 2;
+                const topHalf = pinTopWidth / 2;
+                
+                // Go to start of pin
+                points.push({ x: centerX - baseHalf, y: startY });
+                // Pin bottom to top progression
+                points.push({ x: centerX - topHalf, y: startY + this.depth });
+                points.push({ x: centerX + topHalf, y: startY + this.depth });
+                points.push({ x: centerX + baseHalf, y: startY });
+            }
+            // For gaps (i % 2 === 1), just continue along the bottom line
+            if (i < this.jointCount - 1 || i % 2 === 1) {
+                points.push({ x: startX + (i + 1) * spacing, y: startY });
+            }
+        }
+
+        // Complete the rectangular profile
+        points.push({ x: startX + this.width, y: startY }); // Bottom right
+        points.push({ x: startX + this.width, y: startY - this.thickness }); // Top right  
+        points.push({ x: startX, y: startY - this.thickness }); // Top left
+
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+// 22. Dovetail Tail  
+class DovetailTail extends Shape {
+    constructor(width, jointCount, depth, angle, thickness = 20) {
+        super();
+        this.width = width;
+        this.jointCount = jointCount;
+        this.depth = depth;
+        this.angle = angle;
+        this.thickness = thickness; // Board thickness
+    }
+
+    getPoints() {
+        const spacing = this.width / this.jointCount;
+        const pinRatio = 0.6;
+        const pinBaseWidth = spacing * pinRatio;
+        const angleRad = this.angle * Math.PI / 180;
+        const taper = Math.tan(angleRad) * this.depth;
+        const pinTopWidth = pinBaseWidth + (2 * taper);
+
+        const points = [];
+        const startX = -this.width / 2;
+        const startY = -this.depth / 2;
+
+        // Outer rectangle first
+        points.push({ x: startX, y: startY - this.thickness }); // Top left
+        points.push({ x: startX + this.width, y: startY - this.thickness }); // Top right
+        points.push({ x: startX + this.width, y: startY + this.depth }); // Bottom right
+        points.push({ x: startX, y: startY + this.depth }); // Bottom left
+        points.push({ x: startX, y: startY - this.thickness }); // Close outer
+
+        // Now add the dovetail socket cutouts (as interior paths)
+        for (let i = 0; i < this.jointCount; i++) {
+            if (i % 2 === 0) { // Only cut sockets where pins would go
+                const centerX = startX + (i + 0.5) * spacing;
+                const baseHalf = pinBaseWidth / 2;
+                const topHalf = pinTopWidth / 2;
+                
+                // Move to start of socket cutout
+                points.push({ x: centerX - baseHalf, y: startY });
+                // Trace socket outline (reverse direction for hole)
+                points.push({ x: centerX + baseHalf, y: startY });
+                points.push({ x: centerX + topHalf, y: startY + this.depth });
+                points.push({ x: centerX - topHalf, y: startY + this.depth });
+                points.push({ x: centerX - baseHalf, y: startY }); // Close socket
+            }
+        }
+
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+class FingerJointPin extends Shape {
+    constructor(width, fingerCount, fingerWidth, depth, thickness = 20) {
+        super();
+        this.width = width;
+        this.fingerCount = fingerCount;
+        this.fingerWidth = fingerWidth || (width / fingerCount);
+        this.depth = depth;
+        this.thickness = thickness;
+    }
+
+    getPoints() {
+        const fingerWidth = this.fingerWidth;
+        const totalFingers = this.fingerCount;
+        
+        const points = [];
+        const startX = -this.width / 2;
+        const startY = -this.depth / 2;
+
+        // Start at top-left of the board
+        points.push({ x: startX, y: startY - this.thickness });
+
+        // Top edge (straight line)
+        points.push({ x: startX + this.width, y: startY - this.thickness });
+        
+        // Right edge down to where fingers start
+        points.push({ x: startX + this.width, y: startY });
+
+        // Draw the finger pattern from right to left along bottom edge
+        for (let i = totalFingers - 1; i >= 0; i--) {
+            const fingerLeft = startX + (i * fingerWidth);
+            const fingerRight = fingerLeft + fingerWidth;
+            
+            if (i % 2 === 0) {
+                // This is a finger (extends outward)
+                points.push({ x: fingerRight, y: startY });
+                points.push({ x: fingerRight, y: startY + this.depth });
+                points.push({ x: fingerLeft, y: startY + this.depth });
+                points.push({ x: fingerLeft, y: startY });
+            } else {
+                // This is a gap (stays at base level)
+                points.push({ x: fingerRight, y: startY });
+                // No extension for gaps - continue at base level
+            }
+        }
+
+        // Complete the outline back to start
+        points.push({ x: startX, y: startY });
+        points.push({ x: startX, y: startY - this.thickness });
+
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+// 24. Finger Joint Socket (Female) - COMPLETE REWRITE
+class FingerJointSocket extends Shape {
+    constructor(width, fingerCount, fingerWidth, depth, thickness = 20) {
+        super();
+        this.width = width;
+        this.fingerCount = fingerCount;
+        this.fingerWidth = fingerWidth || (width / fingerCount);
+        this.depth = depth;
+        this.thickness = thickness;
+    }
+
+    getPoints() {
+        const fingerWidth = this.fingerWidth;
+        const totalFingers = this.fingerCount;
+        
+        const points = [];
+        const startX = -this.width / 2;
+        const startY = -this.depth / 2;
+
+        // Outer rectangle perimeter
+        points.push({ x: startX, y: startY - this.thickness });
+        points.push({ x: startX + this.width, y: startY - this.thickness });
+        points.push({ x: startX + this.width, y: startY + this.depth });
+        points.push({ x: startX, y: startY + this.depth });
+        points.push({ x: startX, y: startY - this.thickness }); // Close outer rectangle
+
+        // Add rectangular socket cutouts
+        for (let i = 0; i < totalFingers; i++) {
+            if (i % 2 === 0) { // Cut sockets where pins would go
+                const fingerLeft = startX + (i * fingerWidth);
+                const fingerRight = fingerLeft + fingerWidth;
+                
+                // Rectangular cutout
+                points.push({ x: fingerLeft, y: startY });
+                points.push({ x: fingerRight, y: startY });
+                points.push({ x: fingerRight, y: startY + this.depth });
+                points.push({ x: fingerLeft, y: startY + this.depth });
+                points.push({ x: fingerLeft, y: startY }); // Close rectangle
+            }
+        }
+
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+// 25. Half-Lap Male (Bottom Half Removed) - DEBUG VERSION
+class HalfLapMale extends Shape {
+    constructor(width, height, lapLength, lapDepth) {
+        super();
+        this.width = width;
+        this.height = height;
+        this.lapLength = lapLength;
+        this.lapDepth = lapDepth || (height / 2);
+    }
+
+    getPoints() {
+        const points = [];
+        const w = this.width;
+        const h = this.height;
+        const lapL = this.lapLength;
+        const lapD = this.lapDepth;
+
+        // Create L-shape by removing bottom-right corner
+        // Full rectangle minus bottom-right notch
+        
+        // Top edge (full width)
+        points.push({ x: -w/2, y: -h/2 });           // Top-left
+        points.push({ x: w/2, y: -h/2 });            // Top-right
+        
+        // Right edge down to notch
+        points.push({ x: w/2, y: h/2 - lapD });      // Right edge to notch level
+        
+        // Notch horizontal cut
+        points.push({ x: w/2 - lapL, y: h/2 - lapD });  // Across notch
+        
+        // Notch vertical cut
+        points.push({ x: w/2 - lapL, y: h/2 });      // Down to bottom
+        
+        // Bottom edge
+        points.push({ x: -w/2, y: h/2 });            // Bottom-left
+        
+        // Left edge back up
+        points.push({ x: -w/2, y: -h/2 });           // Back to start
+
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+// 26. Half-Lap Female (Top Half Removed) - DEBUG VERSION
+class HalfLapFemale extends Shape {
+    constructor(width, height, lapLength, lapDepth) {
+        super();
+        this.width = width;
+        this.height = height;
+        this.lapLength = lapLength;
+        this.lapDepth = lapDepth || (height / 2);
+    }
+
+    getPoints() {
+        const points = [];
+        const w = this.width;
+        const h = this.height;
+        const lapL = this.lapLength;
+        const lapD = this.lapDepth;
+
+        // Create L-shape by removing top-right corner
+        // Full rectangle minus top-right notch
+        
+        // Top edge (partial)
+        points.push({ x: -w/2, y: -h/2 });           // Top-left
+        points.push({ x: w/2 - lapL, y: -h/2 });     // Top edge to notch
+        
+        // Notch vertical cut
+        points.push({ x: w/2 - lapL, y: -h/2 + lapD }); // Down into notch
+        
+        // Notch horizontal cut  
+        points.push({ x: w/2, y: -h/2 + lapD });     // Across notch
+        
+        // Right edge down
+        points.push({ x: w/2, y: h/2 });             // Right edge to bottom
+        
+        // Bottom edge
+        points.push({ x: -w/2, y: h/2 });            // Bottom edge
+        
+        // Left edge back up
+        points.push({ x: -w/2, y: -h/2 });           // Back to start
+
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+// 27. Cross-Lap Vertical (Vertical board with horizontal slot)
+class CrossLapVertical extends Shape {
+    constructor(width, height, slotWidth, slotDepth, slotPosition) {
+        super();
+        this.width = width;
+        this.height = height;
+        this.slotWidth = slotWidth;
+        this.slotDepth = slotDepth || (width / 2); // Default to half width
+        this.slotPosition = slotPosition || (height / 2); // Default to center
+    }
+
+    getPoints() {
+        const points = [];
+        const width = this.width;
+        const height = this.height;
+        const slotWidth = this.slotWidth;
+        const slotDepth = this.slotDepth;
+        const slotPosition = this.slotPosition;
+        
+        // Center the shape around (0,0)
+        const x = -width / 2;
+        const y = -height / 2;
+        
+        const slotTop = y + slotPosition - (slotWidth / 2);
+        const slotBottom = y + slotPosition + (slotWidth / 2);
+        const slotLeft = x + width - slotDepth;
+
+        // Start at top-left
+        points.push({ x: x, y: y });
+        
+        // Top edge to slot
+        points.push({ x: x + width, y: y });
+        
+        // Right edge down to slot top
+        points.push({ x: x + width, y: slotTop });
+        
+        // Slot top edge
+        points.push({ x: slotLeft, y: slotTop });
+        
+        // Slot left edge
+        points.push({ x: slotLeft, y: slotBottom });
+        
+        // Slot bottom edge
+        points.push({ x: x + width, y: slotBottom });
+        
+        // Right edge down to bottom
+        points.push({ x: x + width, y: y + height });
+        
+        // Bottom edge
+        points.push({ x: x, y: y + height });
+        
+        // Left edge back to start
+        points.push({ x: x, y: y });
+
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+// 28. Cross-Lap Horizontal (Horizontal board with vertical slot)
+class CrossLapHorizontal extends Shape {
+    constructor(width, height, slotWidth, slotDepth, slotPosition) {
+        super();
+        this.width = width;
+        this.height = height;
+        this.slotWidth = slotWidth;
+        this.slotDepth = slotDepth || (height / 2); // Default to half height
+        this.slotPosition = slotPosition || (width / 2); // Default to center
+    }
+
+    getPoints() {
+        const points = [];
+        const width = this.width;
+        const height = this.height;
+        const slotWidth = this.slotWidth;
+        const slotDepth = this.slotDepth;
+        const slotPosition = this.slotPosition;
+        
+        // Center the shape around (0,0)
+        const x = -width / 2;
+        const y = -height / 2;
+        
+        const slotLeft = x + slotPosition - (slotWidth / 2);
+        const slotRight = x + slotPosition + (slotWidth / 2);
+        const slotTop = y;
+        const slotBottom = y + slotDepth;
+
+        // Start at top-left
+        points.push({ x: x, y: y });
+        
+        // Top edge to slot left
+        points.push({ x: slotLeft, y: y });
+        
+        // Slot left edge down
+        points.push({ x: slotLeft, y: slotBottom });
+        
+        // Slot bottom edge
+        points.push({ x: slotRight, y: slotBottom });
+        
+        // Slot right edge up
+        points.push({ x: slotRight, y: y });
+        
+        // Top edge continues
+        points.push({ x: x + width, y: y });
+        
+        // Right edge down
+        points.push({ x: x + width, y: y + height });
+        
+        // Bottom edge
+        points.push({ x: x, y: y + height });
+        
+        // Left edge back to start
+        points.push({ x: x, y: y });
+
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+
 const ShapeUtils = {
     // Boolean operations
     union(shape1, shape2) {
@@ -720,5 +1184,13 @@ export {
     Slot,
     ChamferRectangle,
     PolygonWithHoles,
+    DovetailPin,
+    DovetailTail,
+    FingerJointPin, 
+    FingerJointSocket,
+    HalfLapMale,
+    HalfLapFemale,
+    CrossLapVertical,
+    CrossLapHorizontal,
     ShapeUtils
 };
