@@ -69,7 +69,7 @@ function setupCodeMirror() {
     start: [
       {regex: /\/\/.*/, token: 'comment'},
       {regex: /\b(?:shape|param|layer|transform|add|rotate|scale|position|if|else|for|from|to|step|def|return|union|difference|intersection|draw|forward|backward|right|left|goto|penup|pendown|fill|fillColor|color|strokeColor|strokeWidth|opacity)\b/, token: 'keyword'},
-      {regex: /\b(?:circle|rectangle|triangle|ellipse|polygon|star|arc|roundedRectangle|path|arrow|text|donut|spiral|cross|wave|slot|chamferRectangle|gear)\b/, token: 'variable-2'},
+      {regex: /\b(?:circle|rectangle|triangle|ellipse|polygon|star|arc|roundedRectangle|path|arrow|text|donut|spiral|cross|wave|slot|chamferRectangle|gear|dovetailPin|dovetailTail|doubleDovetailPin|doubleDovetailTail|fingerJoint|fingerJointMale|fingerJointFemale|tenon|mortise|scarfJoint|lapJoint|crossHalving|tJoint|dadoJoint|slotJoint|tabJoint|miterJoint|buttJoint)\b/, token: 'variable-2'},
       {regex: /\d+\.?\d*/, token: 'number'},
       {regex: /"(?:[^\\]|\\.)*?"/, token: 'string'},
       {regex: /#[0-9a-fA-F]{3,8}/, token: 'string-2'},
@@ -138,7 +138,7 @@ function setupEventHandlers() {
     if (event.key.toLowerCase() === 'g' && !event.ctrlKey && !event.metaKey) {
       if (renderer && document.activeElement !== editor.getWrapperElement().querySelector('textarea')) {
         event.preventDefault();
-        renderer.isGridEnabled = !renderer.isGridEnabled;
+        renderer.coordinateSystem.isGridEnabled = !renderer.coordinateSystem.isGridEnabled;
         renderer.updateGridButtonState();
         renderer.redraw();
       }
@@ -175,7 +175,11 @@ function setupEventHandlers() {
         's': 'star',
         'a': 'arc',
         'g': 'gear',
-        'd': 'donut'
+        'd': 'donut',
+        'f': 'fingerJoint',
+        'v': 'dovetailPin',
+        'n': 'tenon',
+        'm': 'mortise'
       };
       
       const shapeType = shapeShortcuts[event.key.toLowerCase()];
@@ -254,7 +258,7 @@ function setupExportMenu() {
 function forceCanvasResize() {
   if (renderer && currentTab === 'editor-tab') {
     setTimeout(() => {
-      renderer.setupCanvas();
+      renderer.coordinateSystem.setupCanvas();
       renderer.redraw();
       
       if (editor) {
@@ -464,6 +468,7 @@ function updateCodeFromShapeChange(change) {
       });
     }
   } catch (error) {
+    console.error('Error updating code:', error);
   }
 }
 
@@ -537,6 +542,7 @@ function runCode() {
     hideErrorPanel();
 
   } catch (error) {
+    console.error('Error in runCode:', error);
     displayErrors([error]);
   }
 }
@@ -592,7 +598,7 @@ function switchTab(tabId) {
     setTimeout(() => {
       editor.refresh();
       if (renderer) {
-        renderer.setupCanvas();
+        renderer.coordinateSystem.setupCanvas();
         runCode();
       }
     }, 100);
@@ -706,7 +712,7 @@ async function loadDocumentation() {
     const basicDocs = `
 # Aqui Design Language
 
-Aqui is a declarative language for creating 2D shapes and designs with built-in boolean operations and interactive editing capabilities.
+Aqui is a declarative language for creating 2D shapes and designs with built-in boolean operations, interactive editing capabilities, and comprehensive joint support for digital fabrication.
 
 ## Basic Syntax
 
@@ -729,6 +735,29 @@ shape circle myCircle {
 - \`star\` - outerRadius, innerRadius, points
 - \`arc\` - radius, startAngle, endAngle
 
+### Joint Types for Digital Fabrication
+- \`dovetailPin\` / \`dovetailTail\` - width, length, angle
+- \`fingerJoint\` / \`fingerJointMale\` / \`fingerJointFemale\` - totalWidth, fingerWidth, fingerCount
+- \`tenon\` / \`mortise\` - width, length, thickness/depth
+- \`scarfJoint\` - length, angle
+- \`lapJoint\` - width, length, lapLength
+- \`crossHalving\` - width, length, crossWidth
+- \`tJoint\` - stemWidth, stemLength, crossWidth
+- \`slotJoint\` / \`tabJoint\` - for sliding connections
+- \`miterJoint\` / \`buttJoint\` - basic geometry
+
+### Joint Parameters
+\`\`\`aqui
+shape dovetailPin myPin {
+    width: 20
+    length: 15
+    angle: 12
+    materialThickness: 6
+    tolerance: 0.1
+    position: [0, 0]
+}
+\`\`\`
+
 ### Boolean Operations
 \`\`\`aqui
 difference result {
@@ -743,6 +772,7 @@ Available operations: \`union\`, \`difference\`, \`intersection\`
 \`\`\`aqui
 param size 100
 param color red
+param thickness 6
 
 shape circle myCircle {
     radius: size
@@ -751,7 +781,7 @@ shape circle myCircle {
 \`\`\`
 
 ### Interactive Features
-- **Canvas**: Click and drag shapes to move them
+- **Canvas**: Click and drag shapes/joints to move them
 - **Sliders**: Adjust parameters in real-time
 - **Export**: SVG and DXF formats supported
 - **Grid**: Toggle with 'G' key
@@ -769,6 +799,17 @@ shape circle myCircle {
 - **Ctrl+Shift+C**: Create circle at center
 - **Ctrl+Shift+R**: Create rectangle at center
 - **Ctrl+Shift+T**: Create triangle at center
+- **Ctrl+Shift+F**: Create finger joint at center
+- **Ctrl+Shift+V**: Create dovetail pin at center
+- **Ctrl+Shift+N**: Create tenon at center
+- **Ctrl+Shift+M**: Create mortise at center
+
+### Digital Fabrication Features
+- **Material Thickness**: Automatic adjustment for sheet materials
+- **Tolerance Management**: Precise male/female joint fitting
+- **Kerf Compensation**: Laser cutting offset support
+- **Joint Visualization**: Technical overlays for manufacturing
+- **Assembly Direction**: Visual guides for joint assembly
     `;
     
     const markdownContent = document.getElementById('markdown-content');
@@ -778,6 +819,7 @@ shape circle myCircle {
       markdownContent.innerHTML = `<pre>${basicDocs}</pre>`;
     }
   } catch (error) {
+    console.error('Error loading documentation:', error);
   }
 }
 
@@ -794,4 +836,3 @@ window.aqui = {
   exportSVG: handleSVGExport,
   exportDXF: handleDXFExport
 };
-
