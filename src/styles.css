@@ -1479,3 +1479,63 @@ body {
   white-space: pre-wrap;
   font-family: monospace;
 }
+
+.tutorials-container {
+  padding: 24px 40px;
+}
+
+.tutorials-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.tutorial-card {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.tutorial-card h3 {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: 0;
+  padding: 16px;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.tutorial-card p {
+  flex: 1;
+  padding: 16px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #444;
+}
+
+.tutorials-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;             
+}
+
+@media (max-width: 768px) {
+  .tutorials-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tutorial-card {
+  overflow: visible; 
+}
+
+.tutorial-video {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: contain; 
+}
