@@ -1,4 +1,4 @@
-// coordinateSystem.mjs - 
+// coordinateSystem.mjs - Optimized TRUE 1:1 scale coordinate system
 
 export class CoordinateSystem {
   constructor(canvas) {
