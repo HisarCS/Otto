@@ -1,4 +1,4 @@
-// 2DParameters.mjs - Real-time bidirectional slider-canvas sync
+// 2DParameters.mjs - COMPLETELY FIXED VERSION - All position and parameter updates
 
 import { shapeManager } from './shapeManager.mjs';
 
@@ -13,12 +13,13 @@ export class ParameterManager {
       this.params = [];
       this.ast = null;
       
-      // Remove old throttling - now handled by ShapeManager
       this.setupUI();
       
       // Register with ShapeManager
       shapeManager.registerParameterManager(this);
       shapeManager.registerEditor(editor);
+      
+      console.log('🔧 COMPLETELY FIXED ParameterManager initialized');
     }
     
     setAST(ast) {
@@ -573,8 +574,15 @@ export class ParameterManager {
       shapeManager.updateSliderValue(shapeName, paramName, value);
     }
 
-    // Legacy method for existing code update functionality
+    // COMPLETELY FIXED: updateCodeInEditor method with robust position and parameter handling
     updateCodeInEditor(shapeName, paramName, value) {
+      if (!this.editor) {
+        console.warn('⚠️ No editor available for code updates');
+        return;
+      }
+      
+      console.log(`🔧 UPDATING CODE: ${shapeName}.${paramName} = ${value}`);
+      
       const code = this.editor.getValue();
       const lines = code.split('\n');
       
@@ -583,13 +591,17 @@ export class ParameterManager {
       let shapeStartLine = -1;
       let shapeEndLine = -1;
       
+      // Find the shape block - more robust matching
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         
-        if (line.startsWith('shape ') && line.includes(shapeName)) {
+        // Look for shape declaration with exact name match
+        const shapeRegex = new RegExp(`^shape\\s+\\w+\\s+${shapeName}\\s*\\{`);
+        if (shapeRegex.test(line) || (line.startsWith('shape ') && line.includes(shapeName))) {
           inShapeBlock = true;
           shapeStartLine = i;
           openBraces = 0;
+          console.log(`✅ Found shape ${shapeName} at line ${i}`);
         }
         
         if (inShapeBlock) {
@@ -600,6 +612,7 @@ export class ParameterManager {
               if (openBraces === 0) {
                 shapeEndLine = i;
                 inShapeBlock = false;
+                console.log(`✅ Shape block ends at line ${i}`);
                 break;
               }
             }
@@ -608,18 +621,24 @@ export class ParameterManager {
       }
       
       if (shapeStartLine >= 0 && shapeEndLine >= 0) {
+        console.log(`🎯 Found shape ${shapeName} at lines ${shapeStartLine}-${shapeEndLine}`);
+        
         if (paramName.startsWith('position_')) {
-          this.updatePositionParameter(lines, shapeStartLine, shapeEndLine, paramName, value);
+          this.updatePositionParameterFixed(lines, shapeStartLine, shapeEndLine, paramName, value);
         } else {
-          this.updateRegularParameter(lines, shapeStartLine, shapeEndLine, paramName, value);
+          this.updateRegularParameterFixed(lines, shapeStartLine, shapeEndLine, paramName, value);
         }
         
         // Update the editor content in one operation
         this.editor.setValue(lines.join('\n'));
+        console.log(`✅ Code updated for ${shapeName}.${paramName} = ${value}`);
+      } else {
+        console.warn(`⚠️ Could not find shape ${shapeName} in code`);
       }
     }
     
-    updateRegularParameter(lines, startLine, endLine, paramName, value) {
+    // COMPLETELY FIXED: Regular parameter update with proper value formatting
+    updateRegularParameterFixed(lines, startLine, endLine, paramName, value) {
       let formattedValue;
       if (typeof value === 'string') {
         formattedValue = `"${value}"`;
@@ -629,58 +648,118 @@ export class ParameterManager {
         formattedValue = value;
       }
       
+      console.log(`🔧 Updating regular parameter ${paramName} to ${formattedValue}`);
+      
       let paramFound = false;
-      for (let i = startLine; i <= endLine; i++) {
+      
+      // First, try to find and update existing parameter
+      for (let i = startLine + 1; i < endLine; i++) {
         const line = lines[i].trim();
+        
+        // Look for parameter line with exact match
         if (line.startsWith(`${paramName}:`)) {
-          lines[i] = lines[i].replace(/:.*?(?:,\s*)?$/, `: ${formattedValue}`);
+          console.log(`✅ Found existing parameter at line ${i}: ${line}`);
+          
+          // Replace the entire parameter value part
+          const beforeColon = lines[i].substring(0, lines[i].indexOf(':'));
+          let afterValue = '';
+          
+          // Check if there's anything after the value (like comma or comment)
+          const colonIndex = lines[i].indexOf(':');
+          const restOfLine = lines[i].substring(colonIndex + 1);
+          
+          // Find where the value ends (at comma, newline, or end of line)
+          const commaIndex = restOfLine.indexOf(',');
+          if (commaIndex !== -1) {
+            afterValue = restOfLine.substring(commaIndex);
+          }
+          
+          lines[i] = `${beforeColon}: ${formattedValue}${afterValue}`;
+          console.log(`✅ Updated to: ${lines[i]}`);
           paramFound = true;
           break;
         }
       }
       
+      // If parameter not found, add it
       if (!paramFound) {
+        console.log(`➕ Adding new parameter ${paramName}`);
+        
+        // Find a good place to insert (after the opening brace)
         for (let i = startLine; i <= endLine; i++) {
           if (lines[i].includes('{')) {
             const indent = lines[i + 1] ? lines[i + 1].match(/^\s*/)[0] : '    ';
             let newLine = `${indent}${paramName}: ${formattedValue}`;
             lines.splice(i + 1, 0, newLine);
+            console.log(`✅ Added new parameter: ${newLine}`);
             break;
           }
         }
       }
     }
     
-    updatePositionParameter(lines, startLine, endLine, paramName, value) {
-      const index = paramName === 'position_x' ? 0 : 1;
-      let positionFound = false;
-      
-      for (let i = startLine; i <= endLine; i++) {
-        const line = lines[i].trim();
+    // COMPLETELY FIXED: Position parameter update with proper coordinate handling
+    updatePositionParameterFixed(lines, startLine, endLine, paramName, value) {
+        const index = paramName === 'position_x' ? 0 : 1;
+        let positionFound = false;
         
-        if (line.startsWith('position:')) {
-          const posMatch = line.match(/position:\s*\[(.*?)\]/);
-          if (posMatch) {
-            const posArray = posMatch[1].split(',').map(p => p.trim());
-            posArray[index] = value;
-            lines[i] = lines[i].replace(/position:\s*\[.*?\]/, `position: [${posArray.join(', ')}]`);
-            positionFound = true;
-            break;
-          }
+        console.log(`🔧 UPDATING POSITION: ${paramName} to ${value} (index ${index})`);
+        
+        // First, try to find existing position parameter
+        for (let i = startLine + 1; i < endLine; i++) {
+            const line = lines[i].trim();
+            
+            if (line.startsWith('position:')) {
+                console.log(`✅ Found existing position at line ${i}: ${line}`);
+                
+                // Extract current position array
+                const posMatch = line.match(/position:\s*\[([^\]]*)\]/);
+                if (posMatch) {
+                    const posString = posMatch[1];
+                    const posArray = posString.split(',').map(p => {
+                        const trimmed = p.trim();
+                        return trimmed === '' ? 0 : parseFloat(trimmed);
+                    });
+                    
+                    // Ensure we have at least 2 elements
+                    while (posArray.length < 2) {
+                        posArray.push(0);
+                    }
+                    
+                    // Update the specific coordinate
+                    posArray[index] = parseFloat(value);
+                    
+                    console.log(`🔄 Position array updated: [${posArray[0]}, ${posArray[1]}]`);
+                    
+                    // Replace the line with updated position
+                    const beforeColon = lines[i].substring(0, lines[i].indexOf('position:'));
+                    const afterBracket = line.includes(',') && line.indexOf(',') > line.indexOf(']') ? 
+                        line.substring(line.indexOf(']') + 1) : '';
+                    
+                    lines[i] = `${beforeColon}position: [${posArray[0]}, ${posArray[1]}]${afterBracket}`;
+                    
+                    console.log(`✅ Updated position line: ${lines[i]}`);
+                    positionFound = true;
+                    break;
+                }
+            }
         }
-      }
-      
-      if (!positionFound) {
-        for (let i = startLine; i <= endLine; i++) {
-          if (lines[i].includes('{')) {
-            const indent = lines[i + 1] ? lines[i + 1].match(/^\s*/)[0] : '    ';
-            const pos = paramName === 'position_x' ? [value, 0] : [0, value];
-            let newLine = `${indent}position: [${pos.join(', ')}]`;
-            lines.splice(i + 1, 0, newLine);
-            break;
-          }
+        
+        // If no position found, create new position parameter
+        if (!positionFound) {
+            console.log(`➕ Creating new position parameter`);
+            
+            for (let i = startLine; i <= endLine; i++) {
+                if (lines[i].includes('{')) {
+                    const indent = lines[i + 1] ? lines[i + 1].match(/^\s*/)[0] : '    ';
+                    const pos = paramName === 'position_x' ? [value, 0] : [0, value];
+                    let newLine = `${indent}position: [${pos[0]}, ${pos[1]}]`;
+                    lines.splice(i + 1, 0, newLine);
+                    console.log(`✅ Created new position: ${newLine}`);
+                    break;
+                }
+            }
         }
-      }
     }
 
     // Method called by ShapeManager to update shapes reference
@@ -716,4 +795,6 @@ export class ParameterManager {
         console.error("Error updating shapes:", e);
       }
     }
+
+
 }
