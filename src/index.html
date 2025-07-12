@@ -31,6 +31,7 @@
     <div class="logo">Aqui.)</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="editor-tab">AQUI</button>
+      <button class="tab-btn" data-tab="tutorials-tab">Tutorials</button>
       <button class="tab-btn" data-tab="docs-tab">Docs</button>
       <button class="tab-btn" data-tab="examples-tab">Examples</button>
     </div>
@@ -74,6 +75,14 @@
           <button class="export-option" id="export-dxf">Export DXF</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Tutorials Tab -->
+  <div class="tab-content" id="tutorials-tab">
+    <div class="tutorials-container">
+      <h1 class="tutorials-title">AQUI Tutorials</h1>
+      <div class="tutorials-grid"></div>
     </div>
   </div>
 
@@ -155,6 +164,9 @@
       console.error("Martinez-Rueda polygon-clipping library failed to load!");
     }
   </script>
+
+  <!-- Tutorials tab-switcher -->
+  <script src="tutorials.js"></script>
 
   <!-- Main application script -->
   <script type="module" src="app.js"></script>
