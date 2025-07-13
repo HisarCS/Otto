@@ -8,6 +8,95 @@ import { exportToSVG } from './svgExport.mjs';
 import { exportToDXF } from './dxfExport.mjs';
 import { DragDropSystem } from './dragDropSystem.mjs';
 
+const TOOLBOX_XML = `
+<xml xmlns="https://developers.google.com/blockly/xml" style="display: none">
+  <!-- AQUI Turtle commands -->
+  <category name="Turtle" colour="#D65C5C">
+    <block type="aqui_draw"></block>
+    <block type="aqui_forward">
+      <value name="DISTANCE"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+    </block>
+    <block type="aqui_backward">
+      <value name="DISTANCE"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+    </block>
+    <block type="aqui_right">
+      <value name="ANGLE"><shadow type="math_number"><field name="NUM">90</field></shadow></value>
+    </block>
+    <block type="aqui_left">
+      <value name="ANGLE"><shadow type="math_number"><field name="NUM">90</field></shadow></value>
+    </block>
+    <block type="aqui_goto">
+      <value name="POSITION"><shadow type="lists_create_with"/></value>
+    </block>
+    <block type="aqui_penup"/>
+    <block type="aqui_pendown"/>
+  </category>
+
+  <!-- AQUI Shapes -->
+  <category name="Shapes" colour="#5CA65C">
+    <block type="aqui_shape_circle"/>
+    <block type="aqui_shape_rectangle"/>
+    <block type="aqui_shape_triangle"/>
+    <block type="aqui_shape_polygon"/>
+    <block type="aqui_shape_star"/>
+    <block type="aqui_shape_text"/>
+
+    <block type="aqui_prop_expr"/>
+    <block type="aqui_prop_bool"/>
+  </category>
+
+  <!-- AQUI Boolean ops -->
+  <category name="Boolean" colour="#5C81A6">
+    <block type="aqui_union"/>
+    <block type="aqui_intersection"/>
+    <block type="aqui_difference"/>
+
+    <block type="aqui_ref"/>
+  </category>
+
+  <!-- Standard Control -->
+  <category name="Control" colour="#5C68A6">
+    <block type="controls_if"/>
+    <block type="controls_for"/>
+  </category>
+
+  <!-- Standard Math / Logic / Text / Lists -->
+  <category name="Math" colour="#5C68A6">
+    <block type="math_number"/>
+    <block type="math_arithmetic"/>
+  </category>
+  <category name="Logic" colour="#5C81A6">
+    <block type="logic_compare"/>
+    <block type="logic_operation"/>
+    <block type="logic_negate"/>
+    <block type="logic_boolean"/>
+
+    <!-- AQUI • parameter declaration -->
+    <block type="aqui_param">
+      <value name="NAME">
+        <shadow type="text"><field name="TEXT">size</field></shadow>
+      </value>
+      <value name="VALUE">
+        <shadow type="math_number"><field name="NUM">150</field></shadow>
+      </value>
+    </block>
+
+    <!-- AQUI • parameter reference (getter) -->
+    <block type="aqui_param_get">
+      <field name="NAME">size</field>
+    </block>
+  </category>
+  <category name="Text" colour="#A6745C">
+    <block type="text"/>
+    <block type="text_print"/>
+  </category>
+  <category name="Lists" colour="#D65C5C">
+    <block type="lists_create_with"/>
+    <block type="lists_repeat"/>
+  </category>
+</xml>
+`;
+
 let editor;
 let canvas;
 let renderer;
@@ -19,6 +108,8 @@ let currentPanel = null;
 let astOutput;
 let errorOutput;
 let errorCount;
+let editorMode = 'text';          
+let blocklyWorkspace = null;
 
 window.interpreter = null;
 
@@ -27,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setupEventHandlers();
   setupCodeMirror();
   loadDocumentation();
+  initBlockly();
   
   setTimeout(() => {
     ensureProperConnections();
@@ -36,6 +128,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 100);
 });
+
+function round(val, places = 2) {
+  if (typeof val !== 'number') return val;
+  const factor = Math.pow(10, places);
+  return Math.round(val * factor) / factor;
+}
 
 function initializeComponents() {
   canvas = document.getElementById('canvas');
@@ -109,8 +207,348 @@ function setupCodeMirror() {
   let timeout;
   editor.on('change', () => {
     clearTimeout(timeout);
-    timeout = setTimeout(runCode, 300);
+    timeout = setTimeout(() => {
+      runCode();
+      if (editorMode === 'blocks' && blocklyWorkspace) {
+        rebuildWorkspaceFromAqui(editor.getValue(), blocklyWorkspace);
+        refreshBlockly();
+      }
+    }, 300);
+  });  
+}
+
+async function initBlockly() {
+  if (!window.Blockly) {
+    console.error('Blockly not found; did you include the UMD bundles?');
+    return;
+  }
+
+  blocklyWorkspace = Blockly.inject('blocklyDiv', {
+    toolbox: TOOLBOX_XML,
+    grid:    { spacing: 20, length: 3, colour: '#ccc', snap: true },
+    zoom:    { controls: true, wheel: true },
+    renderer:'thrasos'
   });
+
+  refreshBlockly();
+
+  blocklyWorkspace.addChangeListener(event => {
+    if (event.type === Blockly.Events.UI) return;
+    try {
+      const code = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
+      if (editor.getValue() !== code) {
+        editor.setValue(code);
+        runCode();
+      }
+    } catch (e) {
+      console.warn('Codegen error (ignored):', e);
+    }
+  });
+
+  console.log('Blockly initialized successfully.');
+}
+
+let _PARAMS = new Set();   
+
+function exprToBlock(expr, ws) {
+  if (!expr) return null;
+
+  if (expr.type === 'unary_op' && expr.operator === 'minus') {
+    const ws = arguments[1]; 
+    if (expr.operand.type === 'number') {
+      const b = ws.newBlock('math_number');
+      b.setShadow(true);
+      b.setFieldValue(String(-expr.operand.value), 'NUM');
+      b.initSvg(); b.render();
+      return b;
+    }
+    const sub = ws.newBlock('math_arithmetic');
+    sub.setFieldValue('MINUS', 'OP');
+    const zero = ws.newBlock('math_number');
+    zero.setShadow(true);
+    zero.setFieldValue('0', 'NUM');
+    zero.initSvg(); zero.render();
+    sub.getInput('A').connection.connect(zero.outputConnection);
+    const child = exprToBlock(expr.operand, ws);
+    if (child) sub.getInput('B').connection.connect(child.outputConnection);
+    sub.initSvg(); sub.render();
+    return sub;
+  }
+
+  if (expr.type === 'number') {                     
+    const b = ws.newBlock('math_number');
+    b.setShadow(true);
+    b.setFieldValue(String(expr.value ?? 0), 'NUM');  
+    b.initSvg(); b.render();
+    return b;
+  }
+
+  if (expr.type === 'string') {                    
+    const b = ws.newBlock('text');
+    b.setShadow(true);
+    b.setFieldValue(expr.value, 'TEXT');
+    b.initSvg(); b.render();
+    return b;
+  }
+
+  if (expr.type === 'boolean') {
+    const b = ws.newBlock('logic_boolean');
+    b.setShadow(true);
+    b.setFieldValue(expr.value ? 'TRUE' : 'FALSE', 'BOOL');
+    b.initSvg(); b.render();
+    return b;
+  }
+
+  if (expr.type === 'identifier') {
+    if (_PARAMS.has(expr.name)) {                 
+      const b = ws.newBlock('aqui_param_get');
+      b.setFieldValue(expr.name, 'NAME');
+      b.initSvg(); b.render();
+      return b;
+    }
+    const b = ws.newBlock('text');                 
+    b.setFieldValue(expr.name, 'TEXT');
+    b.initSvg(); b.render();
+    return b;
+  }
+
+  if (expr.type === 'array') {
+    const b = ws.newBlock('lists_create_with');
+    b.itemCount_ = expr.elements.length;
+    b.updateShape_();
+    expr.elements.forEach((el, i) => {
+      const child = exprToBlock(el, ws);
+      if (child)
+        b.getInput(`ADD${i}`)
+         .connection.connect(child.outputConnection);
+    });
+    b.initSvg(); b.render();
+    return b;
+  }
+
+  if (expr.type === 'binary_op') {
+    const ar  = {add:'ADD', subtract:'MINUS', multiply:'MULTIPLY', divide:'DIVIDE'};
+    const cmp = {eq:'EQ',  neq:'NEQ', lt:'LT', lte:'LTE', gt:'GT', gte:'GTE'};
+    const bol = {and:'AND', or:'OR'};
+
+    if (ar[expr.operator]) {
+      const b = ws.newBlock('math_arithmetic');
+      b.setFieldValue(ar[expr.operator], 'OP');
+      ['A','B'].forEach((socket, idx) => {
+        const kid = exprToBlock(idx ? expr.right : expr.left, ws);
+        if (kid) b.getInput(socket).connection.connect(kid.outputConnection);
+      });
+      b.initSvg(); b.render();
+      return b;
+    }
+
+    if (cmp[expr.operator]) {
+      const b = ws.newBlock('logic_compare');
+      b.setFieldValue(cmp[expr.operator], 'OP');
+      const A = exprToBlock(expr.left,  ws);
+      const B = exprToBlock(expr.right, ws);
+      if (A) b.getInput('A').connection.connect(A.outputConnection);
+      if (B) b.getInput('B').connection.connect(B.outputConnection);
+      b.initSvg(); b.render();
+      return b;
+    }
+
+    if (bol[expr.operator]) {
+      const b = ws.newBlock('logic_operation');
+      b.setFieldValue(bol[expr.operator], 'OP');
+      const A = exprToBlock(expr.left,  ws);
+      const B = exprToBlock(expr.right, ws);
+      if (A) b.getInput('A').connection.connect(A.outputConnection);
+      if (B) b.getInput('B').connection.connect(B.outputConnection);
+      b.initSvg(); b.render();
+      return b;
+    }
+  }
+
+  if (expr.type === 'unary_op' && expr.operator === 'not') {
+    const b = ws.newBlock('logic_negate');
+    const kid = exprToBlock(expr.argument, ws);
+    if (kid) b.getInput('BOOL').connection.connect(kid.outputConnection);
+    b.initSvg(); b.render();
+    return b;
+  }
+
+  console.warn('exprToBlock – unhandled node:', expr);
+  return null;
+}
+
+function stmtToBlock(stmt, ws) {
+  if (stmt.type === 'param') {
+    const blk = ws.newBlock('aqui_param');
+    blk.setFieldValue(stmt.name, 'NAME');
+
+    const v = exprToBlock(stmt.value, ws);
+    if (v) blk.getInput('VALUE').connection.connect(v.outputConnection);
+
+    blk.initSvg(); blk.render();
+    return blk;
+  }
+
+  if (stmt.type === 'shape') {
+    const blk = ws.newBlock(`aqui_shape_${stmt.shapeType.toLowerCase()}`);
+    blk.setFieldValue(stmt.name, 'NAME');
+
+    let prev = null;
+    Object.entries(stmt.params || {}).forEach(([key, valExpr]) => {
+      const isBool = valExpr.type === 'boolean';
+      const leaf   = ws.newBlock(isBool ? 'aqui_prop_bool'
+                                        : 'aqui_prop_expr');
+      leaf.setFieldValue(key, 'KEY');
+
+      if (isBool) {
+        leaf.setFieldValue(valExpr.value ? 'TRUE' : 'FALSE', 'VAL');
+      } else {
+        const v = exprToBlock(valExpr, ws);
+        if (v) leaf.getInput('VAL').connection.connect(v.outputConnection);
+      }
+
+      leaf.initSvg(); leaf.render();
+      if (prev) prev.nextConnection.connect(leaf.previousConnection);
+      else      blk.getInput('PROPS').connection.connect(leaf.previousConnection);
+      prev = leaf;
+    });
+
+    blk.initSvg(); blk.render();
+    return blk;
+  }
+
+  if (stmt.type === 'boolean_operation') {
+    const blk = ws.newBlock(`aqui_${stmt.operation}`);
+    blk.setFieldValue(stmt.name, 'NAME');
+
+    let prev = null;
+    (stmt.shapes || []).forEach((s,i) => {
+      const leaf = ws.newBlock('aqui_ref');
+      const op = (stmt.operation === 'difference' && i) ? 'subtract' : 'add';
+      leaf.setFieldValue(op,'OP');
+      leaf.setFieldValue(s, 'TARGET');
+      leaf.initSvg(); leaf.render();
+
+      if (prev) prev.nextConnection.connect(leaf.previousConnection);
+      else      blk.getInput('STACK').connection.connect(leaf.previousConnection);
+      prev = leaf;
+    });
+
+    blk.initSvg(); blk.render();
+    return blk;
+  }
+
+  if (stmt.type === 'draw') {
+    const blk = ws.newBlock('aqui_draw');
+    blk.setFieldValue(stmt.name, 'NAME');
+    const bodyInput = blk.getInput('STACK') || blk.getInput('COMMANDS');
+
+    let prev = null;
+    (stmt.commands || []).forEach(cmd => {
+      const map  = { forward:'D', backward:'D', right:'A', left:'A' };
+      const type = cmd.command;
+      const sock = map[type] || null;
+
+      const leaf = ws.newBlock(`aqui_${type}`);
+      if (sock) {
+        const v = exprToBlock(cmd.value, ws);
+        if (v) leaf.getInput(sock).connection.connect(v.outputConnection);
+      }
+      leaf.initSvg(); leaf.render();
+
+      if (prev) prev.nextConnection.connect(leaf.previousConnection);
+      else      bodyInput.connection.connect(leaf.previousConnection);
+      prev = leaf;
+    });
+
+    blk.initSvg(); blk.render();
+    return blk;
+  }
+
+  if (stmt.type === 'draw_command') {
+    const map  = { forward:'D', backward:'D', right:'A', left:'A',
+                   penup:null, pendown:null };
+    const leaf = ws.newBlock(`aqui_${stmt.command}`);
+    const sock = map[stmt.command];
+    if (sock) {
+      const v = exprToBlock(stmt.value, ws);
+      if (v) leaf.getInput(sock).connection.connect(v.outputConnection);
+    }
+    leaf.initSvg(); leaf.render();
+    return leaf;
+  }
+
+  if (stmt.type === 'if_statement') {
+    const blk = ws.newBlock('controls_if');
+    blk.initSvg();                      
+
+    const cond = exprToBlock(stmt.condition, ws);
+    if (cond) {
+      blk.getInput('IF0').connection.connect(cond.outputConnection);
+    }
+
+    let prev = null;
+    (stmt.body || []).forEach(inner => {
+      const innerBlk = stmtToBlock(inner, ws);
+      if (!innerBlk) return;
+      if (prev) {
+        prev.nextConnection.connect(innerBlk.previousConnection);
+      } else {
+        blk.getInput('DO0').connection.connect(innerBlk.previousConnection);
+      }
+      prev = innerBlk;
+    });
+
+    blk.render();                         
+    return blk;
+  }
+
+  console.warn('stmtToBlock – unhandled top-level:', stmt.type);
+  return null;
+}
+
+function rebuildWorkspaceFromAqui(code, workspace) {
+  let ast;
+  try {
+    ast = new Parser(new Lexer(code)).parse();
+  } catch (e) {
+    console.warn('AQUI parse failed – workspace left unchanged:', e);
+    return;
+  }
+
+  const stmts = Array.isArray(ast) ? ast : (ast.body || ast.statements || []);
+
+  Blockly.Events.disable();
+  try {
+    workspace.clear();
+
+    let cursorY = 10;
+    stmts.forEach(stmt => {
+      const blk = stmtToBlock(stmt, workspace);
+      if (blk) {
+        blk.moveBy(10, cursorY);
+        cursorY += blk.getHeightWidth().height + 25;
+      }
+    });
+  } finally {
+    Blockly.Events.enable();
+  }
+
+  Blockly.svgResize(workspace);
+  workspace.render();
+}
+
+
+function updateBlocksFromText() {
+  if (!blocklyWorkspace) return;
+
+  runCode();
+
+  try {
+    rebuildWorkspaceFromAqui(editor.getValue(), blocklyWorkspace);
+  } catch (e) {
+    console.warn('AQUI → blocks rebuild failed:', e);
+  }
 }
 
 function setupEventHandlers() {
@@ -121,6 +559,28 @@ function setupEventHandlers() {
       const targetTab = button.getAttribute('data-tab');
       switchTab(targetTab);
     });
+  });
+
+  document.getElementById('toggle-editor-mode').addEventListener('click', () => {
+    const textContainer   = document.getElementById('text-editor-container');
+    const blocklyContainer= document.getElementById('blockly-editor-container');
+    const toggleBtn       = document.getElementById('toggle-editor-mode');
+
+    if (editorMode === 'text') {
+      editorMode = 'blocks';
+      toggleBtn.textContent = 'Text';
+      textContainer.style.display    = 'none';
+      blocklyContainer.style.display = 'block';
+      updateBlocksFromText();
+      refreshBlockly();
+    } else {
+      editorMode = 'text';
+      toggleBtn.textContent = 'Blocks';
+      blocklyContainer.style.display = 'none';
+      textContainer.style.display    = 'flex';
+      editor.refresh();
+      runCode();
+    }
   });
   
   document.getElementById('run-button').addEventListener('click', runCode);
@@ -379,97 +839,107 @@ class EnhancedParameterManager extends ParameterManager {
 
 function updateCodeFromShapeChange(change) {
   try {
-    const code = editor.getValue();
-    
+    const oldCode = editor.getValue();
+    let newCode = oldCode.split('\n');
+
     if (change.action === 'update') {
-      const lines = code.split('\n');
       let inShapeBlock = false;
-      let shapeStartLine = -1;
-      let shapeEndLine = -1;
-      let braceCount = 0;
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        if (line.startsWith('shape ') && line.includes(change.name)) {
+      let start = -1, end = -1, depth = 0;
+      for (let i = 0; i < newCode.length; i++) {
+        const line = newCode[i];
+        if (!inShapeBlock && line.trim().startsWith(`shape `) && line.includes(change.name)) {
           inShapeBlock = true;
-          shapeStartLine = i;
-          if (line.includes('{')) braceCount++;
-        } else if (inShapeBlock) {
-          if (line.includes('{')) braceCount++;
-          if (line.includes('}')) braceCount--;
-          
-          if (braceCount === 0) {
-            shapeEndLine = i;
-            break;
-          }
+          start = i;
+        }
+        if (inShapeBlock) {
+          if (line.includes('{')) depth++;
+          if (line.includes('}')) depth--;
+          if (depth === 0) { end = i; break; }
         }
       }
-      
-      if (shapeStartLine >= 0 && shapeEndLine >= 0) {
-        updateShapeProperty(lines, shapeStartLine, shapeEndLine, 'position', 
-                          `[${change.shape.transform.position[0]}, ${change.shape.transform.position[1]}]`);
-        
-        if (change.shape.transform.rotation !== 0) {
-          updateShapeProperty(lines, shapeStartLine, shapeEndLine, 'rotation', 
-                            change.shape.transform.rotation);
-        }
-        
-        if (change.shape.transform.scale[0] !== 1 || change.shape.transform.scale[1] !== 1) {
-          updateShapeProperty(lines, shapeStartLine, shapeEndLine, 'scale', 
-                            `[${change.shape.transform.scale[0]}, ${change.shape.transform.scale[1]}]`);
-        }
-        
-        for (const [key, value] of Object.entries(change.shape.params)) {
-          if (typeof value === 'number' || typeof value === 'string') {
-            let formattedValue = value;
-            if (typeof value === 'string') {
-              formattedValue = `"${value}"`;
+
+      if (start >= 0 && end >= 0) {
+        function injectProp(prop, val) {
+          if (Array.isArray(val)) {
+            val = `[${ val.map(v => round(v, 2)).join(', ')}]`;
+          } else if (typeof val === 'number') {
+            val = round(val, 2);
+          }
+          let found = false;
+          for (let j = start; j <= end; j++) {
+            if (newCode[j].trim().startsWith(prop + ':')) {
+              const indent = newCode[j].match(/^\s*/)[0];
+              newCode[j] = `${indent}${prop}: ${val}`;
+              found = true;
+              break;
             }
-            updateShapeProperty(lines, shapeStartLine, shapeEndLine, key, formattedValue);
+          }
+          if (!found) {
+            for (let j = start; j <= end; j++) {
+              if (newCode[j].includes('{')) {
+                const indent = (newCode[j+1].match(/^\s*/)[0] || '    ');
+                newCode.splice(j+1, 0, `${indent}${prop}: ${val}`);
+                break;
+              }
+            }
           }
         }
-        
-        const newCode = lines.join('\n');
-        if (newCode !== code) {
-          editor.operation(() => {
-            editor.setValue(newCode);
-          });
+
+        injectProp('position', `[${change.shape.transform.position[0]}, ${change.shape.transform.position[1]}]`);
+        if (change.shape.transform.rotation !== 0) {
+          injectProp('rotation', change.shape.transform.rotation);
         }
-      }
-    } else if (change.action === 'delete') {
-      const lines = code.split('\n');
-      let newLines = [];
-      let skipLines = false;
-      let braceCounter = 0;
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        if (line.startsWith('shape ') && line.includes(change.name)) {
-          skipLines = true;
-          braceCounter = 0;
-          if (line.includes('{')) braceCounter++;
-        } else if (skipLines) {
-          if (line.includes('{')) braceCounter++;
-          if (line.includes('}')) braceCounter--;
-          
-          if (braceCounter === 0) {
-            skipLines = false;
-            continue;
+        if (change.shape.transform.scale[0] !== 1 || change.shape.transform.scale[1] !== 1) {
+          injectProp('scale', `[${change.shape.transform.scale[0]}, ${change.shape.transform.scale[1]}]`);
+        }
+        Object.entries(change.shape.params).forEach(([k,v]) => {
+          if (typeof v === 'number' || typeof v === 'string') {
+            const literal = typeof v === 'string' ? `"${v}"` : v;
+            injectProp(k, literal);
           }
-        } else {
-          newLines.push(lines[i]);
-        }
+        });
       }
-      
+
+      newCode = newCode.join('\n');
+    }
+    else if (change.action === 'delete') {
+      let inShape = false, depth = 0;
+      newCode = newCode.filter(line => {
+        if (!inShape && line.trim().startsWith(`shape `) && line.includes(change.name)) {
+          inShape = true;
+          if (line.includes('{')) depth++;
+          return false;
+        }
+        if (inShape) {
+          if (line.includes('{')) depth++;
+          if (line.includes('}')) depth--;
+          if (depth === 0) { inShape = false; }
+          return false;
+        }
+        return true;
+      }).join('\n');
+    }
+
+    if (newCode !== oldCode) {
       editor.operation(() => {
-        editor.setValue(newLines.join('\n'));
+        editor.setValue(newCode);
       });
     }
-  } catch (error) {
-    console.error('Error updating code:', error);
+
+    if (editorMode === 'blocks' && blocklyWorkspace) {
+      rebuildWorkspaceFromAqui(editor.getValue(), blocklyWorkspace);
+      refreshBlockly();
+    }
+
+  } catch (err) {
+    console.error('Error updating code from shape change:', err);
   }
+
+  if (editorMode === 'blocks' && blocklyWorkspace) {
+    rebuildWorkspaceFromAqui(editor.getValue(), blocklyWorkspace);
+    refreshBlockly();
+  }
+
 }
 
 function updateShapeProperty(lines, startLine, endLine, propName, value) {
@@ -707,6 +1177,13 @@ function hideErrorPanel() {
   }
 }
 
+function refreshBlockly() {
+  if (blocklyWorkspace) {
+    Blockly.svgResize(blocklyWorkspace);   
+    blocklyWorkspace.resize();             
+  }
+}
+
 async function loadDocumentation() {
   try {
     const basicDocs = `
@@ -836,3 +1313,4 @@ window.aqui = {
   exportSVG: handleSVGExport,
   exportDXF: handleDXFExport
 };
+
