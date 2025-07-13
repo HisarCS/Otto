@@ -23,6 +23,13 @@
 
   <script src="examples.js"></script>
 
+  <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/msg/en.js"></script>
+
+  <script src="./blocks-umd.js"></script>
+
   <!-- Custom CSS -->
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -41,10 +48,20 @@
   <div class="tab-content active" id="editor-tab">
     <div class="main-content">
       <div class="editor-panel">
-        <textarea id="code-editor">//Aqui by the IdeaLab Fablab
+        <div class="editor-top" style="padding:8px; border-bottom:1px solid #ccc;">
+          <button id="toggle-editor-mode" class="button">Blocks</button>
+        </div>
+        <div id="text-editor-container" style="flex:1; display:flex; flex-direction:column;">
+          <textarea id="code-editor">//Aqui by the IdeaLab Fablab
 
 </textarea>
+        </div>
+
+        <div id="blockly-editor-container" style="flex:1; display:none;">
+          <div id="blocklyDiv" style="height:100%; width:100%;"></div>
+        </div>
       </div>
+      
       <div class="visualization-panel">
         <canvas id="canvas"></canvas>
         <div class="keyboardShortcuts">
@@ -78,6 +95,11 @@
     </div>
   </div>
 
+  <!-- Blocks Tab -->
+  <div class="tab-content" id="blocks-tab" style="display:none;">
+    <div id="blocklyDiv" style="width:100%; height:100vh;"></div>
+  </div>
+
   <!-- Tutorials Tab -->
   <div class="tab-content" id="tutorials-tab">
     <div class="tutorials-container">
@@ -91,6 +113,7 @@
     <div class="docs-content" id="markdown-content"></div>
   </div>
 
+  <!-- Examples Tab -->
   <div class="tab-content" id="examples-tab">
     <section class="examples-menu">
       <h1 class="examples-menu__title">AQUI Examples</h1>
