@@ -10,29 +10,38 @@ import { DragDropSystem } from './dragDropSystem.mjs';
 
 const TOOLBOX_XML = `
 <xml xmlns="https://developers.google.com/blockly/xml" style="display: none">
-  <!-- AQUI Turtle commands -->
+
   <category name="Turtle" colour="#D65C5C">
-    <block type="aqui_draw"></block>
+    <block type="aqui_draw"/>
     <block type="aqui_forward">
-      <value name="DISTANCE"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+      <value name="DISTANCE">
+        <shadow type="math_number"><field name="NUM">10</field></shadow>
+      </value>
     </block>
     <block type="aqui_backward">
-      <value name="DISTANCE"><shadow type="math_number"><field name="NUM">10</field></shadow></value>
+      <value name="DISTANCE">
+        <shadow type="math_number"><field name="NUM">10</field></shadow>
+      </value>
     </block>
     <block type="aqui_right">
-      <value name="ANGLE"><shadow type="math_number"><field name="NUM">90</field></shadow></value>
+      <value name="ANGLE">
+        <shadow type="math_number"><field name="NUM">90</field></shadow>
+      </value>
     </block>
     <block type="aqui_left">
-      <value name="ANGLE"><shadow type="math_number"><field name="NUM">90</field></shadow></value>
+      <value name="ANGLE">
+        <shadow type="math_number"><field name="NUM">90</field></shadow>
+      </value>
     </block>
     <block type="aqui_goto">
-      <value name="POSITION"><shadow type="lists_create_with"/></value>
+      <value name="POSITION">
+        <shadow type="lists_create_with"/>
+      </value>
     </block>
     <block type="aqui_penup"/>
     <block type="aqui_pendown"/>
   </category>
 
-  <!-- AQUI Shapes -->
   <category name="Shapes" colour="#5CA65C">
     <block type="aqui_shape_circle"/>
     <block type="aqui_shape_rectangle"/>
@@ -40,38 +49,16 @@ const TOOLBOX_XML = `
     <block type="aqui_shape_polygon"/>
     <block type="aqui_shape_star"/>
     <block type="aqui_shape_text"/>
-
-    <block type="aqui_prop_expr"/>
-    <block type="aqui_prop_bool"/>
+    <block type="aqui_shape_ellipse"/>
+    <block type="aqui_shape_arc"/>
+    <block type="aqui_shape_roundedrectangle"/>
+    <block type="aqui_shape_arrow"/>
+    <block type="aqui_shape_donut"/>
+    <block type="aqui_shape_gear"/>
+    <block type="aqui_shape_cross"/>
   </category>
 
-  <!-- AQUI Boolean ops -->
-  <category name="Boolean" colour="#5C81A6">
-    <block type="aqui_union"/>
-    <block type="aqui_intersection"/>
-    <block type="aqui_difference"/>
-
-    <block type="aqui_ref"/>
-  </category>
-
-  <!-- Standard Control -->
-  <category name="Control" colour="#5C68A6">
-    <block type="controls_if"/>
-    <block type="controls_for"/>
-  </category>
-
-  <!-- Standard Math / Logic / Text / Lists -->
-  <category name="Math" colour="#5C68A6">
-    <block type="math_number"/>
-    <block type="math_arithmetic"/>
-  </category>
-  <category name="Logic" colour="#5C81A6">
-    <block type="logic_compare"/>
-    <block type="logic_operation"/>
-    <block type="logic_negate"/>
-    <block type="logic_boolean"/>
-
-    <!-- AQUI • parameter declaration -->
+  <category name="Parameters" colour="#CE5C81">
     <block type="aqui_param">
       <value name="NAME">
         <shadow type="text"><field name="TEXT">size</field></shadow>
@@ -80,20 +67,36 @@ const TOOLBOX_XML = `
         <shadow type="math_number"><field name="NUM">150</field></shadow>
       </value>
     </block>
-
-    <!-- AQUI • parameter reference (getter) -->
     <block type="aqui_param_get">
       <field name="NAME">size</field>
     </block>
   </category>
+
+  <category name="Shape Properties" colour="#CE9E36">
+    <block type="aqui_prop_expr"/>
+    <block type="aqui_prop_bool"/>
+  </category>
+
+  <category name="Boolean" colour="#5C81A6">
+    <block type="aqui_union"/>
+    <block type="aqui_intersection"/>
+    <block type="aqui_difference"/>
+    <block type="aqui_ref"/>
+  </category>
+
+  <category name="Math" colour="#5C68A6">
+    <block type="math_number"/>
+    <block type="math_arithmetic"/>
+  </category>
+
   <category name="Text" colour="#A6745C">
     <block type="text"/>
-    <block type="text_print"/>
   </category>
+
   <category name="Lists" colour="#D65C5C">
     <block type="lists_create_with"/>
-    <block type="lists_repeat"/>
   </category>
+
 </xml>
 `;
 
@@ -110,6 +113,7 @@ let errorOutput;
 let errorCount;
 let editorMode = 'text';          
 let blocklyWorkspace = null;
+let syncingFromBlocks = false;
 
 window.interpreter = null;
 
@@ -128,12 +132,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 100);
 });
-
-function round(val, places = 2) {
-  if (typeof val !== 'number') return val;
-  const factor = Math.pow(10, places);
-  return Math.round(val * factor) / factor;
-}
 
 function initializeComponents() {
   canvas = document.getElementById('canvas');
@@ -206,6 +204,7 @@ function setupCodeMirror() {
   
   let timeout;
   editor.on('change', () => {
+    if (syncingFromBlocks) return;   
     clearTimeout(timeout);
     timeout = setTimeout(() => {
       runCode();
@@ -233,15 +232,24 @@ async function initBlockly() {
   refreshBlockly();
 
   blocklyWorkspace.addChangeListener(event => {
-    if (event.type === Blockly.Events.UI) return;
+    if (event.type === Blockly.Events.UI ||
+        (event.type === Blockly.Events.CHANGE && event.element === 'field') ||
+        syncingFromBlocks) {
+      return;
+    }
     try {
       const code = Blockly.JavaScript.workspaceToCode(blocklyWorkspace);
       if (editor.getValue() !== code) {
-        editor.setValue(code);
-        runCode();
+        syncingFromBlocks = true;
+        editor.operation(() => {
+          editor.setValue(code);
+          runCode();
+        });
       }
     } catch (e) {
       console.warn('Codegen error (ignored):', e);
+    } finally {
+      syncingFromBlocks = false;
     }
   });
 
@@ -252,6 +260,26 @@ let _PARAMS = new Set();
 
 function exprToBlock(expr, ws) {
   if (!expr) return null;
+  console.log(expr.type);
+
+  if (expr.type === 'parenthesized' || expr.type === 'group') {
+    const inner = expr.expression || expr.inner;
+    return exprToBlock(inner, ws);
+  }
+
+  if (expr.type === 'logical_op') {
+    const opMap = { and: 'AND', or: 'OR' };
+    const b     = ws.newBlock('logic_operation');
+    b.setFieldValue(opMap[expr.operator], 'OP');
+    
+    const left  = exprToBlock(expr.left,  ws);
+    const right = exprToBlock(expr.right, ws);
+    if (left)  b.getInput('A').connection.connect(left.outputConnection);
+    if (right) b.getInput('B').connection.connect(right.outputConnection);
+    
+    b.initSvg(); b.render();
+    return b;
+  }
 
   if (expr.type === 'unary_op' && expr.operator === 'minus') {
     const ws = arguments[1]; 
@@ -284,6 +312,14 @@ function exprToBlock(expr, ws) {
   }
 
   if (expr.type === 'string') {                    
+    const b = ws.newBlock('text');
+    b.setShadow(true);
+    b.setFieldValue(expr.value, 'TEXT');
+    b.initSvg(); b.render();
+    return b;
+  }
+
+  if (expr.type === 'color') {                    
     const b = ws.newBlock('text');
     b.setShadow(true);
     b.setFieldValue(expr.value, 'TEXT');
@@ -378,36 +414,46 @@ function exprToBlock(expr, ws) {
 }
 
 function stmtToBlock(stmt, ws) {
+  console.log(stmt.type);
+
   if (stmt.type === 'param') {
     const blk = ws.newBlock('aqui_param');
     blk.setFieldValue(stmt.name, 'NAME');
-
     const v = exprToBlock(stmt.value, ws);
     if (v) blk.getInput('VALUE').connection.connect(v.outputConnection);
-
     blk.initSvg(); blk.render();
     return blk;
   }
 
+  if (stmt.type === 'expression_statement' || stmt.type === 'expr_statement') {
+    const expr = stmt.expression || stmt.expr;
+    const blk  = exprToBlock(expr, ws);
+    if (blk) {
+      blk.initSvg(); blk.render();
+      return blk;
+    }
+  }
+
   if (stmt.type === 'shape') {
-    const blk = ws.newBlock(`aqui_shape_${stmt.shapeType.toLowerCase()}`);
+    const type = stmt.shapeType.toLowerCase();
+    const blk  = ws.newBlock(`aqui_shape_${type}`);
     blk.setFieldValue(stmt.name, 'NAME');
 
     let prev = null;
     Object.entries(stmt.params || {}).forEach(([key, valExpr]) => {
-      const isBool = valExpr.type === 'boolean';
-      const leaf   = ws.newBlock(isBool ? 'aqui_prop_bool'
-                                        : 'aqui_prop_expr');
+      const leafType = valExpr.type === 'boolean'
+                     ? 'aqui_prop_bool'
+                     : 'aqui_prop_expr';
+      const leaf = ws.newBlock(leafType);
       leaf.setFieldValue(key, 'KEY');
-
-      if (isBool) {
+      if (valExpr.type === 'boolean') {
         leaf.setFieldValue(valExpr.value ? 'TRUE' : 'FALSE', 'VAL');
       } else {
-        const v = exprToBlock(valExpr, ws);
-        if (v) leaf.getInput('VAL').connection.connect(v.outputConnection);
+        const child = exprToBlock(valExpr, ws);
+        if (child) leaf.getInput('VAL').connection.connect(child.outputConnection);
       }
-
       leaf.initSvg(); leaf.render();
+
       if (prev) prev.nextConnection.connect(leaf.previousConnection);
       else      blk.getInput('PROPS').connection.connect(leaf.previousConnection);
       prev = leaf;
@@ -422,10 +468,10 @@ function stmtToBlock(stmt, ws) {
     blk.setFieldValue(stmt.name, 'NAME');
 
     let prev = null;
-    (stmt.shapes || []).forEach((s,i) => {
+    (stmt.shapes || []).forEach((s, i) => {
       const leaf = ws.newBlock('aqui_ref');
-      const op = (stmt.operation === 'difference' && i) ? 'subtract' : 'add';
-      leaf.setFieldValue(op,'OP');
+      const op   = stmt.operation === 'difference' && i ? 'subtract' : 'add';
+      leaf.setFieldValue(op, 'OP');
       leaf.setFieldValue(s, 'TARGET');
       leaf.initSvg(); leaf.render();
 
@@ -439,20 +485,17 @@ function stmtToBlock(stmt, ws) {
   }
 
   if (stmt.type === 'draw') {
-    const blk = ws.newBlock('aqui_draw');
+    const blk       = ws.newBlock('aqui_draw');
     blk.setFieldValue(stmt.name, 'NAME');
     const bodyInput = blk.getInput('STACK') || blk.getInput('COMMANDS');
 
     let prev = null;
     (stmt.commands || []).forEach(cmd => {
-      const map  = { forward:'D', backward:'D', right:'A', left:'A' };
-      const type = cmd.command;
-      const sock = map[type] || null;
-
-      const leaf = ws.newBlock(`aqui_${type}`);
+      const leaf = ws.newBlock(`aqui_${cmd.command}`);
+      const sock = { forward:'D', backward:'D', right:'A', left:'A' }[cmd.command];
       if (sock) {
-        const v = exprToBlock(cmd.value, ws);
-        if (v) leaf.getInput(sock).connection.connect(v.outputConnection);
+        const child = exprToBlock(cmd.value, ws);
+        if (child) leaf.getInput(sock).connection.connect(child.outputConnection);
       }
       leaf.initSvg(); leaf.render();
 
@@ -466,46 +509,21 @@ function stmtToBlock(stmt, ws) {
   }
 
   if (stmt.type === 'draw_command') {
-    const map  = { forward:'D', backward:'D', right:'A', left:'A',
-                   penup:null, pendown:null };
     const leaf = ws.newBlock(`aqui_${stmt.command}`);
-    const sock = map[stmt.command];
+    const sock = { forward:'D', backward:'D', right:'A', left:'A',
+                   penup:null, pendown:null }[stmt.command];
     if (sock) {
-      const v = exprToBlock(stmt.value, ws);
-      if (v) leaf.getInput(sock).connection.connect(v.outputConnection);
+      const child = exprToBlock(stmt.value, ws);
+      if (child) leaf.getInput(sock).connection.connect(child.outputConnection);
     }
     leaf.initSvg(); leaf.render();
     return leaf;
   }
 
-  if (stmt.type === 'if_statement') {
-    const blk = ws.newBlock('controls_if');
-    blk.initSvg();                      
-
-    const cond = exprToBlock(stmt.condition, ws);
-    if (cond) {
-      blk.getInput('IF0').connection.connect(cond.outputConnection);
-    }
-
-    let prev = null;
-    (stmt.body || []).forEach(inner => {
-      const innerBlk = stmtToBlock(inner, ws);
-      if (!innerBlk) return;
-      if (prev) {
-        prev.nextConnection.connect(innerBlk.previousConnection);
-      } else {
-        blk.getInput('DO0').connection.connect(innerBlk.previousConnection);
-      }
-      prev = innerBlk;
-    });
-
-    blk.render();                         
-    return blk;
-  }
-
   console.warn('stmtToBlock – unhandled top-level:', stmt.type);
   return null;
 }
+
 
 function rebuildWorkspaceFromAqui(code, workspace) {
   let ast;
@@ -516,7 +534,9 @@ function rebuildWorkspaceFromAqui(code, workspace) {
     return;
   }
 
+  _PARAMS.clear();
   const stmts = Array.isArray(ast) ? ast : (ast.body || ast.statements || []);
+  stmts.forEach(s => { if (s.type === 'param') _PARAMS.add(s.name); });
 
   Blockly.Events.disable();
   try {
@@ -843,11 +863,12 @@ function updateCodeFromShapeChange(change) {
     let newCode = oldCode.split('\n');
 
     if (change.action === 'update') {
+      // locate the shape block in the text
       let inShapeBlock = false;
       let start = -1, end = -1, depth = 0;
       for (let i = 0; i < newCode.length; i++) {
         const line = newCode[i];
-        if (!inShapeBlock && line.trim().startsWith(`shape `) && line.includes(change.name)) {
+        if (!inShapeBlock && line.trim().startsWith('shape ') && line.includes(change.name)) {
           inShapeBlock = true;
           start = i;
         }
@@ -860,11 +881,6 @@ function updateCodeFromShapeChange(change) {
 
       if (start >= 0 && end >= 0) {
         function injectProp(prop, val) {
-          if (Array.isArray(val)) {
-            val = `[${ val.map(v => round(v, 2)).join(', ')}]`;
-          } else if (typeof val === 'number') {
-            val = round(val, 2);
-          }
           let found = false;
           for (let j = start; j <= end; j++) {
             if (newCode[j].trim().startsWith(prop + ':')) {
@@ -885,17 +901,25 @@ function updateCodeFromShapeChange(change) {
           }
         }
 
-        injectProp('position', `[${change.shape.transform.position[0]}, ${change.shape.transform.position[1]}]`);
+        injectProp(
+          'position',
+          `[${change.shape.transform.position[0]}, ${change.shape.transform.position[1]}]`
+        );
         if (change.shape.transform.rotation !== 0) {
           injectProp('rotation', change.shape.transform.rotation);
         }
-        if (change.shape.transform.scale[0] !== 1 || change.shape.transform.scale[1] !== 1) {
-          injectProp('scale', `[${change.shape.transform.scale[0]}, ${change.shape.transform.scale[1]}]`);
+        if (
+          change.shape.transform.scale[0] !== 1 ||
+          change.shape.transform.scale[1] !== 1
+        ) {
+          injectProp(
+            'scale',
+            `[${change.shape.transform.scale[0]}, ${change.shape.transform.scale[1]}]`
+          );
         }
-        Object.entries(change.shape.params).forEach(([k,v]) => {
+        Object.entries(change.shape.params).forEach(([k, v]) => {
           if (typeof v === 'number' || typeof v === 'string') {
-            const literal = typeof v === 'string' ? `"${v}"` : v;
-            injectProp(k, literal);
+            injectProp(k, v);
           }
         });
       }
@@ -905,7 +929,7 @@ function updateCodeFromShapeChange(change) {
     else if (change.action === 'delete') {
       let inShape = false, depth = 0;
       newCode = newCode.filter(line => {
-        if (!inShape && line.trim().startsWith(`shape `) && line.includes(change.name)) {
+        if (!inShape && line.trim().startsWith('shape ') && line.includes(change.name)) {
           inShape = true;
           if (line.includes('{')) depth++;
           return false;
@@ -926,7 +950,7 @@ function updateCodeFromShapeChange(change) {
       });
     }
 
-    if (editorMode === 'blocks' && blocklyWorkspace) {
+    if (blocklyWorkspace) {
       rebuildWorkspaceFromAqui(editor.getValue(), blocklyWorkspace);
       refreshBlockly();
     }
@@ -1027,7 +1051,7 @@ function handleSVGExport() {
     const result = exportToSVG(window.interpreter, canvas);
     
     if (!result.success && result.error) {
-      displayErrors([{ message: `SVG Export failed: ${result.error}` }]);
+        displayErrors([{ message: `SVG Export failed: ${result.error}` }]);
     }
   } catch (error) {
     displayErrors([{ message: `SVG Export failed: ${error.message}` }]);
@@ -1044,7 +1068,7 @@ function handleDXFExport() {
     const result = exportToDXF(window.interpreter, canvas);
     
     if (!result.success && result.error) {
-      displayErrors([{ message: `DXF Export failed: ${result.error}` }]);
+        displayErrors([{ message: `DXF Export failed: ${result.error}` }]);
     }
   } catch (error) {
     displayErrors([{ message: `DXF Export failed: ${error.message}` }]);
