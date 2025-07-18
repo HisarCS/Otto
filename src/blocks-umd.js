@@ -53,7 +53,7 @@ Blockly.JavaScript['aqui_ref']=b=>
   `${b.getFieldValue('OP')} ${b.getFieldValue('TARGET')}`;
 
 
-['circle','rectangle','triangle','polygon','star','text'].forEach(type=>{
+['circle','rectangle','triangle','polygon','star','text', 'ellipse','arc','roundedrectangle','arrow','donut','gear', 'cross'].forEach(type=>{
   Blockly.defineBlocksWithJsonArray([{
     type   : `aqui_shape_${type}`,
     message0:`shape ${type} %1`,
@@ -212,3 +212,4 @@ console.log(
   'AQUI generators registered:',
   Object.keys(Blockly.JavaScript.forBlock).filter(k=>k.startsWith('aqui_'))
 );
+
