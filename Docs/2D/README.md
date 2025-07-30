@@ -93,8 +93,6 @@ All shape types and their required parameters are listed in section 13.
 
 ## 5. Boolean Operations
 
-\$1
-
 ### Example
 
 ```aqui
@@ -136,8 +134,6 @@ transform myShape {
 
 ## 7. Conditional Logic
 
-\$1
-
 Aqui supports complex conditions with logical operators:
 
 ```aqui
@@ -149,8 +145,6 @@ if (size > 50 and showDetails) or isSpecial {
 ---
 
 ## 8. Loops
-
-\$1
 
 ### Shape Naming in Loops
 
@@ -265,115 +259,463 @@ shape path myPath {
 
 ## 13. Supported Shape Types and Parameters
 
-### rectangle
+### **rectangle**
 
-* `width`, `height`, `position`, `rotation`, `scale`
+* `width`, `height`, `position`, `rotation`
 
-### circle
+```aqui
+shape rectangle myRect {
+  width: 120
+  height: 80
+  position: [100, 100]
+  rotation: 15
+}
+```
 
-* `radius`, `position`, `rotation`, `scale`
+### **circle**
 
-### triangle
+* `radius`, `position`, `rotation`
 
-* `base`, `height`, `position`, `rotation`, `scale`
+```aqui
+shape circle myCircle {
+  radius: 50
+  position: [200, 200]
+  rotation: 0
+}
+```
 
-### ellipse
+### **triangle**
 
-* `radiusX`, `radiusY`, `position`, `rotation`, `scale`
+* `base`, `height`, `position`, `rotation`
 
-### regularpolygon
+```aqui
+shape triangle myTriangle {
+  base: 60
+  height: 100
+  position: [150, 150]
+  rotation: 30
+}
+```
 
-* `radius`, `sides`, `position`, `rotation`, `scale`
+### **ellipse**
 
-### star
+* `radiusX`, `radiusY`, `position`, `rotation`
 
-* `outerRadius`, `innerRadius`, `points`, `position`, `rotation`, `scale`
+```aqui
+shape ellipse myEllipse {
+  radiusX: 70
+  radiusY: 40
+  position: [300, 100]
+  rotation: 45
+}
+```
 
-### arc
+### **regularpolygon**
 
-* `radius`, `startAngle`, `endAngle`, `position`, `rotation`, `scale`
+* `radius`, `sides`, `position`, `rotation`
 
-### roundedrectangle
+```aqui
+shape polygon myPolygon {
+  radius: 60
+  sides: 6
+  position: [250, 250]
+  rotation: 0
+}
+```
 
-* `width`, `height`, `radius`, `position`, `rotation`, `scale`
+### **star**
 
-### chamferrectangle
+* `outerRadius`, `innerRadius`, `points`, `position`, `rotation`
 
-* `width`, `height`, `chamfer`, `position`, `rotation`, `scale`
+```aqui
+shape star myStar {
+  outerRadius: 80
+  innerRadius: 40
+  points: 5
+  position: [300, 300]
+  rotation: 0
+}
+```
 
-### path
+### **arc**
 
-* `points`, `closed`, `position`, `rotation`, `scale`
+* `radius`, `startAngle`, `endAngle`, `position`, `rotation`
 
-### arrow
+```aqui
+shape arc myArc {
+  radius: 90
+  startAngle: 0
+  endAngle: 180
+  position: [200, 350]
+  rotation: 0
+}
+```
 
-* `length`, `headWidth`, `headLength`, `position`, `rotation`, `scale`
+### **roundedrectangle**
 
-### text
+* `width`, `height`, `radius`, `position`, `rotation`
 
-* `text`, `fontSize`, `fontFamily`, `position`, `rotation`, `scale`
+```aqui
+shape roundedrectangle myRoundRect {
+  width: 150
+  height: 100
+  radius: 20
+  position: [100, 300]
+  rotation: 10
+}
+```
 
-### beziercurve
+### **chamferrectangle**
 
-* `startPoint`, `controlPoint1`, `controlPoint2`, `endPoint`, `position`, `rotation`, `scale`
+* `width`, `height`, `chamfer`, `position`, `rotation`
 
-### donut
+```aqui
+shape chamferrectangle myChamfer {
+  width: 120
+  height: 80
+  chamfer: 15
+  position: [100, 400]
+  rotation: 0
+}
+```
 
-* `outerRadius`, `innerRadius`, `position`, `rotation`, `scale`
+### **path**
 
-### spiral
+* `points`, `closed`, `position`, `rotation`
 
-* `startRadius`, `endRadius`, `turns`, `position`, `rotation`, `scale`
+```aqui
+shape path myPath {
+  points: [[0,0], [100,0], [100,50], [0,50]]
+  closed: true
+  position: [200, 200]
+  rotation: 0
+}
+```
 
-### wave
+### **arrow**
 
-* `width`, `amplitude`, `frequency`, `position`, `rotation`, `scale`
+* `length`, `headWidth`, `headLength`, `position`, `rotation`
 
-### cross
+```aqui
+shape arrow myArrow {
+  length: 100
+  headWidth: 20
+  headLength: 30
+  position: [100, 100]
+  rotation: 90
+}
+```
 
-* `width`, `thickness`, `position`, `rotation`, `scale`
+### **text**
 
-### gear
+* `text`, `fontSize`, `fontFamily`, `position`, `rotation`
 
-* `pitch_diameter`, `teeth`, `pressure_angle`, `position`, `rotation`, `scale`
+```aqui
+shape text myText {
+  text: "Hello AQUI"
+  fontSize: 20
+  fontFamily: "Arial"
+  position: [250, 150]
+  rotation: 0
+}
+```
 
-### slot
+### **beziercurve**
 
-* `length`, `width`, `position`, `rotation`, `scale`
+* `startPoint`, `controlPoint1`, `controlPoint2`, `endPoint`, `position`, `rotation`
 
-### polygonwithholes
+```aqui
+shape beziercurve myCurve {
+  startPoint: [0, 0]
+  controlPoint1: [50, 100]
+  controlPoint2: [100, 100]
+  endPoint: [150, 0]
+  position: [100, 100]
+  rotation: 0
+}
+```
 
-* `outerPath`, `holes`, `position`, `rotation`, `scale`
+### **donut**
 
-### dovetailpin / dovetailtail
+* `outerRadius`, `innerRadius`, `position`, `rotation`
 
-* `width`, `jointCount`, `depth`, `angle`, `thickness`, `position`, `rotation`, `scale`
+```aqui
+shape donut myDonut {
+  outerRadius: 80
+  innerRadius: 40
+  position: [300, 300]
+  rotation: 0
+}
+```
 
-### fingerjointpin / fingerjointsocket
+### **spiral**
 
-* `width`, `fingerCount`, `fingerWidth`, `depth`, `thickness`, `position`, `rotation`, `scale`
+* `startRadius`, `endRadius`, `turns`, `position`, `rotation`
 
-### halflapmale / halflapfemale
+```aqui
+shape spiral mySpiral {
+  startRadius: 10
+  endRadius: 100
+  turns: 3
+  position: [250, 250]
+  rotation: 0
+}
+```
 
-* `width`, `height`, `lapLength`, `lapDepth`, `position`, `rotation`, `scale`
+### **wave**
 
-### crosslapvertical / crosslaphorizontal
+* `width`, `amplitude`, `frequency`, `position`, `rotation`
 
-* `width`, `height`, `slotWidth`, `slotDepth`, `slotPosition`, `position`, `rotation`, `scale`
+```aqui
+shape wave myWave {
+  width: 200
+  amplitude: 30
+  frequency: 3
+  position: [150, 200]
+  rotation: 0
+}
+```
 
-### slotboard
+### **cross**
 
-* `width`, `height`, `slotCount`, `slotWidth`, `slotDepth`, `slotPosition`, `position`, `rotation`, `scale`
+* `width`, `thickness`, `position`, `rotation`
 
-### tabboard
+```aqui
+shape cross myCross {
+  width: 100
+  thickness: 20
+  position: [100, 100]
+  rotation: 0
+}
+```
 
-* `width`, `height`, `tabCount`, `tabWidth`, `tabDepth`, `tabPosition`, `position`, `rotation`, `scale`
+### **gear**
 
-### fingercombmale / fingercombfemale
+* `pitch_diameter`, `teeth`, `pressure_angle`, `position`, `rotation`
 
-* `width`, `depth`, `fingerCount`, `position`, `rotation`, `scale`
+```aqui
+shape gear myGear {
+  pitch_diameter: 100
+  teeth: 20
+  pressure_angle: 20
+  position: [200, 200]
+  rotation: 0
+}
+```
 
----
+### **slot**
+
+* `length`, `width`, `position`, `rotation`
+
+```aqui
+shape slot mySlot {
+  length: 100
+  width: 20
+  position: [200, 100]
+  rotation: 0
+}
+```
+
+### **polygonwithholes**
+
+* `outerPath`, `holes`, `position`, `rotation`
+
+```aqui
+shape polygonwithholes myHolePoly {
+  outerPath: [[0,0], [100,0], [100,100], [0,100]]
+  holes: [[[25,25], [75,25], [75,75], [25,75]]]
+  position: [200, 200]
+  rotation: 0
+}
+```
+
+### **dovetailpin**
+
+* `width`, `jointCount`, `depth`, `angle`, `thickness`, `position`, `rotation`
+
+```aqui
+shape dovetailpin myPin {
+  width: 100
+  jointCount: 5
+  depth: 30
+  angle: 45
+  thickness: 10
+  position: [300, 100]
+  rotation: 0
+}
+```
+
+### **dovetailtail**
+
+* `width`, `jointCount`, `depth`, `angle`, `thickness`, `position`, `rotation`
+
+```aqui
+shape dovetailtail myTail {
+  width: 100
+  jointCount: 5
+  depth: 30
+  angle: 45
+  thickness: 10
+  position: [300, 200]
+  rotation: 0
+}
+```
+
+### **fingerjointpin**
+
+* `width`, `fingerCount`, `fingerWidth`, `depth`, `thickness`, `position`, `rotation`
+
+```aqui
+shape fingerjointpin myFJPin {
+  width: 100
+  fingerCount: 5
+  fingerWidth: 20
+  depth: 30
+  thickness: 10
+  position: [100, 100]
+  rotation: 0
+}
+```
+
+### **fingerjointsocket**
+
+* `width`, `fingerCount`, `fingerWidth`, `depth`, `thickness`, `position`, `rotation`
+
+```aqui
+shape fingerjointsocket myFJSocket {
+  width: 100
+  fingerCount: 5
+  fingerWidth: 20
+  depth: 30
+  thickness: 10
+  position: [100, 200]
+  rotation: 0
+}
+```
+
+### **halflapmale**
+
+* `width`, `height`, `lapLength`, `lapDepth`, `position`, `rotation`
+
+```aqui
+shape halflapmale maleLap {
+  width: 100
+  height: 50
+  lapLength: 30
+  lapDepth: 20
+  position: [100, 100]
+  rotation: 0
+}
+```
+
+### **halflapfemale**
+
+* `width`, `height`, `lapLength`, `lapDepth`, `position`, `rotation`
+
+```aqui
+shape halflapfemale femaleLap {
+  width: 100
+  height: 50
+  lapLength: 30
+  lapDepth: 20
+  position: [100, 200]
+  rotation: 0
+}
+```
+
+### **crosslapvertical**
+
+* `width`, `height`, `slotWidth`, `slotDepth`, `slotPosition`, `position`, `rotation`
+
+```aqui
+shape crosslapvertical myCrossV {
+  width: 80
+  height: 200
+  slotWidth: 20
+  slotDepth: 40
+  slotPosition: 100
+  position: [300, 300]
+  rotation: 0
+}
+```
+
+### **crosslaphorizontal**
+
+* `width`, `height`, `slotWidth`, `slotDepth`, `slotPosition`, `position`, `rotation`
+
+```aqui
+shape crosslaphorizontal myCrossH {
+  width: 200
+  height: 80
+  slotWidth: 20
+  slotDepth: 40
+  slotPosition: 100
+  position: [200, 300]
+  rotation: 0
+}
+```
+
+### **slotboard**
+
+* `width`, `height`, `slotCount`, `slotWidth`, `slotDepth`, `slotPosition`, `position`, `rotation`
+
+```aqui
+shape slotboard mySlotBoard {
+  width: 300
+  height: 200
+  slotCount: 3
+  slotWidth: 20
+  slotDepth: 50
+  slotPosition: 0.5
+  position: [200, 200]
+  rotation: 0
+}
+```
+
+### **tabboard**
+
+* `width`, `height`, `tabCount`, `tabWidth`, `tabDepth`, `tabPosition`, `position`, `rotation`
+
+```aqui
+shape tabboard myTabBoard {
+  width: 300
+  height: 200
+  tabCount: 3
+  tabWidth: 30
+  tabDepth: 40
+  tabPosition: 0.5
+  position: [200, 300]
+  rotation: 0
+}
+```
+
+### **fingercombmale**
+
+* `width`, `depth`, `fingerCount`, `position`, `rotation`
+
+```aqui
+shape fingercombmale combM {
+  width: 100
+  depth: 40
+  fingerCount: 5
+  position: [100, 100]
+  rotation: 0
+}
+```
+
+### **fingercombfemale**
+
+* `width`, `depth`, `fingerCount`, `position`, `rotation`
+
+```aqui
+shape fingercombfemale combF {
+  width: 100
+  depth: 40
+  fingerCount: 5
+  position: [100, 200]
+  rotation: 0
+}
+```
 
 ## 14. Style and Appearance
 
