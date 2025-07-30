@@ -1,551 +1,420 @@
 # Aqui Programming Language Documentation
 
 ## Overview
-Aqui is a domain-specific programming language designed for parametric shape creation and graphical design. 
 
-## Core Concepts
+Aqui is a domain-specific programming language designed for **parametric shape creation and graphical design**, particularly in digital fabrication contexts.
 
-### **1. Parameters (`param`)**
-Parameters allow defining variables that can be used throughout the script.
-#### **Syntax:**
+---
+
+## 1. Language Structure
+
+Aqui code consists of declarations and instructions. The language supports:
+
+* Parameters (`param`)
+* Shape definitions (`shape`)
+* Conditional logic (`if`, `else`)
+* Loops (`for`, `from`, `to`, `step`)
+* Functions (`def`)
+* Transformations (`transform`, `position`, `rotate`, `scale`)
+* Boolean operations (`union`, `difference`, `intersection`)
+* Layers (`layer`)
+* Drawing commands (`draw`)
+
+---
+
+## 2. Tokens and Keywords
+
+Aqui is case-insensitive. Reserved keywords include:
+
+### Shape Keywords
+
+`shape`, `rectangle`, `circle`, `triangle`, `ellipse`, `path`, `star`, `arc`, `text`, `beziercurve`, `donut`, `spiral`, `wave`, `gear`, `roundedrectangle`, `chamferrectangle`, `regularpolygon`, `arrow`, `cross`, `slot`, `polygonwithholes`, `dovetailpin`, `dovetailtail`, `fingerjointpin`, `fingerjointsocket`, `halflapmale`, `halflapfemale`, `crosslapvertical`, `crosslaphorizontal`, `slotboard`, `tabboard`, `fingercombmale`, `fingercombfemale`
+
+### Logic Keywords
+
+`if`, `else`, `and`, `or`, `not`, `true`, `false`
+
+### Loop Keywords
+
+`for`, `from`, `to`, `step`
+
+### Function Keywords
+
+`def`
+
+### Boolean Operation Keywords
+
+`union`, `difference`, `intersection`
+
+### Transformation Keywords
+
+`transform`, `position`, `rotate`, `scale`
+
+### Drawing Keywords
+
+`draw`, `forward`, `backward`, `right`, `left`, `goto`, `penup`, `pendown`
+
+### Styling Tokens
+
+`fill`, `filled`, `fillColor`, `stroke`, `strokeColor`, `strokeWidth`, `opacity`, `alpha`, `visible`, `hidden`, `color`, `background`, `border`, `thickness`
+
+---
+
+## 3. Parameters
+
 ```aqui
 param size 100
 param isVisible true
 param color "red"
 ```
-- `size` is a numerical parameter.
-- `isVisible` is a boolean parameter.
-- `color` is a string parameter.
 
-Parameters can be referenced using `param.name` inside shapes or conditions.
+Parameters are global variables used in any part of the code.
 
-### **2. Shapes (`shape`)**
-Shapes define geometric elements with configurable properties.
-#### **Syntax:**
+---
+
+## 4. Shape Declaration
+
 ```aqui
 shape circle myCircle {
-    radius: 30
-    position: [50, 50]
-}
-```
-- `shape` is the keyword.
-- `circle` is the shape type.
-- `myCircle` is the shape name.
-- Properties such as `radius` and `position` define the shape's attributes.
-
-### **3. Layers (`layer`)**
-Layers are used to group multiple shapes and apply transformations collectively.
-#### **Syntax:**
-```aqui
-layer main {
-    add myCircle
-    rotate 45
-}
-```
-- `add myCircle` adds a shape to the layer.
-- `rotate 45` applies a 45-degree rotation to all elements in the layer.
-
-### **4. Transformations (`transform`)**
-Transformations modify the properties of shapes and layers.
-#### **Syntax:**
-```aqui
-transform myCircle {
-    scale: 2
-    rotate: 30
-    position: [100, 50]
-}
-```
-- `scale: 2` doubles the size of the shape.
-- `rotate: 30` rotates the shape by 30 degrees.
-- `position: [100, 50]` moves the shape to coordinates [100, 50].
-
-### **5. Conditional Statements (`if-else`)**
-Aqui supports conditional statements to dynamically create shapes.
-#### **Syntax:**
-```aqui
-if param.size > 50 {
-    shape circle bigCircle {
-        radius: param.size
-        position: [100, 100]
-    }
-} else {
-    shape circle smallCircle {
-        radius: param.size / 2
-        position: [100, 100]
-    }
-}
-```
-- If `size` is greater than 50, `bigCircle` is created.
-- Otherwise, `smallCircle` is created.
-
-Aqui supports complex conditions with logical operators:
-```aqui
-if (size > 50 and showDetails) or isSpecial {
-    // Code to execute if condition is true
+  radius: 30
+  position: [50, 50]
 }
 ```
 
-### **6. Functions (`def`)**
-Functions allow creating reusable code blocks for shape generation.
-#### **Syntax:**
-```aqui
-def functionName(param1, param2) {
-    // Function body
-    shape circle myCircle {
-        radius: param1
-        position: [param2, param2]
-    }
-    return myCircle
-}
+Each shape block has:
 
-// Call the function
-param circleInstance functionName(30, 50)
-```
-- Define functions with the `def` keyword
-- Functions can accept parameters and return values
-- Use functions to create reusable shape generators
+* A **type**
+* A **name**
+* A list of parameters
 
-#### **Example: Circle Grid**
-```aqui
-def createCircleGrid(startX, startY, rows, cols, spacing, baseRadius) {
-    for i from 0 to rows - 1 {
-        for j from 0 to cols - 1 {
-            param x startX + j * spacing
-            param y startY + i * spacing
-            param radius baseRadius * (1 + 0.3 * (i + j) / (rows + cols))
-            
-            // Call another function
-            createCircle(param.x, param.y, param.radius)
-        }
-    }
-}
+All shape types and their required parameters are listed in section 13.
 
-// Helper function
-def createCircle(x, y, radius) {
-    shape circle dynamicCircle {
-        radius: radius
-        position: [x, y]
-    }
-}
+---
 
-// Use the function
-createCircleGrid(-100, -100, 5, 5, 40, 10)
-```
+## 5. Boolean Operations
 
-### **7. Turtle Drawing (`draw`)**
-Create paths using turtle-like drawing commands.
-#### **Syntax:**
-```aqui
-draw myDrawing {
-    forward 50
-    right 90
-    forward 50
-    
-    // More drawing commands
-}
-```
-#### **Available Commands:**
-- `forward <distance>` - Move forward by the specified distance
-- `backward <distance>` - Move backward by the specified distance
-- `right <angle>` - Turn right by the specified angle in degrees
-- `left <angle>` - Turn left by the specified angle in degrees
-- `goto [x, y]` - Move to the specified coordinates
-- `penup` - Stop drawing while moving
-- `pendown` - Resume drawing while moving
+\$1
 
-#### **Example: Drawing a Square**
-```aqui
-draw square {
-    forward 50
-    right 90
-    forward 50
-    right 90
-    forward 50
-    right 90
-    forward 50
-}
-```
+### Example
 
-### **8. Boolean Operations**
-Aqui supports boolean operations to combine shapes in various ways.
-
-#### **Syntax:**
-```aqui
-union resultShape {
-    add shape1
-    add shape2
-}
-
-difference resultShape {
-    add baseShape
-    add subtractShape
-}
-
-intersection resultShape {
-    add shape1
-    add shape2
-}
-```
-
-#### **Operations:**
-- `union` - Combines shapes by taking all points from both shapes
-- `difference` - Subtracts the second shape from the first
-- `intersection` - Creates a shape containing only the overlapping areas
-
-#### **Example:**
 ```aqui
 shape rectangle rect1 {
-    width: 100
-    height: 50
-    position: [0, 0]
+  width: 100
+  height: 50
+  position: [0, 0]
 }
 
 shape circle circ1 {
-    radius: 30
-    position: [0, 0]
+  radius: 30
+  position: [0, 0]
 }
 
 union combined {
-    add rect1
-    add circ1
+  add rect1
+  add circ1
 }
 
 difference cutout {
-    add rect1
-    add circ1
+  add rect1
+  add circ1
 }
 ```
 
-## Loops
+---
 
-### **1. Basic Range Loop**
-Iterates from a start value to an end value with an optional step.
-#### **Syntax:**
+## 6. Transformations
+
 ```aqui
-for iterator from start to end {
-    // shape definitions and transformations
+transform myShape {
+  scale: 2
+  rotate: 30
+  position: [100, 50]
 }
 ```
-#### **Example:**
+
+---
+
+## 7. Conditional Logic
+
+\$1
+
+Aqui supports complex conditions with logical operators:
+
 ```aqui
-for i from 0 to 5 {
-    shape circle circle1 {
-        radius: 10
-        position: [i * 30, 50]
-    }
+if (size > 50 and showDetails) or isSpecial {
+  // Code to execute if condition is true
 }
 ```
-- Creates circles named `circle1_0` through `circle1_5`
-- Iterator `i` can be used in expressions
-- Shape names are automatically indexed
 
-### **2. Step Loop**
-Includes a step value to control iteration increment.
-#### **Syntax:**
+---
+
+## 8. Loops
+
+\$1
+
+### Shape Naming in Loops
+
+Loop-generated shapes are automatically named with the format: `name_index`. This allows you to reference them later:
+
 ```aqui
-for iterator from start to end step stepValue {
-    // shape definitions and transformations
-}
-```
-#### **Example:**
-```aqui
-for i from 0 to 100 step 20 {
-    shape circle circle1 {
-        radius: i / 4
-        position: [i, 50]
-    }
-}
-```
-- Creates circles with increasing radii
-- Steps by 20 units each iteration
-- Automatic naming applies as `circle1_0`, `circle1_20`, etc.
-
-### **3. Shape Naming**
-Loops automatically handle unique shape naming.
-#### **Behavior:**
-- Base shape name is suffixed with underscore and iteration number
-- Format: `shapeName_iterationNumber`
-- Enables referencing specific instances after loop execution
-
-#### **Example with Transforms:**
-```aqui
-for i from 0 to 5 {
-    shape circle circle1 {
-        radius: 10
-        position: [i * 30, 50]
-    }
-}
-
 transform circle1_2 {
-    rotate: 45
+  rotate: 45
 }
 ```
-- Creates multiple circles
-- Individual shapes can be referenced using generated names
-- Transforms can target specific instances
 
-### **4. Nested Loops**
-Loops can be nested for creating grid-based patterns.
+### Nested Loops
+
+You can nest loops for grids and matrices:
 
 ```aqui
 for i from 0 to 3 {
-    for j from 0 to 3 {
-        shape circle gridCircle {
-            radius: 10
-            position: [i * 30, j * 30]
-        }
+  for j from 0 to 3 {
+    shape circle gridCircle {
+      radius: 10
+      position: [i * 30, j * 30]
     }
+  }
 }
 ```
 
-## Shape Classes
-Aqui supports 20 predefined shape classes:
+### Full Example
 
-### **1. Rectangle**
 ```aqui
-shape rectangle myRect {
-    width: 100
-    height: 50
-    position: [50, 50]
+def createCircleGrid(startX, startY, rows, cols, spacing, baseRadius) {
+  for i from 0 to rows - 1 {
+    for j from 0 to cols - 1 {
+      param x startX + j * spacing
+      param y startY + i * spacing
+      param radius baseRadius * (1 + 0.3 * (i + j) / (rows + cols))
+      createCircle(param.x, param.y, param.radius)
+    }
+  }
 }
-```
-- Defines a rectangle with width, height, and position.
 
-### **2. Circle**
+def createCircle(x, y, radius) {
+  shape circle dynamicCircle {
+    radius: radius
+    position: [x, y]
+  }
+}
+
+createCircleGrid(-100, -100, 5, 5, 40, 10)
+```
+
+---
+
+## 9. Functions
+
 ```aqui
-shape circle myCircle {
-    radius: 30
-    position: [50, 50]
+def createCircle(x, y, radius) {
+  shape circle dynamicCircle {
+    radius: radius
+    position: [x, y]
+  }
 }
 ```
-- Defines a circle with a radius and position.
 
-### **3. Triangle**
+Functions define reusable blocks but do not return values.
+
+---
+
+## 10. Turtle Drawing
+
 ```aqui
-shape triangle myTriangle {
-    base: 60
-    height: 80
-    position: [50, 50]
+draw square {
+  forward 50
+  right 90
+  forward 50
+  right 90
+  forward 50
+  right 90
+  forward 50
 }
 ```
-- Defines a triangle with a base and height.
 
-### **4. Ellipse**
+Commands:
+
+* `forward`, `backward`, `right`, `left`
+* `goto [x, y]`, `penup`, `pendown`
+
+---
+
+## 11. Layers
+
 ```aqui
-shape ellipse myEllipse {
-    radiusX: 40
-    radiusY: 20
-    position: [50, 50]
+layer main {
+  add shape1
+  add shape2
 }
 ```
-- Defines an ellipse with different X and Y radii.
 
-### **5. Regular Polygon**
-```aqui
-shape polygon myPolygon {
-    radius: 50
-    sides: 6
-    position: [50, 50]
-}
-```
-- Defines a regular polygon with a specific number of sides.
+Applies to grouped shapes.
 
-### **6. Star**
-```aqui
-shape star myStar {
-    outerRadius: 50
-    innerRadius: 20
-    points: 5
-    position: [50, 50]
-}
-```
-- Defines a star with outer and inner radii and number of points.
+---
 
-### **7. Arc**
-```aqui
-shape arc myArc {
-    radius: 50
-    startAngle: 0
-    endAngle: 180
-    position: [50, 50]
-}
-```
-- Defines an arc with a radius and start/end angles (in degrees).
+## 12. Paths & Custom Geometry
 
-### **8. Rounded Rectangle**
-```aqui
-shape roundedRectangle myRoundRect {
-    width: 100
-    height: 50
-    radius: 10
-    position: [50, 50]
-}
-```
-- Defines a rectangle with rounded corners.
-
-### **9. Path**
 ```aqui
 shape path myPath {
-    points: [
-        [0, 0],
-        [50, 50],
-        [100, 0]
-    ]
-    closed: true
+  points: [[0,0], [20,0], [10,30]]
+  closed: true
 }
 ```
-- Defines a custom path with multiple points.
-- The `closed` parameter (optional) determines if the path should be closed.
 
-### **10. Arrow**
+---
+
+## 13. Supported Shape Types and Parameters
+
+### rectangle
+
+* `width`, `height`, `position`, `rotation`, `scale`
+
+### circle
+
+* `radius`, `position`, `rotation`, `scale`
+
+### triangle
+
+* `base`, `height`, `position`, `rotation`, `scale`
+
+### ellipse
+
+* `radiusX`, `radiusY`, `position`, `rotation`, `scale`
+
+### regularpolygon
+
+* `radius`, `sides`, `position`, `rotation`, `scale`
+
+### star
+
+* `outerRadius`, `innerRadius`, `points`, `position`, `rotation`, `scale`
+
+### arc
+
+* `radius`, `startAngle`, `endAngle`, `position`, `rotation`, `scale`
+
+### roundedrectangle
+
+* `width`, `height`, `radius`, `position`, `rotation`, `scale`
+
+### chamferrectangle
+
+* `width`, `height`, `chamfer`, `position`, `rotation`, `scale`
+
+### path
+
+* `points`, `closed`, `position`, `rotation`, `scale`
+
+### arrow
+
+* `length`, `headWidth`, `headLength`, `position`, `rotation`, `scale`
+
+### text
+
+* `text`, `fontSize`, `fontFamily`, `position`, `rotation`, `scale`
+
+### beziercurve
+
+* `startPoint`, `controlPoint1`, `controlPoint2`, `endPoint`, `position`, `rotation`, `scale`
+
+### donut
+
+* `outerRadius`, `innerRadius`, `position`, `rotation`, `scale`
+
+### spiral
+
+* `startRadius`, `endRadius`, `turns`, `position`, `rotation`, `scale`
+
+### wave
+
+* `width`, `amplitude`, `frequency`, `position`, `rotation`, `scale`
+
+### cross
+
+* `width`, `thickness`, `position`, `rotation`, `scale`
+
+### gear
+
+* `pitch_diameter`, `teeth`, `pressure_angle`, `position`, `rotation`, `scale`
+
+### slot
+
+* `length`, `width`, `position`, `rotation`, `scale`
+
+### polygonwithholes
+
+* `outerPath`, `holes`, `position`, `rotation`, `scale`
+
+### dovetailpin / dovetailtail
+
+* `width`, `jointCount`, `depth`, `angle`, `thickness`, `position`, `rotation`, `scale`
+
+### fingerjointpin / fingerjointsocket
+
+* `width`, `fingerCount`, `fingerWidth`, `depth`, `thickness`, `position`, `rotation`, `scale`
+
+### halflapmale / halflapfemale
+
+* `width`, `height`, `lapLength`, `lapDepth`, `position`, `rotation`, `scale`
+
+### crosslapvertical / crosslaphorizontal
+
+* `width`, `height`, `slotWidth`, `slotDepth`, `slotPosition`, `position`, `rotation`, `scale`
+
+### slotboard
+
+* `width`, `height`, `slotCount`, `slotWidth`, `slotDepth`, `slotPosition`, `position`, `rotation`, `scale`
+
+### tabboard
+
+* `width`, `height`, `tabCount`, `tabWidth`, `tabDepth`, `tabPosition`, `position`, `rotation`, `scale`
+
+### fingercombmale / fingercombfemale
+
+* `width`, `depth`, `fingerCount`, `position`, `rotation`, `scale`
+
+---
+
+## 14. Style and Appearance
+
+Each shape may also include styling options:
+
+* `fill`, `fillColor`, `stroke`, `strokeColor`, `strokeWidth`, `opacity`, `visible`, `hidden`, `color`, `background`, `border`, `thickness`
+
+---
+
+## 15. Comments
+
 ```aqui
-shape arrow myArrow {
-    length: 100
-    headWidth: 20
-    headLength: 30
-    position: [50, 50]
-}
+// This is a comment
 ```
-- Defines an arrow shape with shaft and head properties.
 
-### **11. Text**
-```aqui
-shape text myText {
-    text: "Hello Aqui"
-    fontSize: 20
-    fontFamily: "Arial"
-    position: [50, 50]
-}
-```
-- Defines a text shape with content, size, and font options.
+---
 
-### **12. Bezier Curve**
-```aqui
-shape bezier myBezier {
-    startPoint: [0, 0]
-    controlPoint1: [50, 100]
-    controlPoint2: [100, 100]
-    endPoint: [150, 0]
-}
-```
-- Defines a cubic Bezier curve with start, end, and control points.
+## 16. Error Handling
 
-### **13. Donut**
-```aqui
-shape donut myDonut {
-    outerRadius: 50
-    innerRadius: 20
-    position: [50, 50]
-}
-```
-- Defines a donut (annulus) shape with inner and outer radii.
+* Errors are shown in console and error display
+* Lexer/parser includes line number
 
-### **14. Spiral**
-```aqui
-shape spiral mySpiral {
-    startRadius: 10
-    endRadius: 50
-    turns: 5
-    position: [50, 50]
-}
-```
-- Defines a spiral shape with specified turns and radii.
-
-### **15. Cross**
-```aqui
-shape cross myCross {
-    width: 50
-    thickness: 10
-    position: [50, 50]
-}
-```
-- Defines a cross shape with specified width and thickness.
-
-### **16. Gear**
-```aqui
-shape gear myGear {
-    diameter: 100
-    teeth: 20
-    shaft: "square"
-    shaftSize: 20
-    position: [50, 50]
-}
-```
-- Defines a gear with specific teeth count and optional shaft.
-- Shaft can be "square" or "circle".
-
-### **17. Wave**
-```aqui
-shape wave myWave {
-    width: 100
-    amplitude: 20
-    frequency: 3
-    position: [50, 50]
-}
-```
-- Defines a sinusoidal wave with width, amplitude, and frequency.
-
-### **18. Slot**
-```aqui
-shape slot mySlot {
-    length: 100
-    width: 20
-    position: [50, 50]
-}
-```
-- Defines a slot shape (rounded rectangle with semicircular ends).
-
-### **19. Chamfer Rectangle**
-```aqui
-shape chamferRectangle myChamfer {
-    width: 100
-    height: 50
-    chamfer: 10
-    position: [50, 50]
-}
-```
-- Defines a rectangle with chamfered (angled) corners.
-
-### **20. Polygon with Holes**
-```aqui
-shape polygonWithHoles myPoly {
-    outerPoints: [[0, 0], [100, 0], [100, 100], [0, 100]]
-    holes: [[[30, 30], [70, 30], [70, 70], [30, 70]]]
-    position: [50, 50]
-}
-```
-- Defines a polygon with internal holes.
-- `outerPoints` defines the outer polygon boundary.
-- `holes` is an array of point arrays, each defining a hole.
-
-## SVG Export
-
-Aqui provides functionality to export your designs as SVG files:
-
-- Click the "Export SVG" button in the interface
-- Enter a filename for your exported SVG
-- The SVG will maintain all shapes, layers, and transformations from your design
-- SVG exports can be used in vector graphics software or for web display
+---
 
 ## Tips and Best Practices
 
-### **1. Organizing with Layers**
-Use layers to group related shapes and apply transformations collectively:
+### 1. Organizing with Layers
 
 ```aqui
 layer background {
-    add bg_rect
+  add bg_rect
 }
 
 layer foreground {
-    add circle1
-    add circle2
-    rotate 15
+  add circle1
+  add circle2
+  rotate 15
 }
 ```
 
-### **2. Parameterizing Designs**
-Use parameters to make your designs easily customizable:
+### 2. Parameterizing Designs
 
 ```aqui
 param gridSize 5
@@ -553,62 +422,56 @@ param spacing 30
 param baseRadius 10
 
 for i from 0 to param.gridSize {
-    for j from 0 to param.gridSize {
-        shape circle grid_circle {
-            radius: param.baseRadius * (1 + (i + j) / (param.gridSize * 2))
-            position: [i * param.spacing, j * param.spacing]
-        }
+  for j from 0 to param.gridSize {
+    shape circle grid_circle {
+      radius: param.baseRadius * (1 + (i + j) / (param.gridSize * 2))
+      position: [i * param.spacing, j * param.spacing]
     }
+  }
 }
 ```
 
-### **3. Function Reuse**
-Create and reuse functions for common patterns:
+### 3. Function Reuse
 
 ```aqui
 def createFlower(x, y, petalCount, petalLength) {
-    for i from 0 to petalCount - 1 {
-        param angle 360 / petalCount * i
-        shape ellipse petal {
-            radiusX: petalLength
-            radiusY: petalLength / 4
-            position: [x, y]
-            rotate: angle
-        }
+  for i from 0 to petalCount - 1 {
+    param angle 360 / petalCount * i
+    shape ellipse petal {
+      radiusX: petalLength
+      radiusY: petalLength / 4
+      position: [x, y]
+      rotate: angle
     }
-    
-    shape circle center {
-        radius: petalLength / 5
-        position: [x, y]
-    }
+  }
+
+  shape circle center {
+    radius: petalLength / 5
+    position: [x, y]
+  }
 }
 
-// Create multiple flowers
 createFlower(0, 0, 5, 50)
 createFlower(100, 100, 8, 30)
 ```
 
-### **4. Using Boolean Operations**
-Combine shapes with boolean operations to create complex forms:
+### 4. Using Boolean Operations
 
 ```aqui
-// Create a rounded rectangle with a circular hole
 shape roundedRectangle baseShape {
-    width: 100
-    height: 60
-    radius: 10
-    position: [0, 0]
+  width: 100
+  height: 60
+  radius: 10
+  position: [0, 0]
 }
 
 shape circle cutout {
-    radius: 20
-    position: [0, 0]
+  radius: 20
+  position: [0, 0]
 }
 
 difference resultShape {
-    add baseShape
-    add cutout
+  add baseShape
+  add cutout
 }
 ```
-
-
