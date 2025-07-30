@@ -1348,6 +1348,228 @@ class FingerCombFemale extends Shape {
     }
 }
 
+
+class RabbetJoint extends Shape {
+    constructor(width, height, slotWidth, slotDepth) {
+        super();
+        this.width = width;         // Width of vertical board
+        this.height = height;       // Height of vertical board
+        this.slotWidth = slotWidth || (width * 0.4);     // Width of slot cut from bottom
+        this.slotDepth = slotDepth || (height * 0.2);    // Depth of slot into the board
+    }
+    
+    getPoints() {
+        const points = [];
+        const width = this.width;
+        const height = this.height;
+        const slotWidth = this.slotWidth;
+        const slotDepth = this.slotDepth;
+        
+        // Center around (0,0)
+        const x = -width / 2;
+        const y = -height / 2;
+        
+        // Calculate slot position (centered at bottom)
+        const slotStart = (width - slotWidth) / 2;
+        
+        // Create vertical board with centered slot cut from bottom
+        // Start at top-left
+        points.push({ x: x, y: y });
+        
+        // Top edge to top-right
+        points.push({ x: x + width, y: y });
+        
+        // Right edge down to bottom
+        points.push({ x: x + width, y: y + height });
+        
+        // Bottom edge to where slot starts
+        points.push({ x: x + slotStart + slotWidth, y: y + height });
+        
+        // Up into the slot
+        points.push({ x: x + slotStart + slotWidth, y: y + height - slotDepth });
+        
+        // Left across the slot
+        points.push({ x: x + slotStart, y: y + height - slotDepth });
+        
+        // Down to bottom
+        points.push({ x: x + slotStart, y: y + height });
+        
+        // Bottom edge to left corner
+        points.push({ x: x, y: y + height });
+        
+        // Up the left edge back to start
+        points.push({ x: x, y: y });
+        
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+// 34. Rabbet Plain - Horizontal piece with tab/extension on end (Male piece)
+class RabbetPlain extends Shape {
+    constructor(width, height, tabWidth, tabLength) {
+        super();
+        this.width = width;          // Main length of horizontal board
+        this.height = height;        // Full height of horizontal board
+        this.tabWidth = tabWidth || (height * 0.5);     // Width of tab (thickness)
+        this.tabLength = tabLength || (width * 0.15);   // How far tab extends
+    }
+    
+    getPoints() {
+        const points = [];
+        const width = this.width;
+        const height = this.height;
+        const tabWidth = this.tabWidth;
+        const tabLength = this.tabLength;
+        
+        // Center around (0,0)
+        const x = -width / 2;
+        const y = -height / 2;
+        
+        // Calculate tab position (centered on end)
+        const tabStart = (height - tabWidth) / 2;
+        
+        // Create horizontal board with protruding tab on right end
+        // Start at top-left
+        points.push({ x: x, y: y });
+        
+        // Top edge to where main board ends
+        points.push({ x: x + width, y: y });
+        
+        // Down to where tab starts
+        points.push({ x: x + width, y: y + tabStart });
+        
+        // Extend out for the tab
+        points.push({ x: x + width + tabLength, y: y + tabStart });
+        
+        // Down the tab
+        points.push({ x: x + width + tabLength, y: y + tabStart + tabWidth });
+        
+        // Back to main board
+        points.push({ x: x + width, y: y + tabStart + tabWidth });
+        
+        // Down to bottom
+        points.push({ x: x + width, y: y + height });
+        
+        // Bottom edge back to left
+        points.push({ x: x, y: y + height });
+        
+        // Up the left edge back to start
+        points.push({ x: x, y: y });
+        
+        return points.map(p => this.transformPoint(p));
+    }
+}
+
+
+
+class FlexureMesh extends Shape {
+  constructor(totalWidth, totalHeight, slotLength, slotWidth, bridgeWidth, rowSpacing, staggerOffset = 0.5, cornerRadius = 0, pattern = 'staggered') {
+    super();
+    this.totalWidth = totalWidth;
+    this.totalHeight = totalHeight;
+    this.slotLength = slotLength;
+    this.slotWidth = slotWidth;
+    this.bridgeWidth = bridgeWidth;
+    this.rowSpacing = rowSpacing;
+    this.staggerOffset = staggerOffset;
+    this.cornerRadius = cornerRadius;
+    this.pattern = pattern;
+  }
+
+  getPoints() {
+    const points = [];
+    
+    // Start with outer perimeter
+    const hw = this.totalWidth / 2;
+    const hh = this.totalHeight / 2;
+    
+    // Outer rectangle
+    points.push({ x: -hw, y: -hh });
+    points.push({ x: hw, y: -hh });
+    points.push({ x: hw, y: hh });
+    points.push({ x: -hw, y: hh });
+    points.push({ x: -hw, y: -hh }); // Close outer
+    
+    // Generate slot cutouts
+    const slotSpacing = this.slotLength + this.bridgeWidth;
+    const rows = Math.floor(this.totalHeight / this.rowSpacing);
+    
+    for (let row = 0; row < rows; row++) {
+      const y = -hh + (row + 0.5) * this.rowSpacing;
+      
+      // Calculate stagger offset for this row
+      const offsetX = this.pattern === 'staggered' ? 
+        (row % 2) * slotSpacing * this.staggerOffset : 0;
+      
+      // Calculate how many slots fit in this row
+      const effectiveWidth = this.totalWidth - (this.pattern === 'staggered' ? 
+        slotSpacing * this.staggerOffset : 0);
+      const slotsInRow = Math.floor(effectiveWidth / slotSpacing);
+      
+      for (let col = 0; col < slotsInRow; col++) {
+        const x = -hw + offsetX + (col + 0.5) * slotSpacing;
+        
+        // Skip if slot is outside bounds
+        if (x - this.slotLength/2 < -hw || x + this.slotLength/2 > hw) {
+          continue;
+        }
+        
+        // Add slot as separate path for cutout
+        const slotPoints = this.generateSlotPoints(x, y);
+        points.push(...slotPoints);
+      }
+    }
+    
+    return points.map(p => this.transformPoint(p));
+  }
+  
+  generateSlotPoints(centerX, centerY) {
+    const points = [];
+    const hw = this.slotLength / 2;
+    const hh = this.slotWidth / 2;
+    
+    if (this.cornerRadius <= 0) {
+      // Simple rectangle
+      points.push({ x: centerX - hw, y: centerY - hh });
+      points.push({ x: centerX + hw, y: centerY - hh });
+      points.push({ x: centerX + hw, y: centerY + hh });
+      points.push({ x: centerX - hw, y: centerY + hh });
+      points.push({ x: centerX - hw, y: centerY - hh }); // Close
+    } else {
+      // Rounded rectangle (simplified for now)
+      const r = Math.min(this.cornerRadius, hw, hh);
+      
+      // Top edge
+      points.push({ x: centerX - hw + r, y: centerY - hh });
+      points.push({ x: centerX + hw - r, y: centerY - hh });
+      
+      // Top-right corner (simplified)
+      points.push({ x: centerX + hw, y: centerY - hh + r });
+      
+      // Right edge  
+      points.push({ x: centerX + hw, y: centerY + hh - r });
+      
+      // Bottom-right corner
+      points.push({ x: centerX + hw - r, y: centerY + hh });
+      
+      // Bottom edge
+      points.push({ x: centerX - hw + r, y: centerY + hh });
+      
+      // Bottom-left corner
+      points.push({ x: centerX - hw, y: centerY + hh - r });
+      
+      // Left edge
+      points.push({ x: centerX - hw, y: centerY - hh + r });
+      
+      // Top-left corner
+      points.push({ x: centerX - hw + r, y: centerY - hh }); // Close
+    }
+    
+    return points;
+  }
+}
+
+
 const ShapeUtils = {
   // Boolean operations
   union(shape1, shape2) {
@@ -1433,5 +1655,10 @@ export {
   TabBoard,
   FingerCombMale,
   FingerCombFemale,
+  RabbetJoint,
+  RabbetPlain,
+  FlexureMesh, 
   ShapeUtils,
 };
+
+
