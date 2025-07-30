@@ -18,8 +18,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
-  <!-- CRITICAL: Martinez-Rueda Boolean Operations Library -->
-  <script src="https://unpkg.com/polygon-clipping@0.15.3/dist/polygon-clipping.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/junmer/clipper-lib@master/clipper.js"></script>
 
   <script src="examples.js"></script>
 
@@ -180,11 +179,11 @@
     window.THREE = THREE;
     console.log("THREE.js initialized globally:", !!window.THREE);
     
-    // CRITICAL: Verify Martinez-Rueda library is loaded
-    if (window.polygonClipping) {
-      console.log("Martinez-Rueda polygon-clipping library loaded successfully");
+    // CRITICAL: Verify Vatti Clipping library is loaded
+    if (window.ClipperLib) {
+      console.log("Vatti-clipping library loaded successfully");
     } else {
-      console.error("Martinez-Rueda polygon-clipping library failed to load!");
+      console.error("Vatti-clipping library failed to load!");
     }
   </script>
 
@@ -195,3 +194,4 @@
   <script type="module" src="app.js"></script>
 </body>
 </html>
+
