@@ -1,8 +1,7 @@
-// renderer.mjs - Fixed scale renderer without zoom functionality
+// renderer.mjs - Simple edge integration following working standalone pattern
 
 import { CoordinateSystem } from "./renderer/coordinateSystem.mjs";
 import { ShapeStyleManager } from "./renderer/styleManager.mjs";
-import { InteractionHandler } from "./renderer/interactionHandler.mjs";
 import { ShapeRenderer } from "./renderer/shapeRenderer.mjs";
 import { PathRenderer } from "./renderer/pathRenderer.mjs";
 import { BooleanOperationRenderer } from "./renderer/booleanRenderer.mjs";
@@ -11,6 +10,10 @@ import { HandleSystem } from "./renderer/handleSystem.mjs";
 import { DebugVisualizer } from "./renderer/debugVisualizer.mjs";
 import { TransformManager } from "./renderer/transformManager.mjs";
 import { shapeManager } from "./shapeManager.mjs";
+
+// Import edge system - simple approach
+import { EdgeCalculator } from "./renderer/edge/edgeCalculator.mjs";
+import { EdgeHitTester } from "./renderer/edge/edgeHitTester.mjs";
 
 export class Renderer {
   constructor(canvas) {
@@ -42,8 +45,16 @@ export class Renderer {
     this.debugVisualizer = new DebugVisualizer(this.ctx);
     this.transformManager = new TransformManager();
 
-    this.interactionHandler = new InteractionHandler(this);
+    // Simple edge system initialization - like the working demo
+    this.edgeCalculator = new EdgeCalculator();
+    this.edgeHitTester = new EdgeHitTester({
+      straightEdgeTolerance: 10,
+      arcEdgeTolerance: 12,
+      bezierEdgeTolerance: 15,
+      enableEdgeHover: true
+    });
 
+    this.interactionHandler = new SimpleInteractionHandler(this);
     this.renderingEngine = new ModularRenderingEngine(this);
   }
 
@@ -54,12 +65,362 @@ export class Renderer {
     this.debugMode = false;
     this.updateCodeCallback = null;
     this.shapeManager = shapeManager;
+
+    // Simple edge state - like working demo
+    this.selectedEdges = new Set();
+    this.hoveredEdge = null;
+    this.shapeEdges = new Map(); // shapeName -> EdgeCollection
   }
 
+  // Simple edge calculation - exactly like working demo
+  calculateAllShapeEdges() {
+    this.shapeEdges.clear();
+    
+    for (const [shapeName, shape] of this.shapes.entries()) {
+      if (shape._consumedByBoolean) continue;
+      
+      try {
+        const shapeInstance = this.createShapeInstanceForEdges(shape);
+        if (shapeInstance) {
+          const edgeCollection = this.edgeCalculator.calculateEdges(shapeInstance, shape.type, shape.params);
+          this.shapeEdges.set(shapeName, edgeCollection);
+        }
+      } catch (error) {
+        console.warn(`Failed to calculate edges for shape ${shapeName}:`, error);
+      }
+    }
+  }
+
+  createShapeInstanceForEdges(shape) {
+    const shapeInstance = this.renderingEngine.createShapeInstance(shape.type, shape.params);
+    if (shapeInstance) {
+      // Set world position
+      shapeInstance.position = {
+        x: shape.transform.position[0],
+        y: shape.transform.position[1]
+      };
+    }
+    return shapeInstance;
+  }
+
+  // Simple edge access - exactly like working demo
+  getAllEdges() {
+    const allEdges = [];
+    
+    for (const [shapeName, edgeCollection] of this.shapeEdges.entries()) {
+      edgeCollection.edges.forEach((edge, edgeIndex) => {
+        // Add metadata like working demo
+        edge.parentShapeName = shapeName;
+        edge.parentShape = this.shapes.get(shapeName);
+        edge.globalEdgeId = `${shapeName}_edge_${edgeIndex}`;
+        allEdges.push(edge);
+      });
+    }
+    
+    return allEdges;
+  }
+
+  // Simple edge selection - exactly like working demo
+handleEdgeSelection(x, y, isMultiSelect = false) {
+  const allEdges = this.getAllEdges();
+  
+  // Transform all edges to screen coordinates for hit testing
+  const screenEdges = allEdges.map(edge => {
+    return {
+      ...edge,
+      startPoint: {
+        x: this.coordinateSystem.transformX(edge.startPoint.x),
+        y: this.coordinateSystem.transformY(edge.startPoint.y)
+      },
+      endPoint: {
+        x: this.coordinateSystem.transformX(edge.endPoint.x),
+        y: this.coordinateSystem.transformY(edge.endPoint.y)
+      }
+    };
+  });
+  
+  // Now both mouse coordinates (x, y) and edges are in screen space
+  const hitResults = this.edgeHitTester.hitTest(x, y, screenEdges);
+  
+  if (hitResults.length > 0) {
+    const hitEdge = hitResults[0].edge;
+    
+    if (!isMultiSelect) {
+      this.selectedEdges.clear();
+    }
+    
+    // Toggle edge selection - find original edge object
+    const originalEdge = allEdges.find(e => e.globalEdgeId === hitEdge.globalEdgeId);
+    if (originalEdge) {
+      if (this.selectedEdges.has(originalEdge)) {
+        this.selectedEdges.delete(originalEdge);
+      } else {
+        this.selectedEdges.add(originalEdge);
+      }
+    }
+    
+    // Clear shape selection when selecting edges
+    this.selectedShape = null;
+    this.interactionHandler.selectedShape = null;
+    
+    console.log('Edge selected:', hitEdge.globalEdgeId);
+    this.redraw();
+    return true;
+  } else {
+    // No edge hit - clear edge selections if not multi-selecting
+    if (!isMultiSelect) {
+      this.selectedEdges.clear();
+      this.redraw();
+    }
+    return false;
+  }
+}  // Simple edge hover - exactly like working demo
+handleEdgeHover(x, y) {
+  const allEdges = this.getAllEdges();
+  
+  // Transform all edges to screen coordinates for hover testing
+  const screenEdges = allEdges.map(edge => {
+    return {
+      ...edge,
+      startPoint: {
+        x: this.coordinateSystem.transformX(edge.startPoint.x),
+        y: this.coordinateSystem.transformY(edge.startPoint.y)
+      },
+      endPoint: {
+        x: this.coordinateSystem.transformX(edge.endPoint.x),
+        y: this.coordinateSystem.transformY(edge.endPoint.y)
+      }
+    };
+  });
+  
+  // Find closest edge using screen coordinates
+  const closestEdge = this.edgeHitTester.findClosestEdge(x, y, screenEdges, 15);
+  
+  // Find original edge object for hover state
+  let newHoveredEdge = null;
+  if (closestEdge) {
+    newHoveredEdge = allEdges.find(e => e.globalEdgeId === closestEdge.edge.globalEdgeId);
+  }
+  
+  if (newHoveredEdge !== this.hoveredEdge) {
+    this.hoveredEdge = newHoveredEdge;
+    this.redraw();
+    return true;
+  }
+  
+  return false;
+}
+  // Enhanced setShapes with edge calculation
+  setShapes(shapes) {
+    try {
+      if (!shapes) {
+        this.shapes = new Map();
+        this.shapeEdges.clear();
+      } else {
+        this.shapes = shapes;
+        // Calculate edges for all shapes
+        this.calculateAllShapeEdges();
+        shapeManager.registerInterpreter({ env: { shapes } });
+      }
+      
+      this.selectedShape = null;
+      this.hoveredShape = null;
+      this.selectedEdges.clear();
+      this.hoveredEdge = null;
+      this.selectionSystem.clearSelection();
+      this.handleSystem.clearHandleState();
+      this.redraw();
+    } catch (error) {
+      console.error("Error setting shapes:", error);
+      this.shapes = new Map();
+      this.shapeEdges.clear();
+    }
+  }
+
+  // Enhanced redraw with edge rendering
+  redraw() {
+    try {
+      this.clear();
+
+      if (!this.shapes) return;
+
+      const renderableShapes = this.filterRenderableShapes();
+      const sortedShapes = this.sortShapesByRenderOrder(renderableShapes);
+
+      // Render shapes
+      for (const { name, shape } of sortedShapes) {
+        const isSelected = shape === this.selectedShape || 
+                          shape === this.interactionHandler.selectedShape;
+        const isHovered = name === this.hoveredShape && !isSelected;
+
+        this.drawShape(shape, isSelected, isHovered, name);
+      }
+
+      // Always render edges (simple approach)
+      this.renderAllEdges();
+
+      if (this.debugMode) {
+        this.debugVisualizer.drawOverlay(this.shapes, this.coordinateSystem);
+      }
+    } catch (error) {
+      console.error("Error in redraw:", error);
+      this.fallbackRedraw();
+    }
+  }
+
+  // Simple edge rendering - like working demo
+  renderAllEdges() {
+    for (const [shapeName, edgeCollection] of this.shapeEdges.entries()) {
+      const shape = this.shapes.get(shapeName);
+      if (!shape || shape._consumedByBoolean) continue;
+      
+      const isShapeSelected = shape === this.selectedShape || shape === this.interactionHandler.selectedShape;
+      
+      edgeCollection.edges.forEach((edge, index) => {
+        const isEdgeSelected = this.selectedEdges.has(edge);
+        const isEdgeHovered = this.hoveredEdge === edge;
+        
+        this.renderEdge(edge, isShapeSelected, isEdgeSelected, isEdgeHovered);
+      });
+    }
+  }
+
+  // Simple edge rendering - exactly like working demo
+ renderEdge(edge, shapeSelected, edgeSelected, edgeHovered) {
+  this.ctx.save();
+  
+  // Transform world coordinates to screen coordinates
+  const screenStart = {
+    x: this.coordinateSystem.transformX(edge.startPoint.x),
+    y: this.coordinateSystem.transformY(edge.startPoint.y)
+  };
+  const screenEnd = {
+    x: this.coordinateSystem.transformX(edge.endPoint.x),
+    y: this.coordinateSystem.transformY(edge.endPoint.y)
+  };
+  
+  // Set edge style based on state
+  let strokeColor = '#333';
+  let lineWidth = 1;
+  let globalAlpha = 0.6;
+  
+  if (edgeSelected) {
+    strokeColor = '#ff0066';  // Bright pink for selected edges
+    lineWidth = 3;
+    globalAlpha = 1.0;
+  } else if (edgeHovered) {
+    strokeColor = '#ff6600';  // Orange for hovered edges
+    lineWidth = 2;
+    globalAlpha = 0.8;
+  } else if (shapeSelected) {
+    // Parent shape is selected
+    strokeColor = '#ff6600';
+    lineWidth = 2;
+    globalAlpha = 0.7;
+  } else {
+    // Default edge style
+    strokeColor = '#999';
+    lineWidth = 1;
+    globalAlpha = 0.5;
+  }
+  
+  this.ctx.strokeStyle = strokeColor;
+  this.ctx.lineWidth = lineWidth;
+  this.ctx.globalAlpha = globalAlpha;
+  this.ctx.setLineDash([]);
+  
+  // Draw edge using screen coordinates
+  this.ctx.beginPath();
+  this.ctx.moveTo(screenStart.x, screenStart.y);
+  this.ctx.lineTo(screenEnd.x, screenEnd.y);
+  this.ctx.stroke();
+  
+  // Draw selection handles for selected edges using screen coordinates
+  if (edgeSelected) {
+    this.drawEdgeSelectionHandles({
+      startPoint: screenStart,
+      endPoint: screenEnd
+    });
+  }
+  
+  this.ctx.restore();
+}
+drawEdgeSelectionHandles(edge) {
+  this.ctx.save();
+  
+  const handleSize = 5;
+  const handleFillColor = '#ff0066';
+  const handleStrokeColor = '#fff';
+  const handleStrokeWidth = 2;
+  
+  // Start point handle (edge parameter now contains screen coordinates)
+  this.ctx.beginPath();
+  this.ctx.arc(edge.startPoint.x, edge.startPoint.y, handleSize, 0, Math.PI * 2);
+  this.ctx.fillStyle = handleFillColor;
+  this.ctx.fill();
+  this.ctx.strokeStyle = handleStrokeColor;
+  this.ctx.lineWidth = handleStrokeWidth;
+  this.ctx.stroke();
+  
+  // End point handle (edge parameter now contains screen coordinates)
+  this.ctx.beginPath();
+  this.ctx.arc(edge.endPoint.x, edge.endPoint.y, handleSize, 0, Math.PI * 2);
+  this.ctx.fillStyle = handleFillColor;
+  this.ctx.fill();
+  this.ctx.strokeStyle = handleStrokeColor;
+  this.ctx.lineWidth = handleStrokeWidth;
+  this.ctx.stroke();
+  
+  this.ctx.restore();
+}
+  // Enhanced notifyShapeChanged with edge recalculation
+  notifyShapeChanged(shape, action = "update") {
+    try {
+      if (!this.updateCodeCallback || !shape) return;
+
+      let shapeName = null;
+      if (this.shapes) {
+        for (const [name, s] of this.shapes.entries()) {
+          if (s === shape) {
+            shapeName = name;
+            break;
+          }
+        }
+      }
+
+      if (shape.transform && shape.transform.position && shape.transform.position.length > 2) {
+        shape.transform.position.length = 2;
+      }
+
+      // Recalculate edges for changed shape
+      if (shapeName && action === "update") {
+        try {
+          const shapeInstance = this.createShapeInstanceForEdges(shape);
+          if (shapeInstance) {
+            const edgeCollection = this.edgeCalculator.calculateEdges(shapeInstance, shape.type, shape.params);
+            this.shapeEdges.set(shapeName, edgeCollection);
+          }
+        } catch (error) {
+          console.warn(`Failed to recalculate edges for ${shapeName}:`, error);
+        }
+      }
+
+      if (shapeName) {
+        this.updateCodeCallback({
+          action: action,
+          name: shapeName,
+          shape: shape,
+        });
+      }
+    } catch (error) {
+      console.error("Error in notifyShapeChanged:", error);
+    }
+  }
+
+  // Keep all existing methods unchanged...
   setupCanvas() {
     this.coordinateSystem.setupCanvas();
     this.createGridToggleButton();
-    // REMOVED: createZoomControls() - no zoom functionality
     this.redraw();
   }
 
@@ -149,33 +510,6 @@ export class Renderer {
     this.coordinateSystem.clear();
   }
 
-  redraw() {
-    try {
-      this.clear();
-
-      if (!this.shapes) return;
-
-      const renderableShapes = this.filterRenderableShapes();
-      const sortedShapes = this.sortShapesByRenderOrder(renderableShapes);
-
-      for (const { name, shape } of sortedShapes) {
-        const isSelected =
-          shape === this.selectedShape ||
-          shape === this.interactionHandler.selectedShape;
-        const isHovered = name === this.hoveredShape && !isSelected;
-
-        this.drawShape(shape, isSelected, isHovered, name);
-      }
-
-      if (this.debugMode) {
-        this.debugVisualizer.drawOverlay(this.shapes, this.coordinateSystem);
-      }
-    } catch (error) {
-      console.error("Error in redraw:", error);
-      this.fallbackRedraw();
-    }
-  }
-
   filterRenderableShapes() {
     const renderable = [];
 
@@ -228,7 +562,7 @@ export class Renderer {
         shape.transform,
         this.coordinateSystem.transformX(shape.transform.position[0]),
         this.coordinateSystem.transformY(shape.transform.position[1]),
-        1, // TRUE 1:1 scale - always exactly 1
+        1,
       );
 
       this.ctx.save();
@@ -242,7 +576,6 @@ export class Renderer {
       );
       this.styleManager.applyStyle(this.ctx, styleContext);
 
-      // Render the shape
       this.renderingEngine.renderShape(
         shape,
         styleContext,
@@ -250,7 +583,6 @@ export class Renderer {
         isHovered,
       );
 
-      // Draw selection UI in transformed context
       if (isSelected) {
         this.drawSelectionUIInContext(shape, shapeName);
       }
@@ -259,10 +591,8 @@ export class Renderer {
         this.drawHoverUIInContext(shape);
       }
 
-      // Restore context after drawing selection UI
       this.ctx.restore();
 
-      // Draw elements in screen space
       if (
         isSelected &&
         shape.params.operation &&
@@ -279,235 +609,258 @@ export class Renderer {
     }
   }
 
+  // Keep all existing UI drawing methods unchanged...
   drawSelectionUIInContext(shape, shapeName) {
-    // Get bounds in local space
     const bounds = this.transformManager.calculateBounds(shape);
-    // TRUE 1:1 scale - no scaling factors
-    const scaledWidth = bounds.width;
-    const scaledHeight = bounds.height;
+    const shapeWidth = bounds.width;
+    const shapeHeight = bounds.height;
+    const padding = 16;
+    const outlineWidth = shapeWidth + padding * 2;
+    const outlineHeight = shapeHeight + padding * 2;
 
-    // Draw bounding box in local transformed space
-    const padding = 8;
-    const boxWidth = scaledWidth + padding * 2;
-    const boxHeight = scaledHeight + padding * 2;
-
-    this.ctx.strokeStyle = shape.params.operation
-      ? this.getOperationColor(shape.params.operation) + "60"
-      : "#FF572260";
-    this.ctx.lineWidth = 1;
-    this.ctx.setLineDash([6, 6]);
-    this.ctx.strokeRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight);
+    this.ctx.save();
+    
+    this.ctx.strokeStyle = '#FF5722';
+    this.ctx.lineWidth = 2;
     this.ctx.setLineDash([]);
+    this.ctx.beginPath();
+    this.ctx.roundRect(
+      -outlineWidth / 2, 
+      -outlineHeight / 2, 
+      outlineWidth, 
+      outlineHeight, 
+      10
+    );
+    
+    this.ctx.shadowColor = 'rgba(255, 87, 34, 0.2)';
+    this.ctx.shadowBlur = 15;
+    this.ctx.shadowOffsetX = 0;
+    this.ctx.shadowOffsetY = 0;
+    this.ctx.stroke();
 
-    this.ctx.fillStyle = shape.params.operation
-      ? this.getOperationColor(shape.params.operation) + "10"
-      : "#FF572210";
-    this.ctx.fillRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight);
+    this.ctx.shadowBlur = 0;
+    this.ctx.fillStyle = 'rgba(255, 87, 34, 0.1)';
+    this.ctx.fill();
 
-    // Draw corner handles in local space
-    this.drawCornerHandlesInContext(shape, scaledWidth, scaledHeight);
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    this.ctx.roundRect(
+      -outlineWidth / 2 + 1, 
+      -outlineHeight / 2 + 1, 
+      outlineWidth - 2, 
+      outlineHeight - 2, 
+      9
+    );
+    this.ctx.stroke();
 
-    // Draw rotation handle in local space
-    this.drawRotationHandleInContext(shape, scaledHeight);
+    this.ctx.restore();
+
+    this.drawOrangeCornerHandles(shape, shapeWidth, shapeHeight);
+    this.drawOrangeRotationHandle(shape, shapeHeight);
   }
 
   drawHoverUIInContext(shape) {
     const bounds = this.transformManager.calculateBounds(shape);
-    // TRUE 1:1 scale - no scaling factors
-    const scaledWidth = bounds.width;
-    const scaledHeight = bounds.height;
+    const shapeWidth = bounds.width;
+    const shapeHeight = bounds.height;
+    const hoverPadding = 12;
 
-    this.ctx.strokeStyle = this.selectionSystem.hoverColor + "80";
+    this.ctx.save();
+    
+    this.ctx.shadowColor = 'rgba(255, 87, 34, 0.4)';
+    this.ctx.shadowBlur = 15;
+    
+    this.ctx.strokeStyle = '#FF5722';
     this.ctx.lineWidth = 2;
-    this.ctx.setLineDash([2, 2]);
-    this.ctx.strokeRect(
-      -scaledWidth / 2,
-      -scaledHeight / 2,
-      scaledWidth,
-      scaledHeight,
+    this.ctx.setLineDash([6, 3]);
+    this.ctx.beginPath();
+    this.ctx.roundRect(
+      -shapeWidth / 2 - hoverPadding,
+      -shapeHeight / 2 - hoverPadding,
+      shapeWidth + hoverPadding * 2,
+      shapeHeight + hoverPadding * 2,
+      8
     );
+    this.ctx.stroke();
     this.ctx.setLineDash([]);
+
+    this.ctx.shadowBlur = 0;
+    this.ctx.fillStyle = 'rgba(255, 87, 34, 0.12)';
+    this.ctx.fill();
+
+    this.ctx.restore();
   }
 
-  drawCornerHandlesInContext(shape, scaledWidth, scaledHeight) {
+  drawOrangeCornerHandles(shape, shapeWidth, shapeHeight) {
     const handlePositions = [
-      { x: -scaledWidth / 2, y: -scaledHeight / 2, handle: "tl" },
-      { x: scaledWidth / 2, y: -scaledHeight / 2, handle: "tr" },
-      { x: scaledWidth / 2, y: scaledHeight / 2, handle: "br" },
-      { x: -scaledWidth / 2, y: scaledHeight / 2, handle: "bl" },
+      { x: -shapeWidth / 2, y: -shapeHeight / 2, handle: "tl" },
+      { x: shapeWidth / 2, y: -shapeHeight / 2, handle: "tr" },
+      { x: shapeWidth / 2, y: shapeHeight / 2, handle: "br" },
+      { x: -shapeWidth / 2, y: shapeHeight / 2, handle: "bl" }
     ];
 
     handlePositions.forEach((pos) => {
       const isHovered = this.interactionHandler.hoveredHandle === pos.handle;
       const isActive = this.interactionHandler.activeHandle === pos.handle;
-      const radius = isHovered
-        ? this.handleSystem.handleHoverRadius
-        : this.handleSystem.handleRadius;
-
+      
       this.ctx.save();
       this.ctx.translate(pos.x, pos.y);
 
-      // Shadow
+      const handleSize = 14;
+      const scaledSize = isHovered ? handleSize * 1.3 : isActive ? handleSize * 1.1 : handleSize;
+
+      this.ctx.shadowColor = 'rgba(255, 87, 34, 0.4)';
+      this.ctx.shadowBlur = isHovered ? 12 : 6;
+      this.ctx.shadowOffsetX = 0;
+      this.ctx.shadowOffsetY = isHovered ? 4 : 2;
+
       this.ctx.beginPath();
-      this.ctx.arc(0.5, 0.5, radius, 0, Math.PI * 2);
-      this.ctx.fillStyle = this.handleSystem.handleShadowColor;
+      this.ctx.roundRect(-scaledSize/2, -scaledSize/2, scaledSize, scaledSize, 3);
+      
+      const gradient = this.ctx.createLinearGradient(
+        -scaledSize/2, -scaledSize/2, 
+        scaledSize/2, scaledSize/2
+      );
+      
+      if (isHovered) {
+        gradient.addColorStop(0, '#FF7043');
+        gradient.addColorStop(1, '#E64A19');
+      } else {
+        gradient.addColorStop(0, '#FF5722');
+        gradient.addColorStop(1, '#E64A19');
+      }
+      
+      this.ctx.fillStyle = gradient;
       this.ctx.fill();
 
-      // Handle
-      this.ctx.beginPath();
-      this.ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      this.ctx.fillStyle = this.handleSystem.handleFillColor;
-      this.ctx.fill();
-
-      const strokeColor = shape.params.operation
-        ? this.getOperationColor(shape.params.operation)
-        : this.handleSystem.selectionColor;
-      this.ctx.strokeStyle = isActive ? strokeColor + "FF" : strokeColor;
-      this.ctx.lineWidth = isActive ? 3 : 2;
+      this.ctx.shadowBlur = 0;
+      this.ctx.strokeStyle = 'white';
+      this.ctx.lineWidth = 2;
       this.ctx.stroke();
 
-      if (isHovered) {
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, radius + 2, 0, Math.PI * 2);
-        this.ctx.strokeStyle = strokeColor + "40";
-        this.ctx.lineWidth = 1;
-        this.ctx.stroke();
-      }
+      this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      this.ctx.lineWidth = 1;
+      this.ctx.beginPath();
+      this.ctx.roundRect(-scaledSize/2 + 1.5, -scaledSize/2 + 1.5, scaledSize - 3, scaledSize - 3, 2);
+      this.ctx.stroke();
 
       this.ctx.restore();
     });
   }
 
-  drawRotationHandleInContext(shape, scaledHeight) {
-    const rotHandleY =
-      -scaledHeight / 2 - this.handleSystem.rotationHandleDistance;
-    const isRotHovered = this.interactionHandler.hoveredHandle === "rotate";
-    const isRotActive = this.interactionHandler.activeHandle === "rotate";
-    const rotRadius = isRotHovered
-      ? this.handleSystem.handleHoverRadius
-      : this.handleSystem.handleRadius;
+  drawOrangeRotationHandle(shape, shapeHeight) {
+    const rotationDistance = 45;
+    const rotationY = -shapeHeight / 2 - rotationDistance;
+    const isHovered = this.interactionHandler.hoveredHandle === "rotate";
+    const isActive = this.interactionHandler.activeHandle === "rotate";
 
-    // Connection line
+    this.ctx.save();
+
+    const lineWidth = 3;
+    const lineGradient = this.ctx.createLinearGradient(
+      0, -shapeHeight / 2, 
+      0, rotationY + 12
+    );
+    lineGradient.addColorStop(0, 'rgba(255, 87, 34, 0.9)');
+    lineGradient.addColorStop(0.6, 'rgba(255, 87, 34, 0.6)');
+    lineGradient.addColorStop(1, 'rgba(255, 87, 34, 0.3)');
+    
+    this.ctx.shadowColor = 'rgba(255, 87, 34, 0.5)';
+    this.ctx.shadowBlur = 4;
+    this.ctx.strokeStyle = lineGradient;
+    this.ctx.lineWidth = lineWidth;
+    this.ctx.lineCap = 'round';
     this.ctx.beginPath();
-    this.ctx.moveTo(0, -scaledHeight / 2);
-    this.ctx.lineTo(0, rotHandleY);
-    const connectionColor = shape.params.operation
-      ? this.getOperationColor(shape.params.operation)
-      : this.handleSystem.selectionColor;
-    this.ctx.strokeStyle = connectionColor + "60";
-    this.ctx.lineWidth = 1;
+    this.ctx.moveTo(0, -shapeHeight / 2);
+    this.ctx.lineTo(0, rotationY + 12);
     this.ctx.stroke();
 
-    // Shadow
-    this.ctx.beginPath();
-    this.ctx.arc(0.5, rotHandleY + 0.5, rotRadius, 0, Math.PI * 2);
-    this.ctx.fillStyle = this.handleSystem.handleShadowColor;
-    this.ctx.fill();
+    this.ctx.shadowBlur = 0;
 
-    // Handle
-    this.ctx.beginPath();
-    this.ctx.arc(0, rotHandleY, rotRadius, 0, Math.PI * 2);
-    this.ctx.fillStyle = this.handleSystem.handleFillColor;
-    this.ctx.fill();
-
-    const strokeColor = shape.params.operation
-      ? this.getOperationColor(shape.params.operation)
-      : this.handleSystem.selectionColor;
-    this.ctx.strokeStyle = isRotActive ? strokeColor + "FF" : strokeColor;
-    this.ctx.lineWidth = isRotActive ? 3 : 2;
-    this.ctx.stroke();
-
-    if (isRotHovered) {
+    if (isHovered || isActive) {
+      this.ctx.save();
+      this.ctx.translate(0, rotationY);
+      
+      this.ctx.strokeStyle = 'rgba(255, 87, 34, 0.6)';
+      this.ctx.lineWidth = 2;
+      this.ctx.setLineDash([4, 4]);
       this.ctx.beginPath();
-      this.ctx.arc(0, rotHandleY, rotRadius + 2, 0, Math.PI * 2);
-      this.ctx.strokeStyle = strokeColor + "40";
-      this.ctx.lineWidth = 1;
+      this.ctx.arc(0, 0, 22, 0, Math.PI * 2);
       this.ctx.stroke();
+      this.ctx.setLineDash([]);
+      
+      this.ctx.restore();
     }
 
-    // Rotation icon
+    this.ctx.save();
+    this.ctx.translate(0, rotationY);
+    
+    const handleSize = 18;
+    const scaledHandleSize = isActive ? handleSize * 1.05 : isHovered ? handleSize * 1.15 : handleSize;
+
+    this.ctx.shadowColor = 'rgba(255, 87, 34, 0.5)';
+    this.ctx.shadowBlur = isHovered ? 15 : 8;
+    this.ctx.shadowOffsetX = 0;
+    this.ctx.shadowOffsetY = 3;
+
     this.ctx.beginPath();
-    this.ctx.arc(0, rotHandleY, rotRadius * 0.4, 0, Math.PI * 1.5);
-    this.ctx.strokeStyle = strokeColor;
-    this.ctx.lineWidth = 1.5;
-    this.ctx.stroke();
-
-    // Arrow
-    const arrowSize = 2;
-    this.ctx.beginPath();
-    this.ctx.moveTo(-rotRadius * 0.4, rotHandleY);
-    this.ctx.lineTo(-rotRadius * 0.4 - arrowSize, rotHandleY - arrowSize);
-    this.ctx.lineTo(-rotRadius * 0.4 - arrowSize, rotHandleY + arrowSize);
-    this.ctx.strokeStyle = strokeColor;
-    this.ctx.lineWidth = 1.5;
-    this.ctx.stroke();
-  }
-
-  getOperationColor(operation) {
-    const colors = {
-      difference: "#FF5722",
-      union: "#4CAF50",
-      intersection: "#2196F3",
-      xor: "#9C27B0",
-    };
-    return colors[operation] || "#808080";
-  }
-
-  setShapes(shapes) {
-    try {
-      if (!shapes) {
-        this.shapes = new Map();
-      } else {
-        this.shapes = shapes;
-        shapeManager.registerInterpreter({ env: { shapes } });
-      }
-      this.selectedShape = null;
-      this.hoveredShape = null;
-      this.selectionSystem.clearSelection();
-      this.handleSystem.clearHandleState();
-      this.redraw();
-    } catch (error) {
-      console.error("Error setting shapes:", error);
-      this.shapes = new Map();
+    this.ctx.arc(0, 0, scaledHandleSize/2, 0, Math.PI * 2);
+    
+    const handleGradient = this.ctx.createRadialGradient(
+      -scaledHandleSize/5, -scaledHandleSize/5, 0, 
+      0, 0, scaledHandleSize/2
+    );
+    
+    if (isHovered) {
+      handleGradient.addColorStop(0, '#FF9800');
+      handleGradient.addColorStop(0.4, '#FF5722');
+      handleGradient.addColorStop(1, '#D84315');
+    } else {
+      handleGradient.addColorStop(0, '#FF7043');
+      handleGradient.addColorStop(0.4, '#FF5722');
+      handleGradient.addColorStop(1, '#E64A19');
     }
+    
+    this.ctx.fillStyle = handleGradient;
+    this.ctx.fill();
+
+    this.ctx.shadowBlur = 0;
+    this.ctx.strokeStyle = 'white';
+    this.ctx.lineWidth = 2.5;
+    this.ctx.stroke();
+
+    this.ctx.strokeStyle = 'white';
+    this.ctx.lineWidth = 2.5;
+    this.ctx.lineCap = 'round';
+    
+    this.ctx.beginPath();
+    this.ctx.arc(0, 0, scaledHandleSize/3.2, -Math.PI/3, Math.PI * 1.3);
+    this.ctx.stroke();
+    
+    const arrowX = (scaledHandleSize/3.2) * Math.cos(Math.PI * 1.3);
+    const arrowY = (scaledHandleSize/3.2) * Math.sin(Math.PI * 1.3);
+    
+    this.ctx.beginPath();
+    this.ctx.moveTo(arrowX, arrowY);
+    this.ctx.lineTo(arrowX - 3, arrowY - 2);
+    this.ctx.moveTo(arrowX, arrowY);
+    this.ctx.lineTo(arrowX - 2, arrowY + 3);
+    this.ctx.stroke();
+
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    this.ctx.lineWidth = 1.5;
+    this.ctx.beginPath();
+    this.ctx.arc(-scaledHandleSize/5, -scaledHandleSize/5, scaledHandleSize/4, 0, Math.PI * 0.7);
+    this.ctx.stroke();
+
+    this.ctx.restore();
+    this.ctx.restore();
   }
 
+  // Keep all other existing methods...
   setUpdateCodeCallback(callback) {
     this.updateCodeCallback = callback;
-  }
-
-  notifyShapeChanged(shape, action = "update") {
-    try {
-      if (!this.updateCodeCallback || !shape) return;
-
-      let shapeName = null;
-      if (this.shapes) {
-        for (const [name, s] of this.shapes.entries()) {
-          if (s === shape) {
-            shapeName = name;
-            break;
-          }
-        }
-      }
-
-      if (
-        shape.transform &&
-        shape.transform.position &&
-        shape.transform.position.length > 2
-      ) {
-        shape.transform.position.length = 2;
-      }
-
-      if (shapeName) {
-        this.updateCodeCallback({
-          action: action,
-          name: shapeName,
-          shape: shape,
-        });
-      }
-    } catch (error) {
-      console.error("Error in notifyShapeChanged:", error);
-    }
   }
 
   findShapeName(shapeObject) {
@@ -534,6 +887,7 @@ export class Renderer {
     this.interactionHandler.selectedShape = shape;
     this.selectedShape = shape;
     this.selectionSystem.setSelectedShape(shape);
+    this.selectedEdges.clear(); // Clear edge selection when selecting shapes
     this.redraw();
   }
 
@@ -566,8 +920,7 @@ export class Renderer {
 
   toggleFillForSelectedShape() {
     try {
-      const selected =
-        this.selectedShape || this.interactionHandler.selectedShape;
+      const selected = this.selectedShape || this.interactionHandler.selectedShape;
       if (!selected) return;
 
       const shapeName = this.findShapeName(selected);
@@ -594,8 +947,7 @@ export class Renderer {
 
   setFillColorForSelectedShape(color) {
     try {
-      const selected =
-        this.selectedShape || this.interactionHandler.selectedShape;
+      const selected = this.selectedShape || this.interactionHandler.selectedShape;
       if (!selected) return;
 
       const shapeName = this.findShapeName(selected);
@@ -610,10 +962,7 @@ export class Renderer {
     }
   }
 
-  // REMOVED: zoomIn(), zoomOut() - no zoom functionality
-
   resetView() {
-    // Only reset pan, no zoom
     this.coordinateSystem.setPanOffset(0, 0);
     this.redraw();
   }
@@ -621,10 +970,8 @@ export class Renderer {
   fitToView() {
     if (!this.shapes || this.shapes.size === 0) return;
 
-    let minX = Infinity,
-      maxX = -Infinity;
-    let minY = Infinity,
-      maxY = -Infinity;
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
 
     for (const [name, shape] of this.shapes.entries()) {
       if (shape._consumedByBoolean) continue;
@@ -644,9 +991,7 @@ export class Renderer {
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
 
-    // Center the view on the shapes (no scaling, TRUE 1:1)
     this.coordinateSystem.setPanOffset(-centerX, centerY);
-
     this.redraw();
   }
 
@@ -673,14 +1018,14 @@ export class Renderer {
     return {
       canvas: bounds,
       viewport: viewport,
-      scale: this.coordinateSystem.scale, // Always 1
+      scale: this.coordinateSystem.scale,
       pan: this.coordinateSystem.panOffset,
       shapeCount: this.shapes.size,
-      selectedShape: this.selectedShape
-        ? this.findShapeName(this.selectedShape)
-        : null,
+      selectedShape: this.selectedShape ? this.findShapeName(this.selectedShape) : null,
       debugMode: this.debugMode,
-      pixelsToMm: this.coordinateSystem.pixelsToMm, // Always 1
+      pixelsToMm: this.coordinateSystem.pixelsToMm,
+      totalEdges: Array.from(this.shapeEdges.values()).reduce((sum, collection) => sum + collection.getEdgeCount(), 0),
+      selectedEdges: this.selectedEdges.size
     };
   }
 
@@ -692,8 +1037,11 @@ export class Renderer {
       }
 
       this.shapes.clear();
+      this.shapeEdges.clear();
+      this.selectedEdges.clear();
       this.selectedShape = null;
       this.hoveredShape = null;
+      this.hoveredEdge = null;
       this.updateCodeCallback = null;
 
       if (this.debugVisualizer) {
@@ -713,6 +1061,501 @@ export class Renderer {
   }
 }
 
+// Simple interaction handler - follows working demo pattern exactly
+class SimpleInteractionHandler {
+  constructor(renderer) {
+    this.renderer = renderer;
+    this.canvas = renderer.canvas;
+    this.coordinateSystem = renderer.coordinateSystem;
+    
+    this.selectedShape = null;
+    this.hoveredShape = null;
+    this.dragging = false;
+    this.scaling = false;
+    this.rotating = false;
+    this.panning = false;
+    this.lastMousePos = { x: 0, y: 0 };
+    this.activeHandle = null;
+    this.hoveredHandle = null;
+    
+    this.handleRadius = 6;
+    this.handleHoverRadius = 7;
+    this.rotationHandleDistance = 35;
+  }
+  
+  setupEventListeners() {
+    this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+    this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+    this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+    this.canvas.addEventListener('wheel', this.handleWheel.bind(this));
+    this.canvas.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
+    window.addEventListener('keydown', this.handleKeyDown.bind(this));
+  }
+  
+  handleMouseDown(event) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    this.lastMousePos = { x, y };
+    
+    // Check for Ctrl+click edge selection - exactly like working demo
+    if (event.ctrlKey || event.metaKey) {
+      this.renderer.handleEdgeSelection(x, y, event.shiftKey);
+      return;
+    }
+    
+    if (event.shiftKey) {
+      this.panning = true;
+      this.canvas.className = 'cursor-grabbing';
+      return;
+    }
+    
+    if (this.selectedShape) {
+      const handleInfo = this.getHandleAtPoint(x, y);
+      if (handleInfo) {
+        if (handleInfo.type === 'scale') {
+          this.scaling = true;
+          this.activeHandle = handleInfo.handle;
+          this.canvas.className = 'cursor-resize-' + this.getResizeCursorClass(handleInfo.handle);
+        } else if (handleInfo.type === 'rotate') {
+          this.rotating = true;
+          this.canvas.className = 'cursor-grabbing';
+        }
+        return;
+      }
+    }
+    
+    this.selectShapeAtPoint(x, y);
+    this.renderer.redraw();
+  }
+  
+  handleMouseMove(event) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    const dx = x - this.lastMousePos.x;
+    const dy = y - this.lastMousePos.y;
+    
+    // Handle Ctrl+hover edge preview - exactly like working demo
+    if (event.ctrlKey || event.metaKey) {
+      this.renderer.handleEdgeHover(x, y);
+      this.canvas.style.cursor = this.renderer.hoveredEdge ? 'pointer' : 'crosshair';
+    } else {
+      // Clear edge hover when not in Ctrl mode
+      if (this.renderer.hoveredEdge) {
+        this.renderer.hoveredEdge = null;
+        this.renderer.redraw();
+      }
+    }
+    
+    if (this.panning) {
+      this.coordinateSystem.pan(dx, dy);
+      this.renderer.redraw();
+    } else if (this.scaling && this.selectedShape) {
+      this.handleParameterScaling(dx, dy);
+    } else if (this.rotating && this.selectedShape) {
+      this.handleRotation(x, y);
+    } else if (this.dragging && this.selectedShape) {
+      this.handleDragging(dx, dy);
+    } else {
+      this.updateCursor(x, y);
+      this.updateHoverState(x, y);
+    }
+    
+    this.lastMousePos = { x, y };
+  }
+  
+  handleMouseUp(event) {
+    this.dragging = false;
+    this.scaling = false;
+    this.rotating = false;
+    this.panning = false;
+    this.activeHandle = null;
+    
+    const rect = this.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    this.updateCursor(x, y);
+  }
+  
+  handleWheel(event) {
+    event.preventDefault();
+    
+    if (event.ctrlKey) {
+      const panSensitivity = 2;
+      
+      if (event.deltaY !== 0) {
+        this.coordinateSystem.pan(0, -event.deltaY * panSensitivity);
+      }
+      
+      if (event.deltaX !== 0) {
+        this.coordinateSystem.pan(-event.deltaX * panSensitivity, 0);
+      }
+      
+      if (event.deltaX === 0 && event.shiftKey) {
+        this.coordinateSystem.pan(-event.deltaY * panSensitivity, 0);
+      }
+      
+      this.renderer.redraw();
+    }
+  }
+  
+  handleKeyDown(event) {
+    if (event.key.toLowerCase() === 'g' && !event.ctrlKey && !event.metaKey) {
+      if (document.activeElement !== this.renderer.editor?.getWrapperElement()?.querySelector('textarea')) {
+        event.preventDefault();
+        this.coordinateSystem.toggleGrid();
+        this.renderer.updateGridButtonState();
+        this.renderer.redraw();
+      }
+    }
+    
+    if (event.key.toLowerCase() === 'd' && event.ctrlKey) {
+      event.preventDefault();
+      this.renderer.setDebugMode(!this.renderer.debugMode);
+      return;
+    }
+
+    if (!this.selectedShape) return;
+
+    const shapeName = this.renderer.findShapeName(this.selectedShape);
+    if (!shapeName) return;
+    
+    const shape = this.selectedShape;
+    
+    switch (event.key) {
+      case 'Delete':
+      case 'Backspace':
+        event.preventDefault();
+        this.deleteSelectedShape();
+        break;
+      
+      case 'r':
+      case 'R':
+        event.preventDefault();
+        const newRotation = (shape.transform.rotation + 15) % 360;
+        this.renderer.shapeManager.onCanvasRotationChange(shapeName, newRotation);
+        this.renderer.notifyShapeChanged(shape);
+        break;
+        
+      case 'ArrowUp':
+        event.preventDefault();
+        const upAmount = event.shiftKey ? 20 : 5;
+        const newPosUp = [shape.transform.position[0], shape.transform.position[1] + upAmount];
+        this.renderer.shapeManager.onCanvasPositionChange(shapeName, newPosUp);
+        this.renderer.notifyShapeChanged(shape);
+        break;
+        
+      case 'ArrowDown':
+        event.preventDefault();
+        const downAmount = event.shiftKey ? 20 : 5;
+        const newPosDown = [shape.transform.position[0], shape.transform.position[1] - downAmount];
+        this.renderer.shapeManager.onCanvasPositionChange(shapeName, newPosDown);
+        this.renderer.notifyShapeChanged(shape);
+        break;
+        
+      case 'ArrowLeft':
+        event.preventDefault();
+        const leftAmount = event.shiftKey ? 20 : 5;
+        const newPosLeft = [shape.transform.position[0] - leftAmount, shape.transform.position[1]];
+        this.renderer.shapeManager.onCanvasPositionChange(shapeName, newPosLeft);
+        this.renderer.notifyShapeChanged(shape);
+        break;
+        
+      case 'ArrowRight':
+        event.preventDefault();
+        const rightAmount = event.shiftKey ? 20 : 5;
+        const newPosRight = [shape.transform.position[0] + rightAmount, shape.transform.position[1]];
+        this.renderer.shapeManager.onCanvasPositionChange(shapeName, newPosRight);
+        this.renderer.notifyShapeChanged(shape);
+        break;
+    }
+  }
+  
+  handleMouseLeave() {
+    this.hoveredShape = null;
+    this.hoveredHandle = null;
+    this.renderer.hoveredEdge = null;
+    this.renderer.redraw();
+  }
+  
+  selectShapeAtPoint(x, y) {
+    let selectedShapeName = null;
+    
+    if (!this.renderer.shapes) {
+      this.renderer.shapes = new Map();
+      return;
+    }
+    
+    for (const [name, shape] of [...this.renderer.shapes.entries()].reverse()) {
+      if (shape._consumedByBoolean) continue;
+      
+      if (this.isPointInShape(x, y, shape)) {
+        selectedShapeName = name;
+        break;
+      }
+    }
+    
+    if (selectedShapeName) {
+      this.selectedShape = this.renderer.shapes.get(selectedShapeName);
+      this.dragging = true;
+      this.canvas.className = 'cursor-move';
+      
+      // Clear edge selection when selecting shapes
+      this.renderer.selectedEdges.clear();
+    } else {
+      this.selectedShape = null;
+      this.canvas.className = '';
+    }
+  }
+  
+  isPointInShape(x, y, shape) {
+    if (!shape || !shape.transform) return false;
+    
+    const shapeX = this.coordinateSystem.transformX(shape.transform.position[0]);
+    const shapeY = this.coordinateSystem.transformY(shape.transform.position[1]);
+    
+    const dx = x - shapeX;
+    const dy = y - shapeY;
+    
+    const angle = shape.transform.rotation * Math.PI / 180;
+    const rotatedX = dx * Math.cos(angle) + dy * Math.sin(angle);
+    const rotatedY = dy * Math.cos(angle) - dx * Math.sin(angle);
+    
+    const bounds = this.renderer.transformManager.calculateBounds(shape);
+    const scaledWidth = bounds.width;
+    const scaledHeight = bounds.height;
+    
+    return (
+      Math.abs(rotatedX) <= scaledWidth / 2 &&
+      Math.abs(rotatedY) <= scaledHeight / 2
+    );
+  }
+  
+  getHandleAtPoint(x, y) {
+    if (!this.selectedShape) return null;
+    
+    const shape = this.selectedShape;
+    const shapeX = this.coordinateSystem.transformX(shape.transform.position[0]);
+    const shapeY = this.coordinateSystem.transformY(shape.transform.position[1]);
+    
+    const bounds = this.renderer.transformManager.calculateBounds(shape);
+    const scaledWidth = bounds.width;
+    const scaledHeight = bounds.height;
+    const halfWidth = scaledWidth / 2;
+    const halfHeight = scaledHeight / 2;
+    
+    const angle = -shape.transform.rotation * Math.PI / 180;
+    const rotate = (px, py) => {
+      const s = Math.sin(angle);
+      const c = Math.cos(angle);
+      const dx = px - shapeX;
+      const dy = py - shapeY;
+      return {
+        x: shapeX + (dx * c - dy * s),
+        y: shapeY + (dx * s + dy * c)
+      };
+    };
+    
+    const handlePositions = [
+      { handle: 'tl', pos: rotate(shapeX - halfWidth, shapeY - halfHeight) },
+      { handle: 'tr', pos: rotate(shapeX + halfWidth, shapeY - halfHeight) },
+      { handle: 'br', pos: rotate(shapeX + halfWidth, shapeY + halfHeight) },
+      { handle: 'bl', pos: rotate(shapeX - halfWidth, shapeY + halfHeight) }
+    ];
+    
+    for (const handleInfo of handlePositions) {
+      const dx = x - handleInfo.pos.x;
+      const dy = y - handleInfo.pos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist <= this.handleRadius + 3) {
+        return { type: 'scale', handle: handleInfo.handle };
+      }
+    }
+    
+    const rotHandlePos = rotate(shapeX, shapeY - halfHeight - this.rotationHandleDistance);
+    const rotDx = x - rotHandlePos.x;
+    const rotDy = y - rotHandlePos.y;
+    const rotDist = Math.sqrt(rotDx * rotDx + rotDy * rotDy);
+    
+    if (rotDist <= this.handleRadius + 3) {
+      return { type: 'rotate' };
+    }
+    
+    return null;
+  }
+  
+  updateCursor(x, y) {
+    if (this.selectedShape) {
+      const handleInfo = this.getHandleAtPoint(x, y);
+      
+      if (handleInfo) {
+        if (handleInfo.type === 'scale') {
+          this.canvas.className = 'cursor-resize-' + this.getResizeCursorClass(handleInfo.handle);
+        } else if (handleInfo.type === 'rotate') {
+          this.canvas.className = 'cursor-rotate';
+        }
+        return;
+      }
+    }
+    
+    let isOverShape = false;
+    
+    if (this.renderer.shapes) {
+      for (const [name, shape] of [...this.renderer.shapes.entries()].reverse()) {
+        if (shape._consumedByBoolean) continue;
+        
+        if (this.isPointInShape(x, y, shape)) {
+          this.canvas.className = 'cursor-move';
+          isOverShape = true;
+          break;
+        }
+      }
+    }
+    
+    if (!isOverShape) {
+      this.canvas.className = '';
+    }
+  }
+  
+  updateHoverState(x, y) {
+    let newHoveredShape = null;
+    let newHoveredHandle = null;
+    
+    if (this.selectedShape) {
+      const handleInfo = this.getHandleAtPoint(x, y);
+      if (handleInfo) {
+        newHoveredHandle = handleInfo.handle || 'rotate';
+      }
+    }
+    
+    if (!newHoveredHandle && this.renderer.shapes) {
+      for (const [name, shape] of [...this.renderer.shapes.entries()].reverse()) {
+        if (shape._consumedByBoolean) continue;
+        
+        if (this.isPointInShape(x, y, shape)) {
+          newHoveredShape = name;
+          break;
+        }
+      }
+    }
+    
+    if (newHoveredShape !== this.hoveredShape || newHoveredHandle !== this.hoveredHandle) {
+      this.hoveredShape = newHoveredShape;
+      this.hoveredHandle = newHoveredHandle;
+      this.renderer.redraw();
+    }
+  }
+  
+  getResizeCursorClass(handle) {
+    switch (handle) {
+      case 'tl':
+      case 'br':
+        return 'nwse';
+      case 'tr':
+      case 'bl':
+        return 'nesw';
+      default:
+        return '';
+    }
+  }
+  
+  handleParameterScaling(dx, dy) {
+    if (!this.selectedShape) return;
+    
+    const shapeName = this.renderer.findShapeName(this.selectedShape);
+    if (!shapeName) return;
+    
+    this.renderer.transformManager.handleParameterScaling(
+      this.selectedShape, 
+      this.activeHandle, 
+      dx, 
+      dy, 
+      1,
+      shapeName,
+      this.renderer.shapeManager
+    );
+    
+    this.renderer.notifyShapeChanged(this.selectedShape);
+  }
+  
+  handleRotation(x, y) {
+    if (!this.selectedShape) return;
+    
+    const shapeName = this.renderer.findShapeName(this.selectedShape);
+    if (!shapeName) return;
+    
+    const shape = this.selectedShape;
+    const centerX = this.coordinateSystem.transformX(shape.transform.position[0]);
+    const centerY = this.coordinateSystem.transformY(shape.transform.position[1]);
+    
+    const angle = -Math.atan2(y - centerY, x - centerX) * 180 / Math.PI;
+    
+    let newRotation = angle;
+    if (event.altKey) {
+      newRotation = Math.round(angle / 15) * 15;
+    }
+    
+    this.renderer.shapeManager.onCanvasRotationChange(shapeName, newRotation);
+    this.renderer.notifyShapeChanged(this.selectedShape);
+  }
+  
+  handleDragging(dx, dy) {
+    if (!this.selectedShape) return;
+    
+    const shapeName = this.renderer.findShapeName(this.selectedShape);
+    if (!shapeName) return;
+    
+    const shape = this.selectedShape;
+    
+    const worldDX = dx;
+    const worldDY = -dy;
+    
+    let newX = shape.transform.position[0] + worldDX;
+    let newY = shape.transform.position[1] + worldDY;
+
+    if (this.coordinateSystem.isGridEnabled && event.ctrlKey) {
+      const snapped = this.coordinateSystem.snapToGrid(newX, newY);
+      newX = snapped.x;
+      newY = snapped.y;
+    }
+
+    this.renderer.shapeManager.onCanvasPositionChange(shapeName, [newX, newY]);
+    this.renderer.notifyShapeChanged(this.selectedShape);
+  }
+  
+  deleteSelectedShape() {
+    if (!this.selectedShape) return;
+    
+    let selectedName = null;
+    
+    if (this.renderer.shapes) {
+      for (const [name, shape] of this.renderer.shapes.entries()) {
+        if (shape === this.selectedShape) {
+          selectedName = name;
+          break;
+        }
+      }
+    }
+    
+    if (selectedName) {
+      this.renderer.shapes.delete(selectedName);
+      this.renderer.shapeEdges.delete(selectedName);
+      this.selectedShape = null;
+      
+      if (this.renderer.updateCodeCallback) {
+        this.renderer.updateCodeCallback({ action: 'delete', name: selectedName });
+      }
+      
+      this.renderer.redraw();
+    }
+  }
+}
+
+// Keep existing ModularRenderingEngine unchanged
 class ModularRenderingEngine {
   constructor(renderer) {
     this.renderer = renderer;
@@ -720,6 +1563,10 @@ class ModularRenderingEngine {
     this.shapeRenderer = renderer.shapeRenderer;
     this.pathRenderer = renderer.pathRenderer;
     this.booleanRenderer = renderer.booleanRenderer;
+  }
+
+  createShapeInstance(type, params) {
+    return this.shapeRenderer.createShapeInstance(type, params);
   }
 
   renderShape(shape, styleContext, isSelected, isHovered) {
@@ -778,28 +1625,28 @@ class ModularRenderingEngine {
             isSelected,
             isHovered,
           );
-        case "dovetailPin": // ADD THIS
+        case "dovetailPin":
           return this.shapeRenderer.renderDovetailPin(
             params,
             styleContext,
             isSelected,
             isHovered,
           );
-        case "dovetailTail": // ADD THIS
+        case "dovetailTail":
           return this.shapeRenderer.renderDovetailTail(
             params,
             styleContext,
             isSelected,
             isHovered,
           );
-        case "fingerJointPin": // ADD THIS
+        case "fingerJointPin":
           return this.shapeRenderer.renderFingerJointPin(
             params,
             styleContext,
             isSelected,
             isHovered,
           );
-        case "fingerJointSocket": // ADD THIS
+        case "fingerJointSocket":
           return this.shapeRenderer.renderFingerJointSocket(
             params,
             styleContext,
@@ -827,6 +1674,13 @@ class ModularRenderingEngine {
             isSelected,
             isHovered,
           );
+        case "flexureMesh":
+          return this.shapeRenderer.renderFlexureMesh(
+            params,
+            styleContext,
+            isSelected,
+            isHovered,
+          );
         case "crossLapHorizontal":
           return this.shapeRenderer.renderCrossLapHorizontal(
             params,
@@ -834,10 +1688,34 @@ class ModularRenderingEngine {
             isSelected,
             isHovered,
           );
-      case 'fingerCombMale':
-        return this.shapeRenderer.renderFingerCombMale(params, styleContext, isSelected, isHovered);
-      case 'fingerCombFemale':
-        return this.shapeRenderer.renderFingerCombFemale(params, styleContext, isSelected, isHovered);
+        case "rabbetJoint":
+          return this.shapeRenderer.renderRabbetJoint(
+            params,
+            styleContext,
+            isSelected,
+            isHovered,
+          );
+        case "rabbetPlain":
+          return this.shapeRenderer.renderRabbetPlain(
+            params,
+            styleContext,
+            isSelected,
+            isHovered,
+          );
+        case "fingerCombMale":
+          return this.shapeRenderer.renderFingerCombMale(
+            params,
+            styleContext,
+            isSelected,
+            isHovered,
+          );
+        case "fingerCombFemale":
+          return this.shapeRenderer.renderFingerCombFemale(
+            params,
+            styleContext,
+            isSelected,
+            isHovered,
+          );
         default:
           return this.shapeRenderer.renderGenericShape(
             type,
