@@ -7,6 +7,8 @@ import { shapeManager } from './shapeManager.mjs';
 import { exportToSVG } from './svgExport.mjs';
 import { exportToDXF } from './dxfExport.mjs';
 import { DragDropSystem } from './dragDropSystem.mjs';
+import { ConstraintEngine } from './constraints/engine.mjs';
+import { setupConstraintsMenu } from './constraints/ui.mjs';
 
 const TOOLBOX_XML = `
 <xml xmlns="https://developers.google.com/blockly/xml" style="display: none">
@@ -114,6 +116,7 @@ let errorCount;
 let editorMode = 'text';          
 let blocklyWorkspace = null;
 let syncingFromBlocks = false;
+let constraintEngine;
 
 window.interpreter = null;
 
@@ -146,6 +149,10 @@ function initializeComponents() {
   renderer.setUpdateCodeCallback(updateCodeFromShapeChange);
   
   initializeDragDropSystem();
+
+  constraintEngine = new ConstraintEngine(renderer, shapeManager, updateCodeFromShapeChange);
+  constraintEngine.installLiveEnforcer(shapeManager);
+
 }
 
 function initializeDragDropSystem() {
@@ -609,6 +616,8 @@ function setupEventHandlers() {
   
   setupParameterMenu();
   setupExportMenu();
+
+  setupConstraintsMenu({ renderer, constraintEngine, displayErrors });
   
   window.addEventListener('resize', () => {
     forceCanvasResize();
@@ -1025,6 +1034,8 @@ function runCode() {
     
     renderer.setShapes(result.shapes);
     shapeManager.registerInterpreter(interpreter);
+
+    if (constraintEngine) constraintEngine.rebuild();
     
     if (parameterManager && parameterManager.menuVisible) {
       setTimeout(() => {
@@ -1326,6 +1337,8 @@ shape circle myCircle {
 
 window.runCode = runCode;
 
+window.constraints = constraintEngine;
+
 window.aqui = {
   editor,
   renderer,
@@ -1333,8 +1346,8 @@ window.aqui = {
   parameterManager,
   shapeManager,
   dragDropSystem,
+  constraints: constraintEngine,
   runCode,
   exportSVG: handleSVGExport,
   exportDXF: handleDXFExport
 };
-
