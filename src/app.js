@@ -9,6 +9,7 @@ import { exportToDXF } from './dxfExport.mjs';
 import { DragDropSystem } from './dragDropSystem.mjs';
 import { ConstraintEngine } from './constraints/engine.mjs';
 import { setupConstraintsMenu } from './constraints/ui.mjs';
+import { ConstraintOverlay } from './constraints/constraintsOverlay.mjs';
 
 const TOOLBOX_XML = `
 <xml xmlns="https://developers.google.com/blockly/xml" style="display: none">
@@ -153,6 +154,15 @@ function initializeComponents() {
   constraintEngine = new ConstraintEngine(renderer, shapeManager, updateCodeFromShapeChange);
   constraintEngine.installLiveEnforcer(shapeManager);
 
+  const overlay = new ConstraintOverlay(renderer, constraintEngine);
+  constraintEngine.onListChanged((list) => {
+    overlay.refresh();
+    if (typeof window.updateConstraintsMenu === 'function') {
+      window.updateConstraintsMenu(list);
+    }
+  });
+
+  renderer.constraintEngine = constraintEngine;
 }
 
 function initializeDragDropSystem() {
