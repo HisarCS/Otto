@@ -56,7 +56,6 @@ export function setupConstraintsMenu({ renderer, constraintEngine, displayErrors
         {shape:B_sa.value, anchor:B_aa.value},
         {shape:B_sb.value, anchor:B_ab.value}
       );
-      addConstraintToList(def);
     } catch (e) { err(e); }
   });
 
@@ -77,7 +76,6 @@ export function setupConstraintsMenu({ renderer, constraintEngine, displayErrors
         {shape:C_sb.value, anchor:C_ab.value},
         d
       );
-      addConstraintToList(def);
     } catch (e) { err(e); }
   });
 
@@ -93,7 +91,6 @@ export function setupConstraintsMenu({ renderer, constraintEngine, displayErrors
         {shape:D_sa.value, anchor:D_aa.value},
         {shape:D_sb.value, anchor:D_ab.value}
       ); 
-      addConstraintToList(def);
     } catch(e){ err(e); }
   });
   D_row.children[1].addEventListener('click', ()=> {
@@ -102,7 +99,6 @@ export function setupConstraintsMenu({ renderer, constraintEngine, displayErrors
         {shape:D_sa.value, anchor:D_aa.value},
         {shape:D_sb.value, anchor:D_ab.value}
       ); 
-      addConstraintToList(def);
     } catch(e){ err(e); }
   });
 
@@ -142,6 +138,34 @@ export function setupConstraintsMenu({ renderer, constraintEngine, displayErrors
   pop.appendChild(D_t);  pop.appendChild(row2(D_sa, D_sb));  pop.appendChild(row2(D_aa, D_ab)); pop.appendChild(D_row);
   pop.appendChild(hr());
   pop.appendChild(L_t); pop.appendChild(list);
+
+  constraintEngine.onListChanged((constraintList) => {
+    list.innerHTML = '';
+    constraintList.forEach(def => {
+      const item = document.createElement('div');
+      item.style.display = 'flex';
+      item.style.justifyContent = 'space-between';
+      item.style.alignItems = 'center';
+      item.style.margin = '2px 0';
+
+      const text = document.createElement('span');
+      text.textContent = def.label;
+      const rm = document.createElement('button');
+      rm.textContent = '✕';
+      rm.style.border = 'none';
+      rm.style.background = 'none';
+      rm.style.cursor = 'pointer';
+      rm.style.color = '#c00';
+      rm.style.fontWeight = 'bold';
+      rm.addEventListener('click', () => {
+        constraintEngine.removeConstraint(def.id);
+      });
+
+      item.appendChild(text);
+      item.appendChild(rm);
+      list.appendChild(item);
+    });
+  });
 
   document.body.appendChild(pop);
 
