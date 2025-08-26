@@ -288,6 +288,32 @@ export class ConstraintEngine {
     this._applySolved(idsToMove, solved, fixedShapeName);
   }
 
+  getAnchorWorld(shapeName, anchorKey) {
+    if (!this.anchorCatalog.size) this.rebuild();
+    const id = (anchorKey + '_' + shapeName).toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const a = this.anchors.get(id);
+    if (!a) return { x: 0, y: 0, ok:false };
+    const s = this.renderer?.shapes?.get(shapeName);
+    if (!s) return { x: 0, y: 0, ok:false };
+    const t = s.transform || {};
+    const [cx, cy] = Array.isArray(t.position) ? t.position : [0,0];
+    const th = (Number(t.rotation || 0) * Math.PI) / 180;
+    const rx = a.ox * Math.cos(th) - a.oy * Math.sin(th);
+    const ry = a.ox * Math.sin(th) + a.oy * Math.cos(th);
+    return { x: cx + rx, y: cy + ry, ok:true };
+  }
+
+  getConstraintGeometry(c) {
+    const pA = this.getAnchorWorld(c.a.shape, c.a.anchor);
+    const pB = this.getAnchorWorld(c.b.shape, c.b.anchor);
+    const mid = { x: (pA.x + pB.x) / 2, y: (pA.y + pB.y) / 2 };
+    return { pA, pB, mid };
+  }
+
+  getConstraintSnapshot() {
+    return this.constraints.slice();
+  }
+
   addCoincidentAnchors(a, b) {
     this._solveConstraint('coincident', a, b);
     const def = this._store({ type:'coincident', a, b });
@@ -307,6 +333,17 @@ export class ConstraintEngine {
     this._solveConstraint('vertical', a, b);
     const def = this._store({ type:'vertical', a, b });
     return def;
+  }
+
+  pruneConstraintsForShapes(shapeNames = []) {
+    if (!Array.isArray(shapeNames) || shapeNames.length === 0) return;
+    const before = this.constraints.length;
+    this.constraints = this.constraints.filter(c => {
+      return !shapeNames.includes(c.a.shape) && !shapeNames.includes(c.b.shape);
+    });
+    if (this.constraints.length !== before) {
+      this._notifyListChanged(); 
+    }
   }
 
   _store(entry) {
