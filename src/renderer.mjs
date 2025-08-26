@@ -21,6 +21,8 @@ export class Renderer {
       this.canvas = canvas;
       this.ctx = canvas.getContext("2d");
 
+      this._overlayDrawers = [];
+
       this.initializeComponents();
       this.initializeState();
       this.setupCanvas();
@@ -70,6 +72,19 @@ export class Renderer {
     this.selectedEdges = new Set();
     this.hoveredEdge = null;
     this.shapeEdges = new Map(); // shapeName -> EdgeCollection
+  }
+
+  addOverlayDrawer(drawFn) {
+    if (typeof drawFn === 'function' && !this._overlayDrawers.includes(drawFn)) {
+      this._overlayDrawers.push(drawFn);
+      this.redraw();
+    }
+  }
+
+  removeOverlayDrawer(drawFn) {
+    const i = this._overlayDrawers.indexOf(drawFn);
+    if (i >= 0) this._overlayDrawers.splice(i, 1);
+    this.redraw();
   }
 
   // Simple edge calculation - exactly like working demo
@@ -265,6 +280,14 @@ handleEdgeHover(x, y) {
     } catch (error) {
       console.error("Error in redraw:", error);
       this.fallbackRedraw();
+    }
+
+    if (this._overlayDrawers && this._overlayDrawers.length) {
+      const ctx = this.ctx; 
+      const cs  = this.coordinateSystem; 
+      this._overlayDrawers.forEach(fn => {
+        try { fn(ctx, cs); } catch(e) { }
+      });
     }
   }
 
@@ -1539,6 +1562,10 @@ class SimpleInteractionHandler {
           break;
         }
       }
+    }
+
+    if (this.renderer.constraintEngine && selectedName) {
+      this.renderer.constraintEngine.pruneConstraintsForShapes([selectedName]);
     }
     
     if (selectedName) {
