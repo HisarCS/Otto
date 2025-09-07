@@ -42,8 +42,25 @@ export class ConstraintEngine {
 
     this._applying = false;
 
+    this._onListChangedArr = [];
+    this._suspendList = 0;
+    this._notifyQueued = false;
+    this._movedDuringApply = new Set();
+
     this._takeSnapshot();
   }
+
+  suspendListEvents(on) {
+    if (on) {
+      this._suspendList++;
+    } else {
+      this._suspendList = Math.max(0, this._suspendList - 1);
+      if (this._suspendList === 0 && this._notifyQueued) {
+        this._notifyQueued = false;
+        this._notifyListChanged();
+      }
+    }
+  }  
 
   rebuild() {
     this.anchors.clear();
@@ -239,14 +256,28 @@ export class ConstraintEngine {
           +(cx + dx).toFixed(6),
           +(cy + dy).toFixed(6)
         ];
-        if (typeof this.onShapeChanged === 'function') {
+        if (this._applying) {
+          if (this._movedDuringApply) this._movedDuringApply.add(a.shapeName);
+        } else if (typeof this.onShapeChanged === 'function') {
           this.onShapeChanged({ action:'update', name:a.shapeName, shape });
         }
-      }
+      }      
     });
 
     if (this.renderer) this.renderer.redraw();
   }
+
+  _flushMovedDuringApply() {
+    if (!this._movedDuringApply || this._movedDuringApply.size === 0) return;
+    const names = Array.from(this._movedDuringApply);
+    this._movedDuringApply.clear();
+    for (const name of names) {
+      const shape = this.renderer?.shapes?.get(name);
+      if (shape && typeof this.onShapeChanged === 'function') {
+        try { this.onShapeChanged({ action:'update', name, shape }); } catch (e) { console.warn(e); }
+      }
+    }
+  }  
 
   _solveConstraint(type, a, b, extra = {}, fixedShapeName = null) {
     this.rebuild();
@@ -400,11 +431,13 @@ export class ConstraintEngine {
   installLiveEnforcer(shapeManager) {
     if (!shapeManager || this._wrappedSM) return;
     this._wrappedSM = true;
-
+  
     const self = this;
+  
     const callEnforce = () => {
       if (self._applying || !self.liveEnforce) return;
       try {
+        window.__enforcingConstraints = true;   
         const fixed = self._detectChangedShape();
         self.rebuild();
         self.applyAllConstraints(fixed);
@@ -412,36 +445,50 @@ export class ConstraintEngine {
         console.warn('Constraint enforce error', e);
       } finally {
         self._takeSnapshot();
+        window.__enforcingConstraints = false;  
+        self._flushMovedDuringApply();
       }
-    };
-
+    };    
+  
     const wrap = (fnName) => {
       const orig = shapeManager[fnName]?.bind(shapeManager);
       if (!orig) return;
       shapeManager[fnName] = function(...args){
         const out = orig(...args);
-        callEnforce();
+        callEnforce(fnName, args);
         return out;
       };
     };
-
+  
     wrap('onCanvasPositionChange');
     wrap('onCanvasRotationChange');
     wrap('onCanvasScaleChange');
-
-    wrap('setShapes');
-    wrap('updateShape');
-    wrap('registerInterpreter');
-    wrap('createShapeAtPosition');
-
+  
     this._takeSnapshot();
   }
+  
 
   getAnchorsForShape(shapeName) {
     if (!this.anchorCatalog.size) this.rebuild();
     return this.anchorCatalog.get(shapeName) || [{key:'center', label:'Center'}];
   }
 
-  onListChanged(cb) { this._onListChanged = cb; }
-  _notifyListChanged(){ if (typeof this._onListChanged === 'function') this._onListChanged(this.getConstraintList()); }
+  onListChanged(cb) {
+    if (!this._onListChangedArr) this._onListChangedArr = [];
+    this._onListChangedArr.push(cb);
+  }
+
+  _notifyListChanged() {
+    if (this._suspendList > 0) {        
+      this._notifyQueued = true;
+      return;
+    }
+    const list = this.getConstraintList();
+    if (this._onListChangedArr) {
+      for (const cb of this._onListChangedArr) {
+        try { cb(list); } catch (e) { console.warn('onListChanged handler error', e); }
+      }
+    }
+  }  
+
 }
