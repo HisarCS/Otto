@@ -68,7 +68,7 @@ export class Lexer {
 
   identifier() {
     let result = '';
-    while (this.currentChar && /[a-zA-Z0-9_.]/.test(this.currentChar)) {
+    while (this.currentChar && /[a-zA-Z0-9_]/.test(this.currentChar)) {
       result += this.currentChar;
       this.advance();
     }
@@ -115,6 +115,13 @@ export class Lexer {
       'goto': 'GOTO',
       'penup': 'PENUP',
       'pendown': 'PENDOWN',
+
+      // Constraints
+      'constraints': 'CONSTRAINTS',
+      'coincident': 'COINCIDENT',
+      'distance': 'DISTANCE',
+      'horizontal': 'HORIZONTAL',
+      'vertical': 'VERTICAL',
       
       // Enhanced fill and styling keywords
       'fill': 'FILL',
