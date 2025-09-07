@@ -11,6 +11,7 @@ export class Interpreter {
         this.currentReturn = null;
         this.functionCallCounters = new Map();
         this.turtleDrawer = new TurtleDrawer();
+        this.constraints = [];
         
         // Color resolution map for named colors
         this.colorMap = {
@@ -51,6 +52,7 @@ export class Interpreter {
             shapes: this.env.shapes,
             layers: this.env.layers,
             functions: this.functions,
+            constraints: this.constraints,
             result
         };
     }
@@ -93,9 +95,33 @@ export class Interpreter {
                 return this.evaluateFillStatement(node);
             case 'style_block':
                 return this.evaluateStyleBlock(node);
+            case 'constraints_block':
+                return this.evaluateConstraintsBlock(node);
             default:
                 throw new Error(`Unknown node type: ${node.type}`);
         }
+    }
+
+    evaluateConstraintsBlock(node) {
+        // Normalize and store; numbers are evaluated so params/expressions work
+        for (const item of node.items) {
+            if (item.kind === 'distance') {
+                const dist = this.evaluateExpression(item.dist);
+                this.constraints.push({
+                    type: 'distance',
+                    a: item.a,
+                    b: item.b,
+                    dist
+                });
+            } else if (item.kind === 'coincident') {
+                this.constraints.push({ type:'coincident', a:item.a, b:item.b });
+            } else if (item.kind === 'horizontal') {
+                this.constraints.push({ type:'horizontal', a:item.a, b:item.b });
+            } else if (item.kind === 'vertical') {
+                this.constraints.push({ type:'vertical', a:item.a, b:item.b });
+            }
+        }
+        return null;
     }
 
     // FIXED: Enhanced boolean operation evaluation with proper shape consumption
@@ -748,3 +774,4 @@ export class Interpreter {
         };
     }
 }
+
