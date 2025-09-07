@@ -118,6 +118,10 @@ let editorMode = 'text';
 let blocklyWorkspace = null;
 let syncingFromBlocks = false;
 let constraintEngine;
+let _syncingConstraints = false;
+let _writingEditorFromShape = false;       
+let _writingEditorFromConstraints = false;  
+
 
 window.interpreter = null;
 
@@ -160,6 +164,10 @@ function initializeComponents() {
     if (typeof window.updateConstraintsMenu === 'function') {
       window.updateConstraintsMenu(list);
     }
+
+    if (!_syncingConstraints) {
+      updateCodeFromConstraints(list);
+    }
   });
 
   renderer.constraintEngine = constraintEngine;
@@ -181,7 +189,7 @@ function setupCodeMirror() {
   CodeMirror.defineSimpleMode('aqui', {
     start: [
       {regex: /\/\/.*/, token: 'comment'},
-      {regex: /\b(?:shape|param|layer|transform|add|rotate|scale|position|if|else|for|from|to|step|def|return|union|difference|intersection|draw|forward|backward|right|left|goto|penup|pendown|fill|fillColor|color|strokeColor|strokeWidth|opacity)\b/, token: 'keyword'},
+      {regex: /\b(?:shape|param|layer|transform|add|rotate|scale|position|if|else|for|from|to|step|def|return|union|difference|intersection|draw|forward|backward|right|left|goto|penup|pendown|fill|fillColor|color|strokeColor|strokeWidth|opacity|constraints|coincident|distance|horizontal|vertical)\b/, token: 'keyword'},
       {regex: /\b(?:circle|rectangle|triangle|ellipse|polygon|star|arc|roundedRectangle|path|arrow|text|donut|spiral|cross|wave|slot|chamferRectangle|gear|dovetailPin|dovetailTail|doubleDovetailPin|doubleDovetailTail|fingerJoint|fingerJointMale|fingerJointFemale|tenon|mortise|scarfJoint|lapJoint|crossHalving|tJoint|dadoJoint|slotJoint|tabJoint|miterJoint|buttJoint)\b/, token: 'variable-2'},
       {regex: /\d+\.?\d*/, token: 'number'},
       {regex: /"(?:[^\\]|\\.)*?"/, token: 'string'},
@@ -221,7 +229,7 @@ function setupCodeMirror() {
   
   let timeout;
   editor.on('change', () => {
-    if (syncingFromBlocks) return;   
+    if (syncingFromBlocks || _writingEditorFromShape || _writingEditorFromConstraints) return;
     clearTimeout(timeout);
     timeout = setTimeout(() => {
       runCode();
@@ -878,22 +886,26 @@ class EnhancedParameterManager extends ParameterManager {
 
 function updateCodeFromShapeChange(change) {
   try {
+    if (window.__enforcingConstraints) return;
+
     const oldCode = editor.getValue();
-    let newCode = oldCode.split('\n');
+    const constraintsRe = /(^|\n)\s*constraints\s*\{\s*([\s\S]*?)\}\s*/m;
+
+    let lines = oldCode.split('\n');
 
     if (change.action === 'update') {
-      // locate the shape block in the text
       let inShapeBlock = false;
       let start = -1, end = -1, depth = 0;
-      for (let i = 0; i < newCode.length; i++) {
-        const line = newCode[i];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
         if (!inShapeBlock && line.trim().startsWith('shape ') && line.includes(change.name)) {
           inShapeBlock = true;
-          start = i;
         }
         if (inShapeBlock) {
           if (line.includes('{')) depth++;
           if (line.includes('}')) depth--;
+          if (start < 0) start = i;
           if (depth === 0) { end = i; break; }
         }
       }
@@ -902,18 +914,20 @@ function updateCodeFromShapeChange(change) {
         function injectProp(prop, val) {
           let found = false;
           for (let j = start; j <= end; j++) {
-            if (newCode[j].trim().startsWith(prop + ':')) {
-              const indent = newCode[j].match(/^\s*/)[0];
-              newCode[j] = `${indent}${prop}: ${val}`;
+            if (lines[j].trim().startsWith(prop + ':')) {
+              const indent = lines[j].match(/^\s*/)[0];
+              lines[j] = `${indent}${prop}: ${val}`;
               found = true;
               break;
             }
           }
           if (!found) {
             for (let j = start; j <= end; j++) {
-              if (newCode[j].includes('{')) {
-                const indent = (newCode[j+1].match(/^\s*/)[0] || '    ');
-                newCode.splice(j+1, 0, `${indent}${prop}: ${val}`);
+              if (lines[j].includes('{')) {
+                const next = lines[j + 1] || '';
+                const indent = (next.match(/^\s*/)?.[0]) || '  ';
+                lines.splice(j + 1, 0, `${indent}${prop}: ${val}`);
+                end++;
                 break;
               }
             }
@@ -943,11 +957,51 @@ function updateCodeFromShapeChange(change) {
         });
       }
 
-      newCode = newCode.join('\n');
+      let newCode = lines.join('\n');
+
+      const snap = (renderer?.constraintEngine?.getConstraintSnapshot?.() || [])
+        .map(c => ({ type: c.type, a: c.a, b: c.b, dist: c.dist }));
+
+      if (snap.length > 0) {
+        const ref = (p) => `${p.shape}.${p.anchor}`;
+        const linesC = ['constraints {'];
+        for (const c of snap) {
+          if (c.type === 'distance') {
+            const d = Number.isFinite(+c.dist) ? +c.dist : c.dist;
+            linesC.push(`  distance ${ref(c.a)} ${ref(c.b)} ${d}`);
+          } else if (c.type === 'coincident') {
+            linesC.push(`  coincident ${ref(c.a)} ${ref(c.b)}`);
+          } else if (c.type === 'horizontal') {
+            linesC.push(`  horizontal ${ref(c.a)} ${ref(c.b)}`);
+          } else if (c.type === 'vertical') {
+            linesC.push(`  vertical ${ref(c.a)} ${ref(c.b)}`);
+          }
+        }
+        linesC.push('}');
+        const blockText = linesC.join('\n');
+
+        if (constraintsRe.test(newCode)) {
+          newCode = newCode.replace(constraintsRe, `\n${blockText}\n`);
+        } else {
+          newCode = (newCode.trimEnd() + '\n\n' + blockText + '\n');
+        }
+      }
+
+      if (newCode !== oldCode) {
+        _writingEditorFromShape = true;
+        editor.operation(() => { editor.setValue(newCode); });
+        _writingEditorFromShape = false;
+
+        if (editorMode === 'blocks' && blocklyWorkspace) {
+          rebuildWorkspaceFromAqui(newCode, blocklyWorkspace);
+          refreshBlockly();
+        }
+      }
     }
-    else if (change.action === 'delete') {
+
+    if (change.action === 'delete') {
       let inShape = false, depth = 0;
-      newCode = newCode.filter(line => {
+      lines = lines.filter(line => {
         if (!inShape && line.trim().startsWith('shape ') && line.includes(change.name)) {
           inShape = true;
           if (line.includes('{')) depth++;
@@ -960,30 +1014,107 @@ function updateCodeFromShapeChange(change) {
           return false;
         }
         return true;
-      }).join('\n');
-    }
-
-    if (newCode !== oldCode) {
-      editor.operation(() => {
-        editor.setValue(newCode);
       });
-    }
 
-    if (blocklyWorkspace) {
-      rebuildWorkspaceFromAqui(editor.getValue(), blocklyWorkspace);
-      refreshBlockly();
-    }
+      let newCode = lines.join('\n');
+      const snap = (renderer?.constraintEngine?.getConstraintSnapshot?.() || [])
+        .map(c => ({ type: c.type, a: c.a, b: c.b, dist: c.dist }));
+      if (snap.length > 0) {
+        const ref = (p) => `${p.shape}.${p.anchor}`;
+        const L = ['constraints {'];
+        for (const c of snap) {
+          if (c.type === 'distance') {
+            const d = Number.isFinite(+c.dist) ? +c.dist : c.dist;
+            L.push(`  distance ${ref(c.a)} ${ref(c.b)} ${d}`);
+          } else if (c.type === 'coincident') {
+            L.push(`  coincident ${ref(c.a)} ${ref(c.b)}`);
+          } else if (c.type === 'horizontal') {
+            L.push(`  horizontal ${ref(c.a)} ${ref(c.b)}`);
+          } else if (c.type === 'vertical') {
+            L.push(`  vertical ${ref(c.a)} ${ref(c.b)}`);
+          }
+        }
+        L.push('}');
+        const blockText = L.join('\n');
+        if (constraintsRe.test(newCode)) newCode = newCode.replace(constraintsRe, `\n${blockText}\n`);
+        else newCode = newCode.trimEnd() + '\n\n' + blockText + '\n';
+      }
 
+      if (newCode !== oldCode) {
+        _writingEditorFromShape = true;
+        editor.operation(() => { editor.setValue(newCode); });
+        _writingEditorFromShape = false;
+
+        if (editorMode === 'blocks' && blocklyWorkspace) {
+          rebuildWorkspaceFromAqui(newCode, blocklyWorkspace);
+          refreshBlockly();
+        }
+      }
+    }
   } catch (err) {
     console.error('Error updating code from shape change:', err);
   }
-
-  if (editorMode === 'blocks' && blocklyWorkspace) {
-    rebuildWorkspaceFromAqui(editor.getValue(), blocklyWorkspace);
-    refreshBlockly();
-  }
-
 }
+
+function updateCodeFromConstraints() {
+  try {
+    const snapshot = (renderer?.constraintEngine?.getConstraintSnapshot?.() || [])
+      .map(c => ({ type: c.type, a: c.a, b: c.b, dist: c.dist }));
+
+    const oldCode = editor.getValue();
+    const blockRe = /(^|\n)\s*constraints\s*\{\s*([\s\S]*?)\}\s*/m;
+
+    let newCode = oldCode;
+
+    if (snapshot.length === 0) {
+      if (blockRe.test(oldCode)) {
+        newCode = oldCode.replace(blockRe, '\n').trimEnd() + '\n';
+      } else {
+        return; 
+      }
+    } else {
+      const ref = (p) => `${p.shape}.${p.anchor}`;
+      const L = ['constraints {'];
+      for (const c of snapshot) {
+        if (c.type === 'distance') {
+          const d = Number.isFinite(+c.dist) ? +c.dist : c.dist;
+          L.push(`  distance ${ref(c.a)} ${ref(c.b)} ${d}`);
+        } else if (c.type === 'coincident') {
+          L.push(`  coincident ${ref(c.a)} ${ref(c.b)}`);
+        } else if (c.type === 'horizontal') {
+          L.push(`  horizontal ${ref(c.a)} ${ref(c.b)}`);
+        } else if (c.type === 'vertical') {
+          L.push(`  vertical ${ref(c.a)} ${ref(c.b)}`);
+        }
+      }
+      L.push('}');
+      const blockText = L.join('\n').trim();
+
+      if (blockRe.test(oldCode)) {
+        const currentBlock = oldCode.match(blockRe)[0].trim();
+        if (currentBlock === blockText) return; 
+        newCode = oldCode.replace(blockRe, `\n${blockText}\n`);
+      } else {
+        newCode = (oldCode.trimEnd() + '\n\n' + blockText + '\n');
+      }
+    }
+
+    if (newCode !== oldCode) {
+      _writingEditorFromConstraints = true;
+      editor.operation(() => editor.setValue(newCode));
+      _writingEditorFromConstraints = false;
+
+      if (blocklyWorkspace) {
+        rebuildWorkspaceFromAqui(newCode, blocklyWorkspace);
+        refreshBlockly();
+      }
+    }
+  } catch (e) {
+    console.warn('updateCodeFromConstraints failed:', e);
+  }
+}
+
+window.updateCodeFromConstraints = updateCodeFromConstraints;
 
 function updateShapeProperty(lines, startLine, endLine, propName, value) {
   let propFound = false;
@@ -1043,6 +1174,54 @@ function runCode() {
     }
     
     renderer.setShapes(result.shapes);
+
+    if (constraintEngine) {
+      const wasLive = constraintEngine.liveEnforce;
+
+      window.__pendingConstraints = window.__pendingConstraints || [];
+
+      constraintEngine.setLiveEnforce(false);
+      _syncingConstraints = true;
+      constraintEngine.suspendListEvents(true);
+
+      try {
+        constraintEngine.clearAllConstraints();
+
+        let cons = (window.interpreter && window.interpreter.constraints) || [];
+
+        const sig = c =>
+          `${c.type}:${c.a.shape}.${c.a.anchor}>${c.b.shape}.${c.b.anchor}` +
+          (c.type === 'distance' ? `:${Number(c.dist)}` : '');
+
+        const seen = new Set(cons.map(sig));
+        if (Array.isArray(window.__pendingConstraints) && window.__pendingConstraints.length) {
+          for (const c of window.__pendingConstraints) {
+            if (!seen.has(sig(c))) {
+              cons.push(c);
+              seen.add(sig(c));
+            }
+          }
+          window.__pendingConstraints.length = 0;
+        }
+
+        for (const c of cons) {
+          try {
+            if (c.type === 'coincident')       constraintEngine.addCoincidentAnchors(c.a, c.b);
+            else if (c.type === 'distance')    constraintEngine.addDistance(c.a, c.b, Number(c.dist));
+            else if (c.type === 'horizontal')  constraintEngine.addHorizontal(c.a, c.b);
+            else if (c.type === 'vertical')    constraintEngine.addVertical(c.a, c.b);
+          } catch (e) {
+            console.warn('Constraint add failed:', c, e);
+          }
+        }
+      } finally {
+        constraintEngine.suspendListEvents(false);
+        _syncingConstraints = false;
+        constraintEngine.setLiveEnforce(wasLive);
+      }
+      constraintEngine.rebuild();
+    }    
+    
     shapeManager.registerInterpreter(interpreter);
 
     if (constraintEngine) constraintEngine.rebuild();
