@@ -604,6 +604,62 @@ export class Parser {
     };
   }
 
+
+  parseAnchorRef() {
+    const shape = this.currentToken.value;
+    this.eat('IDENTIFIER');
+    this.eat('DOT');
+    const anchor = this.currentToken.value;
+    this.eat('IDENTIFIER');
+    return { shape, anchor };
+  }
+
+  parseConstraintsBlock() {
+    this.eat('CONSTRAINTS');
+    this.eat('LBRACE');
+
+    const items = [];
+
+    while (this.currentToken.type !== 'RBRACE' && this.currentToken.type !== 'EOF') {
+      switch (this.currentToken.type) {
+        case 'COINCIDENT': {
+          this.eat('COINCIDENT');
+          const a = this.parseAnchorRef();
+          const b = this.parseAnchorRef();
+          items.push({ type: 'constraint', kind: 'coincident', a, b });
+          break;
+        }
+        case 'DISTANCE': {
+          this.eat('DISTANCE');
+          const a = this.parseAnchorRef();
+          const b = this.parseAnchorRef();
+          const distExpr = this.parseExpression();   
+          items.push({ type: 'constraint', kind: 'distance', a, b, dist: distExpr });
+          break;
+        }
+        case 'HORIZONTAL': {
+          this.eat('HORIZONTAL');
+          const a = this.parseAnchorRef();
+          const b = this.parseAnchorRef();
+          items.push({ type: 'constraint', kind: 'horizontal', a, b });
+          break;
+        }
+        case 'VERTICAL': {
+          this.eat('VERTICAL');
+          const a = this.parseAnchorRef();
+          const b = this.parseAnchorRef();
+          items.push({ type: 'constraint', kind: 'vertical', a, b });
+          break;
+        }
+        default:
+          this.error(`Unknown constraint directive: ${this.currentToken.type}`);
+      }
+    }
+
+    this.eat('RBRACE');
+    return { type: 'constraints_block', items };
+  }
+
   // Enhanced transform parsing
   parseTransform() {
     this.eat('TRANSFORM');
@@ -695,6 +751,10 @@ export class Parser {
         
       case 'DRAW':
         statement = this.parseDrawStatement();
+        break;
+      
+      case 'CONSTRAINTS':
+        statement = this.parseConstraintsBlock();
         break;
         
       case 'IDENTIFIER':
