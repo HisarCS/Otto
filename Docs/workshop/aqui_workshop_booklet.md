@@ -146,32 +146,141 @@ Our 2D house will have these components:
 
 ### Basic House Structure
 ```aqui
-// Create parameters for house dimensions: width, height
-// Create parameter for roof height
-// Build the main house body using a rectangle
-// Add a triangular roof positioned on top of the house
-// Use parameter values to ensure roof width matches house width
+param width 100
+param height 200
+param roofheight 50
+
+shape rectangle a {
+  position: [7.5, -5.997118999999998]
+  width: 100
+  height: 200
+}
+
+shape triangle b {
+  height: 50
+  base: 100
+  rotation: -180
+  position: [7.500409, 119.002881]
+  
+}
 ```
 
 ### Adding a Door
 ```aqui
-// Create parameters for door dimensions: width, height
-// Position the door at the center bottom of the house
-// Use mathematical expressions to center the door automatically
+param width 100
+param height 200
+param roofheight 50
+param doorWidth 20
+param doorHeight 50
+
+shape rectangle a {
+  position: [0.75, 21.875449000000003]
+  width: 100
+  height: 200
+}
+
+shape triangle b {
+  height: 50
+  base: 100
+  rotation: -180
+  position: [0.75, 146.87504]
+  
+}
+
+shape rectangle door {
+  position: [0.75, -53.12496]
+  width: 20
+  height: 50
+}
 ```
 
 ### Adding Windows
 ```aqui
-// Create parameters for window dimensions and count
-// Use a loop to create multiple windows automatically
-// Calculate window positions to distribute them evenly across the house
+param width 100
+param height 200
+param roofheight 50
+param doorWidth 20
+param doorHeight 50
+param windowSidelength 30
+
+shape rectangle a {
+  position: [1.7503059999999948, 61.624221000000006]
+  width: 160
+  height: 124
+}
+
+shape triangle b {
+  height: 50
+  base: 100
+  rotation: -180
+  position: [1.750306, 148.623812]
+  
+}
+
+shape rectangle door {
+  position: [1.750306, 24.623812]
+  width: 20
+  height: 50
+}
+
+shape rectangle window1 {
+  position: [-40, 80]
+  width: 30
+  height: 30
+}
+
+shape rectangle window2 {
+  position: [40, 80]
+  width: 30
+  height: 30
+}
 ```
 
 ### Exercise 3.1: Complete Parametric House
 ```aqui
-// Combine all house elements
-// Test different parameter values to create house variations
-// Ensure all elements scale properly together
+param width 100
+param height 200
+param roofheight 50
+param doorWidth 20
+param doorHeight 50
+param windowSidelength 30
+
+shape rectangle a {
+  position: [1.7503059999999948, 61.624221000000006]
+  width: width
+  height: height
+}
+
+shape triangle b {
+  height: roofheight
+  base: width
+  rotation: -180
+  position: [1.750306, 148.623812]
+  
+}
+
+shape rectangle door {
+  position: [1.750306, 24.623812]
+  width: doorWidth
+  height: doorHeight
+}
+
+shape rectangle window1 {
+  position: [-40, 80]
+  width: windowSidelength
+  height: windowSidelength
+}
+
+shape rectangle window2 {
+  position: [40, 80]
+  width: windowSidelength
+  height: windowSidelength
+}
+
+constraints {
+  coincident a.rect_mt b.tri_apex
+  coincident a.rect_mb door.rect_mb
+}
 ```
 
 ---
@@ -264,20 +373,6 @@ An adjustable wrench is a tool that can grip objects of different sizes. In our 
 - Complete both parametric designs
 - Understand design relationships and constraints
 - Review parametric design principles
-
-### Final House Design
-```aqui
-// Finalize the parametric house with all features
-// Ensure all parameters work correctly together
-// Add final details and styling
-```
-
-### Final Wrench Design
-```aqui
-// Complete the parametric wrench design
-// Verify all dimensions scale properly
-// Add finishing touches and details
-```
 
 ### Exercise 6.2: Design Explanation
 Students will write brief explanations of how their parametric designs work and what advantages parametric design offers over fixed designs.
