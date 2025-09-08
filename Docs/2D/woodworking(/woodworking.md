@@ -1,13 +1,5 @@
 # AQUI Woodworking Joints Documentation
 
-## Overview
-
-AQUI provides comprehensive support for creating precise woodworking joints commonly used in furniture making, cabinetry, and general woodworking. These joints are designed with parametric control for digital fabrication workflows including CNC routing, laser cutting, and traditional hand tools.
-
-All woodworking joints in AQUI are designed to be manufacturable and include proper tolerances for real-world construction.
-
----
-
 ## Traditional Joinery
 
 ### **dovetailPin**
