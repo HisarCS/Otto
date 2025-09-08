@@ -1,5 +1,4 @@
 # Aqui Programming Workshop: Parametric Design Fundamentals
-## A 6-Session Course for 6th Grade Students
 
 ---
 
@@ -239,16 +238,6 @@ An adjustable wrench is a tool that can grip objects of different sizes. In our 
 // Verify all dimensions scale properly
 // Add finishing touches and details
 ```
-
-### Design Testing
-```aqui
-// Test extreme parameter values to ensure designs remain functional
-// Create parameter sets for common use cases
-// Document the parameter ranges that work best
-```
-
-### Exercise 6.1: Design Portfolio
-Students will create variations of both designs showing different parameter settings and document what each parameter controls.
 
 ### Exercise 6.2: Design Explanation
 Students will write brief explanations of how their parametric designs work and what advantages parametric design offers over fixed designs.
