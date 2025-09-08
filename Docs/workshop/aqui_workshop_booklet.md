@@ -21,7 +21,7 @@ This approach is used by:
 This workshop teaches parametric design through the Aqui programming language. You will complete two main projects:
 
 1. **Parametric House Design** - Create a 2D house where you can easily adjust size, number of windows, and door style
-2. **Parametric Adjustable Wrench** - Design a 2D tool where you can modify the jaw size and handle length
+2. **Parametric Car Design** - Design a 2D vehicle where you can modify the body size, wheel dimensions, and window configuration
 
 ---
 
@@ -285,84 +285,59 @@ constraints {
 
 ---
 
-## Session 4: Building a Parametric Adjustable Wrench
+## Session 4: Building a Parametric Car
 
 ### Learning Objectives
-- Apply parametric thinking to tool design
+- Apply parametric thinking to vehicle design
 - Create functional 2D representations
-- Use geometric relationships
+- Use geometric relationships for automotive proportions
 
-### What is an Adjustable Wrench?
-An adjustable wrench is a tool that can grip objects of different sizes. In our 2D version, we will show:
-- Handle (main gripping area)
-- Fixed jaw (one side of the gripping area)
-- Movable jaw (adjustable side)
-- Adjustment mechanism
+### What Makes a Good 2D Car Design?
+A recognizable 2D car needs these key components:
+- Main body (rectangular chassis)
+- Wheels (circles positioned under the body)
+- Windows (rectangles for windshield, side windows)
+- Headlights (circles or rectangles at the front)
 
-### Basic Wrench Structure
+### Exercise 4.1: Complete Parametric Car
 ```aqui
-// Create parameters for wrench dimensions: handle length, handle width
-// Create parameters for jaw dimensions: jaw length, jaw width
-// Build the main handle using a rectangle
-// Add the fixed jaw at one end of the handle
-```
+// Parametric Car Design - keeping original values
+param wheelRadius 25
+param carWidth 200
+param carHeight 58
+param arcRadius 70.69235507299915
+param headlightRadius 30
 
-### Adding the Movable Jaw
-```aqui
-// Create the movable jaw component
-// Position it to show the adjustable opening
-// Use parameters to control the jaw opening distance
-```
+shape circle frontWheel {
+  position: [-8, 46]
+  radius: wheelRadius
+  fill: false
+}
 
-### Adding Details
-```aqui
-// Add the adjustment screw representation
-// Add grip texture or markings on the handle
-// Use small rectangles or circles for these details
-```
+shape circle rearWheel {
+  position: [-94, 45]
+  radius: wheelRadius
+  fill: false
+}
 
-### Exercise 4.1: Complete Parametric Wrench
-```aqui
-// Combine all wrench components
-// Test different parameter settings for different wrench sizes
-// Create small, medium, and large wrench variations by changing parameters
-```
+shape arc arc1 {
+    radius: 26.53426032087915
+    position: [-77, 141]
+    startAngle: 0
+    endAngle: -180
+    fill: false
+}
 
----
+shape circle c1 {
+  radius: headlightRadius
+}
 
-## Session 5: Advanced Features and Functions
-
-### Learning Objectives
-- Use functions to create reusable designs
-- Apply conditional logic for design variations
-- Create design families
-
-### Using Functions for Reusable Designs
-```aqui
-// Create a function to generate houses with different parameters
-// Create a function to generate wrenches with different specifications
-// Learn how functions help organize and reuse code
-```
-
-### Adding Conditional Features
-```aqui
-// Add optional features to the house (chimney, garage door)
-// Add optional features to the wrench (measurement marks, different jaw styles)
-// Use if statements to include or exclude features
-```
-
-### Exercise 5.1: House Variations
-```aqui
-// Create functions that generate different house styles
-// Add parameters for optional features like chimney or extra windows
-// Generate a neighborhood of different houses
-```
-
-### Exercise 5.2: Wrench Set
-```aqui
-// Create a function that generates wrenches of different sizes
-// Use loops to create a complete set of wrenches
-// Arrange them in an organized layout
+shape rectangle rectangle4 {
+    position: [-54, 79]
+    width: carWidth
+    height: carHeight
+    fill: false
+}
 ```
 
 ---
@@ -374,5 +349,14 @@ An adjustable wrench is a tool that can grip objects of different sizes. In our 
 - Understand design relationships and constraints
 - Review parametric design principles
 
+### Exercise 6.1: Design Gallery
+Students will create variations of their house and car designs by adjusting parameters to show the flexibility of parametric design.
+
 ### Exercise 6.2: Design Explanation
 Students will write brief explanations of how their parametric designs work and what advantages parametric design offers over fixed designs.
+
+### Key Takeaways
+- Parametric design allows for rapid design iterations
+- Parameters make designs flexible and reusable
+- Geometric relationships and constraints maintain design integrity
+- 2D representations can effectively communicate 3D design concepts
