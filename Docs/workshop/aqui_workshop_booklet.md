@@ -38,9 +38,19 @@ Aqui is a programming language designed specifically for creating 2D shapes and 
 ### Basic Shape Creation
 
 ```aqui
-// We will learn to create basic rectangles with width, height, and position
-// We will create circles with radius and position
-// We will understand how coordinates work in Aqui
+shape rectangle rectangle3 {
+    rotation: 93.66778805553145
+    position: [-63.752293, 58.66383999999999]
+    width: 108
+    height: 158
+    fill: false
+}
+
+shape circle circle4 {
+    position: [-328.268051, 113.553201]
+    radius: 110.42481611202095
+    fill: false
+}
 ```
 
 ### Exercise 1.1: Draw Your Name Initial
@@ -48,9 +58,20 @@ Students will create the first letter of their name using basic shapes (rectangl
 
 ### Exercise 1.2: Simple House Outline
 ```aqui
-// Create a rectangular base for the house
-// Add a triangular roof on top
-// Position shapes to form a basic house silhouette
+shape rectangle rectangle5 {
+    position: [29, 50]
+    width: 114
+    height: 72
+    fill: false
+}
+
+shape triangle triangle6 {
+    rotation: -180
+    position: [29, 134]
+    base: 106
+    height: 96
+    fill: false
+}
 ```
 
 ---
@@ -69,23 +90,42 @@ Parameters are like containers that hold numbers. Instead of writing the number 
 When you want to make changes to your design, you only need to change parameter values instead of finding and changing numbers throughout your code.
 
 ```aqui
-// Learn to declare parameters using 'param' keyword
-// Use parameters in shape dimensions instead of fixed numbers
-// Understand how changing one parameter affects the entire design
+param width 25
+param height 100
+param windowCount 4
 ```
 
 ### Exercise 2.1: Parametric Rectangle
 ```aqui
-// Create parameters for width, height, and position
-// Use these parameters to create a rectangle
-// Practice changing parameter values to see the effect
+param width 25
+param height 100
+param posX 100
+param posY 50
+
+shape rectangle a {
+  width: width
+  height: height
+  position: [posX, posY]
+}
 ```
 
 ### Exercise 2.2: Parametric Simple Shape
 ```aqui
-// Create a simple design using circles and rectangles
-// Use parameters to control the size of features
-// Experiment with different parameter values
+param width 25
+param height 100
+param posX 100
+param posY 50
+param rad 200
+
+shape rectangle a {
+  width: width
+  height: height
+  position: [posX, posY]
+}
+
+shape circle b {
+  radius: rad
+}
 ```
 
 ---
