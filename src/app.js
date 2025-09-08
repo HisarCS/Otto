@@ -893,6 +893,54 @@ function updateCodeFromShapeChange(change) {
 
     let lines = oldCode.split('\n');
 
+    const ALWAYS_OVERWRITE = new Set(['position', 'rotation', 'scale']);
+    const isNumericLiteral = (s) => {
+      if (!s) return false;
+      const t = s.trim();
+      return /^-?\d+(\.\d+)?$/.test(t) || /^\[\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*\]$/.test(t);
+    };
+
+    function findPropLine(linesArr, start, end, prop) {
+      for (let i = start; i <= end; i++) {
+        const raw = linesArr[i];
+        const trimmed = raw.trim();
+        if (trimmed.startsWith(prop + ':') || trimmed.startsWith(prop + ' :')) {
+          const colon = raw.indexOf(':');
+          const indentMatch = raw.match(/^(\s*)/);
+          const indent = indentMatch ? indentMatch[1] : '';
+          const rhs = raw.slice(colon + 1).trim();
+          return { index: i, indent, rhs, raw };
+        }
+      }
+      return null;
+    }
+
+    function injectPropSmart(prop, val, start, end) {
+      const found = findPropLine(lines, start, end, prop);
+      const asText = (v) => v;
+
+      if (found) {
+        if (ALWAYS_OVERWRITE.has(prop)) {
+          lines[found.index] = `${found.indent}${prop}: ${asText(val)}`;
+          return;
+        }
+        if (isNumericLiteral(found.rhs)) {
+          lines[found.index] = `${found.indent}${prop}: ${asText(val)}`;
+          return;
+        }
+        return;
+      }
+
+      for (let j = start; j <= end; j++) {
+        if (lines[j].includes('{')) {
+          const next = lines[j + 1] || '';
+          const indent = (next.match(/^\s*/)?.[0]) || '  ';
+          lines.splice(j + 1, 0, `${indent}${prop}: ${asText(val)}`);
+          return;
+        }
+      }
+    }
+
     if (change.action === 'update') {
       let inShapeBlock = false;
       let start = -1, end = -1, depth = 0;
@@ -911,48 +959,24 @@ function updateCodeFromShapeChange(change) {
       }
 
       if (start >= 0 && end >= 0) {
-        function injectProp(prop, val) {
-          let found = false;
-          for (let j = start; j <= end; j++) {
-            if (lines[j].trim().startsWith(prop + ':')) {
-              const indent = lines[j].match(/^\s*/)[0];
-              lines[j] = `${indent}${prop}: ${val}`;
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            for (let j = start; j <= end; j++) {
-              if (lines[j].includes('{')) {
-                const next = lines[j + 1] || '';
-                const indent = (next.match(/^\s*/)?.[0]) || '  ';
-                lines.splice(j + 1, 0, `${indent}${prop}: ${val}`);
-                end++;
-                break;
-              }
-            }
-          }
+        const pos = `[${change.shape.transform.position[0]}, ${change.shape.transform.position[1]}]`;
+        injectPropSmart('position', pos, start, end);
+
+        if (change.shape.transform.rotation !== 0) {
+          injectPropSmart('rotation', `${change.shape.transform.rotation}`, start, end);
+        } else {
         }
 
-        injectProp(
-          'position',
-          `[${change.shape.transform.position[0]}, ${change.shape.transform.position[1]}]`
-        );
-        if (change.shape.transform.rotation !== 0) {
-          injectProp('rotation', change.shape.transform.rotation);
+        const sx = change.shape.transform.scale[0];
+        const sy = change.shape.transform.scale[1];
+        if (sx !== 1 || sy !== 1) {
+          injectPropSmart('scale', `[${sx}, ${sy}]`, start, end);
         }
-        if (
-          change.shape.transform.scale[0] !== 1 ||
-          change.shape.transform.scale[1] !== 1
-        ) {
-          injectProp(
-            'scale',
-            `[${change.shape.transform.scale[0]}, ${change.shape.transform.scale[1]}]`
-          );
-        }
+
         Object.entries(change.shape.params).forEach(([k, v]) => {
-          if (typeof v === 'number' || typeof v === 'string') {
-            injectProp(k, v);
+          if (typeof v === 'number') {
+            injectPropSmart(k, `${v}`, start, end);
+          } else if (typeof v === 'string') {
           }
         });
       }
