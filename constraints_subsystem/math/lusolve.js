@@ -1,6 +1,4 @@
-// taken from numeric
 
-// 11. Ax = b
 function LU(A, fast) {
   fast = fast || false;
 
