@@ -1,4 +1,4 @@
-// renderer.mjs - Simple edge integration following working standalone pattern
+// renderer.mjs - Simple integration without edge system
 
 import { CoordinateSystem } from "./renderer/coordinateSystem.mjs";
 import { ShapeStyleManager } from "./renderer/styleManager.mjs";
@@ -10,10 +10,6 @@ import { HandleSystem } from "./renderer/handleSystem.mjs";
 import { DebugVisualizer } from "./renderer/debugVisualizer.mjs";
 import { TransformManager } from "./renderer/transformManager.mjs";
 import { shapeManager } from "./shapeManager.mjs";
-
-// Import edge system - simple approach
-import { EdgeCalculator } from "./renderer/edge/edgeCalculator.mjs";
-import { EdgeHitTester } from "./renderer/edge/edgeHitTester.mjs";
 
 export class Renderer {
   constructor(canvas) {
@@ -47,15 +43,6 @@ export class Renderer {
     this.debugVisualizer = new DebugVisualizer(this.ctx);
     this.transformManager = new TransformManager();
 
-    // Simple edge system initialization - like the working demo
-    this.edgeCalculator = new EdgeCalculator();
-    this.edgeHitTester = new EdgeHitTester({
-      straightEdgeTolerance: 10,
-      arcEdgeTolerance: 12,
-      bezierEdgeTolerance: 15,
-      enableEdgeHover: true
-    });
-
     this.interactionHandler = new SimpleInteractionHandler(this);
     this.renderingEngine = new ModularRenderingEngine(this);
   }
@@ -67,11 +54,6 @@ export class Renderer {
     this.debugMode = false;
     this.updateCodeCallback = null;
     this.shapeManager = shapeManager;
-
-    // Simple edge state - like working demo
-    this.selectedEdges = new Set();
-    this.hoveredEdge = null;
-    this.shapeEdges = new Map(); // shapeName -> EdgeCollection
   }
 
   addOverlayDrawer(drawFn) {
@@ -87,172 +69,26 @@ export class Renderer {
     this.redraw();
   }
 
-  // Simple edge calculation - exactly like working demo
-  calculateAllShapeEdges() {
-    this.shapeEdges.clear();
-    
-    for (const [shapeName, shape] of this.shapes.entries()) {
-      if (shape._consumedByBoolean) continue;
-      
-      try {
-        const shapeInstance = this.createShapeInstanceForEdges(shape);
-        if (shapeInstance) {
-          const edgeCollection = this.edgeCalculator.calculateEdges(shapeInstance, shape.type, shape.params);
-          this.shapeEdges.set(shapeName, edgeCollection);
-        }
-      } catch (error) {
-        console.warn(`Failed to calculate edges for shape ${shapeName}:`, error);
-      }
-    }
-  }
-
-  createShapeInstanceForEdges(shape) {
-    const shapeInstance = this.renderingEngine.createShapeInstance(shape.type, shape.params);
-    if (shapeInstance) {
-      // Set world position
-      shapeInstance.position = {
-        x: shape.transform.position[0],
-        y: shape.transform.position[1]
-      };
-    }
-    return shapeInstance;
-  }
-
-  // Simple edge access - exactly like working demo
-  getAllEdges() {
-    const allEdges = [];
-    
-    for (const [shapeName, edgeCollection] of this.shapeEdges.entries()) {
-      edgeCollection.edges.forEach((edge, edgeIndex) => {
-        // Add metadata like working demo
-        edge.parentShapeName = shapeName;
-        edge.parentShape = this.shapes.get(shapeName);
-        edge.globalEdgeId = `${shapeName}_edge_${edgeIndex}`;
-        allEdges.push(edge);
-      });
-    }
-    
-    return allEdges;
-  }
-
-  // Simple edge selection - exactly like working demo
-handleEdgeSelection(x, y, isMultiSelect = false) {
-  const allEdges = this.getAllEdges();
-  
-  // Transform all edges to screen coordinates for hit testing
-  const screenEdges = allEdges.map(edge => {
-    return {
-      ...edge,
-      startPoint: {
-        x: this.coordinateSystem.transformX(edge.startPoint.x),
-        y: this.coordinateSystem.transformY(edge.startPoint.y)
-      },
-      endPoint: {
-        x: this.coordinateSystem.transformX(edge.endPoint.x),
-        y: this.coordinateSystem.transformY(edge.endPoint.y)
-      }
-    };
-  });
-  
-  // Now both mouse coordinates (x, y) and edges are in screen space
-  const hitResults = this.edgeHitTester.hitTest(x, y, screenEdges);
-  
-  if (hitResults.length > 0) {
-    const hitEdge = hitResults[0].edge;
-    
-    if (!isMultiSelect) {
-      this.selectedEdges.clear();
-    }
-    
-    // Toggle edge selection - find original edge object
-    const originalEdge = allEdges.find(e => e.globalEdgeId === hitEdge.globalEdgeId);
-    if (originalEdge) {
-      if (this.selectedEdges.has(originalEdge)) {
-        this.selectedEdges.delete(originalEdge);
-      } else {
-        this.selectedEdges.add(originalEdge);
-      }
-    }
-    
-    // Clear shape selection when selecting edges
-    this.selectedShape = null;
-    this.interactionHandler.selectedShape = null;
-    
-    console.log('Edge selected:', hitEdge.globalEdgeId);
-    this.redraw();
-    return true;
-  } else {
-    // No edge hit - clear edge selections if not multi-selecting
-    if (!isMultiSelect) {
-      this.selectedEdges.clear();
-      this.redraw();
-    }
-    return false;
-  }
-}  // Simple edge hover - exactly like working demo
-handleEdgeHover(x, y) {
-  const allEdges = this.getAllEdges();
-  
-  // Transform all edges to screen coordinates for hover testing
-  const screenEdges = allEdges.map(edge => {
-    return {
-      ...edge,
-      startPoint: {
-        x: this.coordinateSystem.transformX(edge.startPoint.x),
-        y: this.coordinateSystem.transformY(edge.startPoint.y)
-      },
-      endPoint: {
-        x: this.coordinateSystem.transformX(edge.endPoint.x),
-        y: this.coordinateSystem.transformY(edge.endPoint.y)
-      }
-    };
-  });
-  
-  // Find closest edge using screen coordinates
-  const closestEdge = this.edgeHitTester.findClosestEdge(x, y, screenEdges, 15);
-  
-  // Find original edge object for hover state
-  let newHoveredEdge = null;
-  if (closestEdge) {
-    newHoveredEdge = allEdges.find(e => e.globalEdgeId === closestEdge.edge.globalEdgeId);
-  }
-  
-  if (newHoveredEdge !== this.hoveredEdge) {
-    this.hoveredEdge = newHoveredEdge;
-    this.redraw();
-    return true;
-  }
-  
-  return false;
-}
-  // Enhanced setShapes with edge calculation
   setShapes(shapes) {
     try {
       if (!shapes) {
         this.shapes = new Map();
-        this.shapeEdges.clear();
       } else {
         this.shapes = shapes;
-        // Calculate edges for all shapes
-        this.calculateAllShapeEdges();
         shapeManager.registerInterpreter({ env: { shapes } });
       }
       
       this.selectedShape = null;
       this.hoveredShape = null;
-      this.selectedEdges.clear();
-      this.hoveredEdge = null;
       this.selectionSystem.clearSelection();
       this.handleSystem.clearHandleState();
       this.redraw();
     } catch (error) {
       console.error("Error setting shapes:", error);
       this.shapes = new Map();
-      this.shapeEdges.clear();
     }
   }
 
-  // Enhanced redraw with edge rendering
   redraw() {
     try {
       this.clear();
@@ -271,9 +107,6 @@ handleEdgeHover(x, y) {
         this.drawShape(shape, isSelected, isHovered, name);
       }
 
-      // Always render edges (simple approach)
-      this.renderAllEdges();
-
       if (this.debugMode) {
         this.debugVisualizer.drawOverlay(this.shapes, this.coordinateSystem);
       }
@@ -291,112 +124,6 @@ handleEdgeHover(x, y) {
     }
   }
 
-  // Simple edge rendering - like working demo
-  renderAllEdges() {
-    for (const [shapeName, edgeCollection] of this.shapeEdges.entries()) {
-      const shape = this.shapes.get(shapeName);
-      if (!shape || shape._consumedByBoolean) continue;
-      
-      const isShapeSelected = shape === this.selectedShape || shape === this.interactionHandler.selectedShape;
-      
-      edgeCollection.edges.forEach((edge, index) => {
-        const isEdgeSelected = this.selectedEdges.has(edge);
-        const isEdgeHovered = this.hoveredEdge === edge;
-        
-        this.renderEdge(edge, isShapeSelected, isEdgeSelected, isEdgeHovered);
-      });
-    }
-  }
-
-  // Simple edge rendering - exactly like working demo
- renderEdge(edge, shapeSelected, edgeSelected, edgeHovered) {
-  this.ctx.save();
-  
-  // Transform world coordinates to screen coordinates
-  const screenStart = {
-    x: this.coordinateSystem.transformX(edge.startPoint.x),
-    y: this.coordinateSystem.transformY(edge.startPoint.y)
-  };
-  const screenEnd = {
-    x: this.coordinateSystem.transformX(edge.endPoint.x),
-    y: this.coordinateSystem.transformY(edge.endPoint.y)
-  };
-  
-  // Set edge style based on state
-  let strokeColor = '#333';
-  let lineWidth = 1;
-  let globalAlpha = 0.6;
-  
-  if (edgeSelected) {
-    strokeColor = '#ff0066';  // Bright pink for selected edges
-    lineWidth = 3;
-    globalAlpha = 1.0;
-  } else if (edgeHovered) {
-    strokeColor = '#ff6600';  // Orange for hovered edges
-    lineWidth = 2;
-    globalAlpha = 0.8;
-  } else if (shapeSelected) {
-    // Parent shape is selected
-    strokeColor = '#ff6600';
-    lineWidth = 2;
-    globalAlpha = 0.7;
-  } else {
-    // Default edge style
-    strokeColor = '#999';
-    lineWidth = 1;
-    globalAlpha = 0.5;
-  }
-  
-  this.ctx.strokeStyle = strokeColor;
-  this.ctx.lineWidth = lineWidth;
-  this.ctx.globalAlpha = globalAlpha;
-  this.ctx.setLineDash([]);
-  
-  // Draw edge using screen coordinates
-  this.ctx.beginPath();
-  this.ctx.moveTo(screenStart.x, screenStart.y);
-  this.ctx.lineTo(screenEnd.x, screenEnd.y);
-  this.ctx.stroke();
-  
-  // Draw selection handles for selected edges using screen coordinates
-  if (edgeSelected) {
-    this.drawEdgeSelectionHandles({
-      startPoint: screenStart,
-      endPoint: screenEnd
-    });
-  }
-  
-  this.ctx.restore();
-}
-drawEdgeSelectionHandles(edge) {
-  this.ctx.save();
-  
-  const handleSize = 5;
-  const handleFillColor = '#ff0066';
-  const handleStrokeColor = '#fff';
-  const handleStrokeWidth = 2;
-  
-  // Start point handle (edge parameter now contains screen coordinates)
-  this.ctx.beginPath();
-  this.ctx.arc(edge.startPoint.x, edge.startPoint.y, handleSize, 0, Math.PI * 2);
-  this.ctx.fillStyle = handleFillColor;
-  this.ctx.fill();
-  this.ctx.strokeStyle = handleStrokeColor;
-  this.ctx.lineWidth = handleStrokeWidth;
-  this.ctx.stroke();
-  
-  // End point handle (edge parameter now contains screen coordinates)
-  this.ctx.beginPath();
-  this.ctx.arc(edge.endPoint.x, edge.endPoint.y, handleSize, 0, Math.PI * 2);
-  this.ctx.fillStyle = handleFillColor;
-  this.ctx.fill();
-  this.ctx.strokeStyle = handleStrokeColor;
-  this.ctx.lineWidth = handleStrokeWidth;
-  this.ctx.stroke();
-  
-  this.ctx.restore();
-}
-  // Enhanced notifyShapeChanged with edge recalculation
   notifyShapeChanged(shape, action = "update") {
     try {
       if (!this.updateCodeCallback || !shape) return;
@@ -415,19 +142,6 @@ drawEdgeSelectionHandles(edge) {
         shape.transform.position.length = 2;
       }
 
-      // Recalculate edges for changed shape
-      if (shapeName && action === "update") {
-        try {
-          const shapeInstance = this.createShapeInstanceForEdges(shape);
-          if (shapeInstance) {
-            const edgeCollection = this.edgeCalculator.calculateEdges(shapeInstance, shape.type, shape.params);
-            this.shapeEdges.set(shapeName, edgeCollection);
-          }
-        } catch (error) {
-          console.warn(`Failed to recalculate edges for ${shapeName}:`, error);
-        }
-      }
-
       if (shapeName) {
         this.updateCodeCallback({
           action: action,
@@ -440,7 +154,6 @@ drawEdgeSelectionHandles(edge) {
     }
   }
 
-  // Keep all existing methods unchanged...
   setupCanvas() {
     this.coordinateSystem.setupCanvas();
     this.createGridToggleButton();
@@ -632,7 +345,6 @@ drawEdgeSelectionHandles(edge) {
     }
   }
 
-  // Keep all existing UI drawing methods unchanged...
   drawSelectionUIInContext(shape, shapeName) {
     const bounds = this.transformManager.calculateBounds(shape);
     const shapeWidth = bounds.width;
@@ -881,7 +593,6 @@ drawEdgeSelectionHandles(edge) {
     this.ctx.restore();
   }
 
-  // Keep all other existing methods...
   setUpdateCodeCallback(callback) {
     this.updateCodeCallback = callback;
   }
@@ -910,7 +621,6 @@ drawEdgeSelectionHandles(edge) {
     this.interactionHandler.selectedShape = shape;
     this.selectedShape = shape;
     this.selectionSystem.setSelectedShape(shape);
-    this.selectedEdges.clear(); // Clear edge selection when selecting shapes
     this.redraw();
   }
 
@@ -1046,9 +756,7 @@ drawEdgeSelectionHandles(edge) {
       shapeCount: this.shapes.size,
       selectedShape: this.selectedShape ? this.findShapeName(this.selectedShape) : null,
       debugMode: this.debugMode,
-      pixelsToMm: this.coordinateSystem.pixelsToMm,
-      totalEdges: Array.from(this.shapeEdges.values()).reduce((sum, collection) => sum + collection.getEdgeCount(), 0),
-      selectedEdges: this.selectedEdges.size
+      pixelsToMm: this.coordinateSystem.pixelsToMm
     };
   }
 
@@ -1060,11 +768,8 @@ drawEdgeSelectionHandles(edge) {
       }
 
       this.shapes.clear();
-      this.shapeEdges.clear();
-      this.selectedEdges.clear();
       this.selectedShape = null;
       this.hoveredShape = null;
-      this.hoveredEdge = null;
       this.updateCodeCallback = null;
 
       if (this.debugVisualizer) {
@@ -1084,7 +789,7 @@ drawEdgeSelectionHandles(edge) {
   }
 }
 
-// Simple interaction handler - follows working demo pattern exactly
+// Simple interaction handler - without edge functionality
 class SimpleInteractionHandler {
   constructor(renderer) {
     this.renderer = renderer;
@@ -1122,12 +827,6 @@ class SimpleInteractionHandler {
     
     this.lastMousePos = { x, y };
     
-    // Check for Ctrl+click edge selection - exactly like working demo
-    if (event.ctrlKey || event.metaKey) {
-      this.renderer.handleEdgeSelection(x, y, event.shiftKey);
-      return;
-    }
-    
     if (event.shiftKey) {
       this.panning = true;
       this.canvas.className = 'cursor-grabbing';
@@ -1160,18 +859,6 @@ class SimpleInteractionHandler {
     
     const dx = x - this.lastMousePos.x;
     const dy = y - this.lastMousePos.y;
-    
-    // Handle Ctrl+hover edge preview - exactly like working demo
-    if (event.ctrlKey || event.metaKey) {
-      this.renderer.handleEdgeHover(x, y);
-      this.canvas.style.cursor = this.renderer.hoveredEdge ? 'pointer' : 'crosshair';
-    } else {
-      // Clear edge hover when not in Ctrl mode
-      if (this.renderer.hoveredEdge) {
-        this.renderer.hoveredEdge = null;
-        this.renderer.redraw();
-      }
-    }
     
     if (this.panning) {
       this.coordinateSystem.pan(dx, dy);
@@ -1300,7 +987,6 @@ class SimpleInteractionHandler {
   handleMouseLeave() {
     this.hoveredShape = null;
     this.hoveredHandle = null;
-    this.renderer.hoveredEdge = null;
     this.renderer.redraw();
   }
   
@@ -1325,9 +1011,6 @@ class SimpleInteractionHandler {
       this.selectedShape = this.renderer.shapes.get(selectedShapeName);
       this.dragging = true;
       this.canvas.className = 'cursor-move';
-      
-      // Clear edge selection when selecting shapes
-      this.renderer.selectedEdges.clear();
     } else {
       this.selectedShape = null;
       this.canvas.className = '';
@@ -1570,7 +1253,6 @@ class SimpleInteractionHandler {
     
     if (selectedName) {
       this.renderer.shapes.delete(selectedName);
-      this.renderer.shapeEdges.delete(selectedName);
       this.selectedShape = null;
       
       if (this.renderer.updateCodeCallback) {
@@ -1582,7 +1264,7 @@ class SimpleInteractionHandler {
   }
 }
 
-// Keep existing ModularRenderingEngine unchanged
+// ModularRenderingEngine unchanged
 class ModularRenderingEngine {
   constructor(renderer) {
     this.renderer = renderer;
