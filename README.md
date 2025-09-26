@@ -1,7 +1,7 @@
-<h2 align="center">Aqui: Teaching Parametric Design in Digital Fabrication Education</h2>
+<h2 align="center">Otto: Teaching Parametric Design in Digital Fabrication Education</h2>
 <p align="center">
   <picture>
-    <img src="https://github.com/user-attachments/assets/a8db4ff8-e31a-4a69-9461-b71b6426daf7" alt="Aqui Logo" width="200" />
+
   </picture>
 </p>
 <p align="center">
