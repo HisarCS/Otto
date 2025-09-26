@@ -1,4 +1,4 @@
-# AQUI Woodworking Joints Documentation
+# Otto Woodworking Joints Documentation
 
 ## Traditional Joinery
 
