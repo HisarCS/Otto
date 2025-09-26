@@ -1,4 +1,4 @@
-# AQUI Constraints System Documentation
+# Otto Constraints System Documentation
 
 ## Constraint Block Syntax
 
