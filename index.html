@@ -31,6 +31,51 @@
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="./src/styles.css">
+  
+  <style>
+    .docs-redirect {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .docs-redirect h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    
+    .docs-redirect p {
+      font-size: 1.2em;
+      margin-bottom: 30px;
+      color: #666;
+      max-width: 600px;
+    }
+    
+    .docs-link {
+      display: inline-block;
+      padding: 15px 40px;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 1.1em;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    
+    .docs-link:hover {
+      background-color: #45a049;
+    }
+    
+    .github-icon {
+      margin-right: 8px;
+    }
+  </style>
 </head>
 <body>
   <div class="header">
@@ -107,9 +152,16 @@
     </div>
   </div>
 
-  <!-- Documentation Tab -->
+  <!-- Documentation Tab - Now redirects to GitHub -->
   <div class="tab-content" id="docs-tab">
-    <div class="docs-content" id="markdown-content"></div>
+    <div class="docs-redirect">
+      <h1>📚 Otto Documentation</h1>
+      <p>The complete Otto documentation is hosted on GitHub. Click the button below to access tutorials, API references, and guides.</p>
+      <a href="https://github.com/HisarCS/Otto/tree/main/Docs" target="_blank" rel="noopener noreferrer" class="docs-link">
+        <span class="github-icon">📖</span>
+        View Documentation on GitHub
+      </a>
+    </div>
   </div>
 
   <!-- Examples Tab -->
