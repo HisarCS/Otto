@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const examples = {
       'finger-joint-box': {
         image: '/Images/finger-joint-box.png',
-        file: '/examples/Glossary/finger_joint_box.aqui',
+        file: './examples/Glossary/finger_joint_box.aqui',
         info: `<h3>What it is</h3>
                <p>A box with interlocking “fingers” on all edges, allowing snap-together assembly without glue.</p>
                <h3>Where to use it</h3>
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       'puzzle-tiles-grid': {
         image: '/Images/puzzle-tiles-grid.png',
-        file: '/examples/Glossary/puzzle_tiles_grid.aqui',
+        file: './examples/Glossary/puzzle_tiles_grid.aqui',
         info: `<h3>What it is</h3>
                <p>A modular grid of square puzzle tiles with notches and pegs for interlocking connections.</p>
                <h3>Where to use it</h3>
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       'mini-desk-organizer': {
         image: '/Images/mini-desk-organizer.png',
-        file: '/examples/Glossary/mini_desk_organizer.aqui',
+        file: './examples/Glossary/mini_desk_organizer.aqui',
         info: `<h3>What it is</h3>
                <p>An open-top container with dividers for pens and small items, with rounded corners and label area.</p>
                <h3>Where to use it</h3>
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       'ruler': {
         image: '/Images/ruler.png',
-        file: '/examples/Glossary/ruler.aqui',
+        file: './examples/Glossary/ruler.aqui',
         info: `<h3>What it is</h3>
                <p>A small ruler with tick marks every 10mm for quick measurements.</p>
                <h3>Where to use it</h3>
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       'cnc-safety-checklist': {
         image: '/Images/cnc-safety-checklist.png',
-        file: '/examples/Glossary/cnc_safety.aqui',
+        file: './examples/Glossary/cnc_safety.aqui',
         info: `<h3>What it is</h3>
                <p>A poster-style checklist displaying critical safety steps before operating a CNC machine.</p>
                <h3>Where to use it</h3>
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       'shelf-system': {
         image: '/Images/shelf-system.png',
-        file: '/examples/Glossary/shelf_system.aqui',
+        file: './examples/Glossary/shelf_system.aqui',
         info: `<h3>What it is</h3>
                <p>A modular shelf system organizing filament spools and finished prints with vertical posts and shelves.</p>
                <h3>Where to use it</h3>
