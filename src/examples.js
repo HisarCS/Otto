@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   (async () => {
     const examples = {
   'finger-joint-box': {
-    image: 'https://raw.githubusercontent.com/HisarCS/Otto/main/Images/finger-joint-box.png',
+    image: './Images/finger-joint-box.png',
     file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/finger-joint-box.txt',
     info: `<h3>What it is</h3>
            <p>A box with interlocking "fingers" on all edges, allowing snap-together assembly without glue.</p>
@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
            <p>Laser-cut plywood or acrylic panels for storage containers, enclosures, or packaging prototypes.</p>`
   },
   'puzzle-tiles-grid': {
-    image: '/Images/puzzle-tiles-grid.png',
+    image: './Images/puzzle-tiles-grid.png',
     file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/puzzle_tiles_grid.txt',
     info: `<h3>What it is</h3>
            <p>A modular grid of square puzzle tiles with notches and pegs for interlocking connections.</p>
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
            <p>Laser-cut puzzle games or tactile educational tools.</p>`
   },
   'mini-desk-organizer': {
-    image: '/Images/mini-desk-organizer.png',
+    image: './Images/mini-desk-organizer.png',
     file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/mini_desk_organizer.txt',
     info: `<h3>What it is</h3>
            <p>An open-top container with dividers for pens and small items, with rounded corners and label area.</p>
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
            <p>Laser-cut plywood or acrylic for desk organization.</p>`
   },
   'ruler': {
-    image: '/Images/ruler.png',
+    image: './Images/ruler.png',
     file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/ruler.txt',
     info: `<h3>What it is</h3>
            <p>A small ruler with tick marks every 10mm for quick measurements.</p>
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
            <p>Keychain-sized tool or embedded in other laser-cut projects.</p>`
   },
   'cnc-safety-checklist': {
-    image: '/Images/cnc-safety-checklist.png',
+    image: './Images/cnc-safety-checklist.png',
     file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/cnc_safety.txt',
     info: `<h3>What it is</h3>
            <p>A poster-style checklist displaying critical safety steps before operating a CNC machine.</p>
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
            <p>Mounted near CNC machines in fabrication labs or maker spaces.</p>`
   },
   'shelf-system': {
-    image: '/Images/shelf-system.png',
+    image: './Images/shelf-system.png',
     file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/shelf_system.txt',
     info: `<h3>What it is</h3>
            <p>A modular shelf system organizing filament spools and finished prints with vertical posts and shelves.</p>
