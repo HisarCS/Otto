@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   (async () => {
     const examples = {
   'finger-joint-box': {
-    image: '/Images/finger-joint-box.png',
+    image: 'https://raw.githubusercontent.com/HisarCS/Otto/main/Images/finger-joint-box.png',
     file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/finger_joint_box.txt',
     info: `<h3>What it is</h3>
            <p>A box with interlocking "fingers" on all edges, allowing snap-together assembly without glue.</p>
