@@ -1,55 +1,55 @@
 document.addEventListener('DOMContentLoaded', () => {
   (async () => {
     const examples = {
-      'finger-joint-box': {
-        image: '/Images/finger-joint-box.png',
-        file: '/src/examples/Glossary/finger_joint_box.aqui',  // Add /src/
-        info: `<h3>What it is</h3>
-               <p>A box with interlocking "fingers" on all edges, allowing snap-together assembly without glue.</p>
-               <h3>Where to use it</h3>
-               <p>Laser-cut plywood or acrylic panels for storage containers, enclosures, or packaging prototypes.</p>`
-      },
-      'puzzle-tiles-grid': {
-        image: '/Images/puzzle-tiles-grid.png',
-        file: '/src/examples/Glossary/puzzle_tiles_grid.aqui',  // Add /src/
-        info: `<h3>What it is</h3>
-               <p>A modular grid of square puzzle tiles with notches and pegs for interlocking connections.</p>
-               <h3>Where to use it</h3>
-               <p>Laser-cut puzzle games or tactile educational tools.</p>`
-      },
-      'mini-desk-organizer': {
-        image: '/Images/mini-desk-organizer.png',
-        file: '/src/examples/Glossary/mini_desk_organizer.aqui',  // Add /src/
-        info: `<h3>What it is</h3>
-               <p>An open-top container with dividers for pens and small items, with rounded corners and label area.</p>
-               <h3>Where to use it</h3>
-               <p>Laser-cut plywood or acrylic for desk organization.</p>`
-      },
-      'ruler': {
-        image: '/Images/ruler.png',
-        file: '/src/examples/Glossary/ruler.aqui',  // Add /src/
-        info: `<h3>What it is</h3>
-               <p>A small ruler with tick marks every 10mm for quick measurements.</p>
-               <h3>Where to use it</h3>
-               <p>Keychain-sized tool or embedded in other laser-cut projects.</p>`
-      },
-      'cnc-safety-checklist': {
-        image: '/Images/cnc-safety-checklist.png',
-        file: '/src/examples/Glossary/cnc_safety.aqui',  // Add /src/
-        info: `<h3>What it is</h3>
-               <p>A poster-style checklist displaying critical safety steps before operating a CNC machine.</p>
-               <h3>Where to use it</h3>
-               <p>Mounted near CNC machines in fabrication labs or maker spaces.</p>`
-      },
-      'shelf-system': {
-        image: '/Images/shelf-system.png',
-        file: '/src/examples/Glossary/shelf_system.aqui',  // Add /src/
-        info: `<h3>What it is</h3>
-               <p>A modular shelf system organizing filament spools and finished prints with vertical posts and shelves.</p>
-               <h3>Where to use it</h3>
-               <p>Fab labs and 3D printer stations for material management.</p>`
-      }
-    };
+  'finger-joint-box': {
+    image: '/Images/finger-joint-box.png',
+    file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/finger_joint_box.txt',
+    info: `<h3>What it is</h3>
+           <p>A box with interlocking "fingers" on all edges, allowing snap-together assembly without glue.</p>
+           <h3>Where to use it</h3>
+           <p>Laser-cut plywood or acrylic panels for storage containers, enclosures, or packaging prototypes.</p>`
+  },
+  'puzzle-tiles-grid': {
+    image: '/Images/puzzle-tiles-grid.png',
+    file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/puzzle_tiles_grid.txt',
+    info: `<h3>What it is</h3>
+           <p>A modular grid of square puzzle tiles with notches and pegs for interlocking connections.</p>
+           <h3>Where to use it</h3>
+           <p>Laser-cut puzzle games or tactile educational tools.</p>`
+  },
+  'mini-desk-organizer': {
+    image: '/Images/mini-desk-organizer.png',
+    file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/mini_desk_organizer.txt',
+    info: `<h3>What it is</h3>
+           <p>An open-top container with dividers for pens and small items, with rounded corners and label area.</p>
+           <h3>Where to use it</h3>
+           <p>Laser-cut plywood or acrylic for desk organization.</p>`
+  },
+  'ruler': {
+    image: '/Images/ruler.png',
+    file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/ruler.txt',
+    info: `<h3>What it is</h3>
+           <p>A small ruler with tick marks every 10mm for quick measurements.</p>
+           <h3>Where to use it</h3>
+           <p>Keychain-sized tool or embedded in other laser-cut projects.</p>`
+  },
+  'cnc-safety-checklist': {
+    image: '/Images/cnc-safety-checklist.png',
+    file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/cnc_safety.txt',
+    info: `<h3>What it is</h3>
+           <p>A poster-style checklist displaying critical safety steps before operating a CNC machine.</p>
+           <h3>Where to use it</h3>
+           <p>Mounted near CNC machines in fabrication labs or maker spaces.</p>`
+  },
+  'shelf-system': {
+    image: '/Images/shelf-system.png',
+    file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/shelf_system.txt',
+    info: `<h3>What it is</h3>
+           <p>A modular shelf system organizing filament spools and finished prints with vertical posts and shelves.</p>
+           <h3>Where to use it</h3>
+           <p>Fab labs and 3D printer stations for material management.</p>`
+  }
+};
 
     const cards       = document.querySelectorAll('.example-card');
     const menu        = document.querySelector('.examples-menu');
