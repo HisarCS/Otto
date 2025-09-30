@@ -642,7 +642,7 @@ function setupEventHandlers() {
   });
   
   document.addEventListener('keydown', (event) => {
-    if (event.key.toLowerCase() === 'g' && !event.ctrlKey && !event.metaKey) {
+    if (event.key === ';' && !event.ctrlKey && !event.metaKey) {
       if (renderer && document.activeElement !== editor.getWrapperElement().querySelector('textarea')) {
         event.preventDefault();
         renderer.coordinateSystem.isGridEnabled = !renderer.coordinateSystem.isGridEnabled;
