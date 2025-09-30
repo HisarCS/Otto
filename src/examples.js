@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const examples = {
       'finger-joint-box': {
         image: '/Images/finger-joint-box.png',
-        file: '/src/examples/Glossary/finger_joint_box.aqui',  // Add /src/
+        file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/finger_joint_box.txt',  // Add /src/
         info: `<h3>What it is</h3>
                <p>A box with interlocking "fingers" on all edges, allowing snap-together assembly without glue.</p>
                <h3>Where to use it</h3>
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       'cnc-safety-checklist': {
         image: '/Images/cnc-safety-checklist.png',
-        file: '/src/examples/Glossary/cnc_safety.txt',  // Add /src/
+        file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/cnc_safety.txt',  // Add /src/
         info: `<h3>What it is</h3>
                <p>A poster-style checklist displaying critical safety steps before operating a CNC machine.</p>
                <h3>Where to use it</h3>
