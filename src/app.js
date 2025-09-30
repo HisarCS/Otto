@@ -495,7 +495,7 @@ function stmtToBlock(stmt, ws) {
     let prev = null;
     (stmt.shapes || []).forEach((s, i) => {
       const leaf = ws.newBlock('aqui_ref');
-      const op   = stmt.operation === 'difference' && i ? 'subtract' : 'add';
+      const op   = stmt.operation === 'difference' && i ? 'add' : 'add';
       leaf.setFieldValue(op, 'OP');
       leaf.setFieldValue(s, 'TARGET');
       leaf.initSvg(); leaf.render();
