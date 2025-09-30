@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       'cnc-safety-checklist': {
         image: '/Images/cnc-safety-checklist.png',
-        file: '/src/examples/Glossary/cnc_safety.aqui',  // Add /src/
+        file: '/src/examples/Glossary/cnc_safety.txt',  // Add /src/
         info: `<h3>What it is</h3>
                <p>A poster-style checklist displaying critical safety steps before operating a CNC machine.</p>
                <h3>Where to use it</h3>
