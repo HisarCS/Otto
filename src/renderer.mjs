@@ -913,7 +913,7 @@ class SimpleInteractionHandler {
   }
   
   handleKeyDown(event) {
-    if (event.key.toLowerCase() === 'g' && !event.ctrlKey && !event.metaKey) {
+    if (event.key === ';' && !event.ctrlKey && !event.metaKey) {
       if (document.activeElement !== this.renderer.editor?.getWrapperElement()?.querySelector('textarea')) {
         event.preventDefault();
         this.coordinateSystem.toggleGrid();
