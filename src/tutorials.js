@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       title: 'View AST Panel',
       video: './tutorials/view_ast.mp4',
-      description: 'Click View AST to see your script’s Abstract Syntax Tree in JSON form. Understand exactly how AQUI parses your code under the hood.'
+      description: 'Click View AST to see your script’s Abstract Syntax Tree in JSON form. Understand exactly how Otto parses your code under the hood.'
     },
     {
       title: 'Remove Shape from Canvas',
@@ -54,12 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       title: 'Resize Shape in Canvas',
       video: './tutorials/resize_canvas.mp4',
-      description: 'Use corner handles to stretch or shrink shapes. AQUI syncs the setScale(sx,sy) values back into your script in real time.'
+      description: 'Use corner handles to stretch or shrink shapes. Otto syncs the setScale(sx,sy) values back into your script in real time.'
     },
     {
       title: 'Rotate Shape in Canvas',
       video: './tutorials/rotate_canvas.mp4',
-      description: 'Grab the rotation handle to spin shapes on the canvas. AQUI writes the rotate(angle) value into your code to match.'
+      description: 'Grab the rotation handle to spin shapes on the canvas. Otto writes the rotate(angle) value into your code to match.'
     },
     {
       title: 'Toggle Grid Overlay',
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       title: 'Adjust Fill and Fill Color',
       video: './tutorials/fill_shape.mp4',
-      description: 'Toggle fill and pick a color with the slider. AQUI writes the fillColor parameter back into your code so changes persist.'
+      description: 'Toggle fill and pick a color with the slider. Otto writes the fillColor parameter back into your code so changes persist.'
     },
     {
       title: 'Show Boolean Union',
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       title: 'Create Shapes with Blocks',
       video: './tutorials/block_shape.mp4',
-      description: 'Drag and drop block elements to build shapes. Blocks automatically translate into AQUI code in the editor.'
+      description: 'Drag and drop block elements to build shapes. Blocks automatically translate into Otto code in the editor.'
     },
     {
       title: 'Set Parameters with Blocks',
