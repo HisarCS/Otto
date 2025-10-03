@@ -48,6 +48,32 @@ document.addEventListener('DOMContentLoaded', () => {
            <p>A modular shelf system organizing filament spools and finished prints with vertical posts and shelves.</p>
            <h3>Where to use it</h3>
            <p>Fab labs and 3D printer stations for material management.</p>`
+  },
+  'chair': {
+    image: './Images/chair.png',
+    file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/chair.txt',
+    info: `<h3>What it is</h3>
+           <p>A parametric, press-fit chair using tab/slot joints sized to material thickness and kerf.</p>
+           <h3>Where to use it</h3>
+           <p>Laser-cut plywood prototypes for furniture design, ergonomics demos, or fab lab showcases.</p>`
+  },
+
+  'parametric-construction-kit': {
+    image: './Images/parametric-construction-kit.png',
+    file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/parametric_construction_kit.txt',
+    info: `<h3>What it is</h3>
+           <p>A modular kit of panels and connectors with slot widths driven by a <em>material_thickness</em> parameter.</p>
+           <h3>Where to use it</h3>
+           <p>STEM activities, classroom kits, and rapid prototyping of structures/creatures from flat stock.</p>`
+  },
+
+  'fish': {
+    image: './Images/fish.png',
+    file: 'https://raw.githubusercontent.com/HisarCS/Otto/main/src/examples/Glossary/fish.txt',
+    info: `<h3>What it is</h3>
+           <p>A decorative fish silhouette with cut/engrave layers and optional parametric ribs or scales.</p>
+           <h3>Where to use it</h3>
+           <p>Laser-cut ornaments, keychains, classroom demos for bezier curves and engraving depth tests.</p>`
   }
 };
 
