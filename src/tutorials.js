@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {
       title: 'Change Shape Position with Blocks',
       video: './tutorials/block_pos.mp4',
-      description: 'Use position blocks to move shapes around the canvas. AQUI updates the translate(x,y) in the underlying code.'
+      description: 'Use position blocks to move shapes around the canvas. Otto updates the translate(x,y) in the underlying code.'
     },
     {
       title: 'Perform Boolean Operations with Blocks',
