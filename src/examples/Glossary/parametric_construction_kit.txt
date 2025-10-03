@@ -1,0 +1,176 @@
+param tabLenth 10
+param materialThickness 3.8
+param filletVal 2
+param connectorLen 26.53
+param connectorWidth 11.32
+param polyRadius 50
+
+param sqrt3over2 0.866025403784
+param apothem sqrt3over2 * polyRadius
+param tabCenterOffset apothem - (tabLenth / 2)
+
+shape polygon hex {
+  position: [0, 0]
+  radius: polyRadius
+  sides: 6
+  fill: false
+}
+
+shape rectangle tab_top {
+  opacity: 0.8
+  strokeWidth: 2
+  position: [0, -tabCenterOffset]
+  width: materialThickness
+  height: tabLenth
+  rotation: 0
+  cornerRadius: filletVal
+  fill: false
+}
+
+shape rectangle tab_top_left {
+  position: [-(sqrt3over2 * tabCenterOffset) - 1, (0.5 * tabCenterOffset)]
+  rotation: 60
+  width: materialThickness
+  height: tabLenth
+  cornerRadius: filletVal
+  fill: false
+}
+
+shape rectangle tab_bottom_left {
+  position: [-(sqrt3over2 * tabCenterOffset) - 1, (0.5 * tabCenterOffset)]
+  rotation: -120
+  width: materialThickness
+  height: tabLenth
+  cornerRadius: filletVal
+  fill: false
+}
+
+shape rectangle tab_bottom {
+  position: [0, tabCenterOffset]
+  rotation: 180
+  width: materialThickness
+  height: tabLenth
+  cornerRadius: filletVal
+  fill: false
+}
+
+shape rectangle tab_bottom_right {
+  position: [sqrt3over2 * tabCenterOffset, -(0.5 * tabCenterOffset)]
+  rotation: -120
+  width: materialThickness
+  height: tabLenth
+  cornerRadius: filletVal
+  fill: false
+}
+
+shape rectangle tab_top_right {
+  position: [sqrt3over2 * tabCenterOffset + 1, 0.5 * tabCenterOffset]
+  rotation: -60
+  width: materialThickness
+  height: tabLenth
+  cornerRadius: filletVal
+  fill: false
+}
+
+difference d1 {
+  add hex
+  add tab_top
+}
+
+difference d2 {
+  add d1
+  add tab_top_left
+}
+
+difference a {
+  add d2
+  add tab_bottom
+}
+
+difference b {
+  add a
+  add tab_top_right
+}
+
+difference c {
+  add b
+  add tab_bottom_left
+}
+
+difference d {
+  add c
+  add tab_bottom_right
+}
+
+param tabLenth 10
+param materialThickness 3.8
+param filletVal 2
+param polySide 50   
+
+param halfSide polySide / 2
+param tabCenterOffset halfSide - (tabLenth / 2)
+
+shape rectangle square {
+  opacity: 0.8
+  strokeWidth: 2
+  position: [0, 0]
+  width: polySide
+  height: polySide
+  fill: false
+}
+
+
+shape rectangle tab_top {
+  position: [0, -tabCenterOffset]
+  width: materialThickness
+  height: tabLenth
+  cornerRadius: filletVal
+  fill: false
+}
+
+shape rectangle tab_right {
+  position: [tabCenterOffset, 0]
+  rotation: -90
+  width: materialThickness
+  height: tabLenth
+  cornerRadius: filletVal
+  fill: false
+}
+
+shape rectangle tab_bottom {
+  position: [0, tabCenterOffset]
+  rotation: 180
+  width: materialThickness
+  height: tabLenth
+  cornerRadius: filletVal
+  fill: false
+}
+
+shape rectangle tab_left {
+  position: [-tabCenterOffset, 0]
+  rotation: 90
+  width: materialThickness
+  height: tabLenth
+  cornerRadius: filletVal
+  fill: false
+}
+
+difference square_with_tabs {
+  add square
+  add tab_top
+}
+
+difference a {
+  add square_with_tabs
+  add tab_left
+}
+
+difference b {
+  add a
+  add tab_bottom
+}
+
+difference c {
+  add b
+  add tab_right
+}

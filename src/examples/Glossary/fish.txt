@@ -1,0 +1,181 @@
+shape circle circle1a {
+  fillColor: #000000
+  radius: 15
+  position: [0, -30]
+  fill: true
+  opacity: 200
+}
+
+
+shape circle circle2a {
+  fillColor: #000000
+  radius: 15
+  position: [0, -30]
+  fill: true
+  opacity: 200
+}
+
+shape circle circle1b {
+  fillColor: #000000
+  radius: 15
+  position: [0, -127.5]
+  fill: true
+  opacity: 200
+}
+
+shape circle circle2b {
+  fillColor: #000000
+  radius: 15
+  position: [0, 127.5]
+  fill: true
+  opacity: 200
+}
+
+shape circle circle2d {
+  fillColor: #000000
+  radius: 15
+  position: [60, 0]
+  fill: true
+  opacity: 200
+}
+
+shape circle circle3a {
+  fillColor: #000000
+  radius: 15
+  position: [-60, 0]
+  fill: true
+  opacity: 200
+}
+
+shape roundedRectangle roundedRectangle4 {
+    opacity: 0.8
+    strokeWidth: 2
+    position: [0, 0]
+    width: 120
+    height: 60
+    radius: 10
+    fill: true
+  	fillColor: #000000
+}
+
+union a {
+  add roundedRectangle4
+  add circle3a
+}
+
+difference b {
+  add a
+  add circle2a
+}
+
+difference c {
+  add b
+  add circle1a
+}
+
+union z {
+  add c
+  add circle2d
+}
+
+shape roundedRectangle roundedRectangle1 {
+    position: [0, 150]
+    width: 55
+    height: 45
+    radius: 10
+    fill: false
+}
+
+shape roundedRectangle roundedRectangle2 {
+    position: [0, -150]
+    width: 55
+    height: 45
+    radius: 10
+    fill: false
+}
+
+union f {
+  add circle1b
+  add roundedRectangle1
+}
+
+union h {
+  add circle2b
+  add roundedRectangle2
+}
+
+shape circle circle3c {
+  fillColor: #000000
+  radius: 15
+  position: [-190, 0]
+  fill: true
+  opacity: 200
+}
+
+
+shape rectangle rectangle20 {
+    position: [-217, 0]
+    width: 50
+    height: 60
+    fill: false
+}
+
+shape circle circle21 {
+    position: [-248, 0]
+    radius: 30
+    fill: false
+}
+
+union l {
+  add rectangle20
+  add circle21
+}
+
+difference t {
+  add l
+  add circle3c
+}
+shape circle circle22 {
+    position: [-254, 8]
+    radius: 10
+    fill: false
+}
+
+
+difference u {
+  add t
+  add circle22
+}
+
+shape rectangle rectangle24 {
+    position: [138, 0]
+  	rotation: 45
+    width: 60
+    height: 60
+    fill: false
+}
+shape rectangle rectangle25 {
+    position: [97, 0]
+    width: 60
+    height: 60
+    fill: false
+}
+
+difference o {
+  add rectangle24
+  add rectangle25
+}
+
+shape circle circle2b {
+  fillColor: #000000
+  radius: 15
+  position: [127.5, 0]
+  fill: true
+  opacity: 200
+}
+
+
+difference m {
+  add o
+  add circle2b
+}

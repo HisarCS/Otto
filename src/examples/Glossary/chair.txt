@@ -1,0 +1,227 @@
+// ---------- Shared Params ----------
+param w 150
+param h 200
+param cutHeight h/2
+param a 128
+param b 322
+param rot 8
+param mat_thickness 17.5
+
+// ---------- Block 1 ----------
+shape rectangle rectangle1_g1 {
+    position: [200, 0]
+    width: w
+    height: h
+    fill: false
+}
+
+shape rectangle cut1_g1 {
+  position: [200, -cutHeight*0.5]
+  width: w/3
+  height: cutHeight
+  fill: false
+}
+
+shape rectangle cut2_g1 {
+  position: [200, -cutHeight*0.75]
+  width: mat_thickness
+  height: cutHeight/2
+  fill: false
+}
+
+difference a_g1 {
+  add rectangle1_g1
+  add cut1_g1
+}
+
+difference b_g1 {
+  add a_g1
+  add cut2_g1
+}
+
+shape rectangle cut3_g1 {
+    position: [325, 0]
+  	rotation: rot
+    width: a
+    height: b
+    fill: false
+}
+
+shape rectangle cut4_g1 {
+    position: [75, 0]
+  	rotation: rot
+    width: a
+    height: b
+    fill: false
+}
+
+difference c_g1 {
+  add b_g1
+  add cut3_g1
+}
+
+difference d_g1 {
+  add c_g1
+  add cut4_g1
+}
+
+shape rectangle joint1_g1 {
+  position: [200 + w/5.4, h * 0.543]
+  width: a/6
+  height: mat_thickness
+  fill: false
+}
+
+shape rectangle joint2_g1 {
+  position: [200 + -w/5.4, h * 0.543]
+  width: a/6
+  height: mat_thickness
+  fill: false
+}
+
+union e_g1 {
+  add d_g1
+  add joint1_g1
+  add joint2_g1
+}
+
+param rad 160
+param rot1 0
+param is_fill false
+// ---------- Block 2 (Circle + Arms) ----------
+shape circle circle1_g2 {
+    position: [-270, -94]
+    radius: rad
+  	rotation: 0
+    fill: is_fill
+}
+
+shape rectangle rectA_g2 {
+    position: [-329, -99]
+    width: 44
+    height: 20
+    fill: false
+}
+
+shape rectangle rectB_g2 {
+    position: [-271, -50]
+    width: 44
+    height: 20
+  	rotation: 90
+    fill: false
+}
+
+shape rectangle rectC_g2 {
+    position: [-221, -98]
+    width: 44
+    height: 20
+    fill: false
+}
+
+shape rectangle rectD_g2 {
+    position: [-272, -147]
+    width: 44
+    height: 20
+  	rotation: 90
+    fill: false
+}
+
+difference a {
+  add circle1_g2
+  add rectA_g2
+}
+
+difference b {
+  add a
+  add rectB_g2
+}
+
+difference c {
+  add b
+  add rectC_g2
+}
+
+difference d {
+  add c
+  add rectD_g2
+}
+
+// ---------- Block 3 ----------
+shape rectangle rectangle1_g3 {
+    opacity: 0.8
+    strokeWidth: 2
+    position: [0, 0]
+    width: w
+    height: h
+    fill: false
+}
+
+shape rectangle cut1_g3 {
+  position: [0, -cutHeight*0.5]
+  width: w/3
+  height: cutHeight
+  fill: false
+}
+
+shape rectangle cut2_g3 {
+  position: [0, -cutHeight*0.25]
+  width: mat_thickness
+  height: cutHeight/2
+  fill: false
+}
+
+difference a_g3 {
+  add rectangle1_g3
+  add cut1_g3
+}
+
+difference b_g3 {
+  add a_g3
+  add cut2_g3
+}
+
+shape rectangle cut3_g3 {
+    position: [125, 0]
+  	rotation: rot
+    width: a
+    height: b
+    fill: false
+}
+
+shape rectangle cut4_g3 {
+    position: [-125, 0]
+  	rotation: rot
+    width: a
+    height: b
+    fill: false
+}
+
+difference c_g3 {
+  add b_g3
+  add cut3_g3
+}
+
+difference d_g3 {
+  add c_g3
+  add cut4_g3
+}
+
+shape rectangle joint1_g3 {
+  position: [w/5.4, h * 0.543]
+  width: a/6
+  height: mat_thickness
+  fill: false
+}
+
+shape rectangle joint2_g3 {
+  position: [-w/5.4, h * 0.543]
+  width: a/6
+  height: mat_thickness
+  fill: false
+}
+
+union e_g3 {
+  add d_g3
+  add joint1_g3
+  add joint2_g3
+}
