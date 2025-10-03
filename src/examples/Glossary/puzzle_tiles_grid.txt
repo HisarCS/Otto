@@ -1,3 +1,33 @@
+shape rectangle rectangle1 {
+    strokeWidth: 2
+    position: [100, 100]
+    width: 60
+    height: 60
+    fill: true
+  	fillColor: "#000000"
+  	opacity: 200
+}
+shape circle circle1a {
+    fillColor: "#000000"
+    radius: 15
+    position: [100, 70]
+  	fill: true
+  	opacity: 200
+}
+shape circle circle1b {
+    radius: 15
+    position: [70, 100]
+  	fill: true
+  	fillColor: "#000000"
+  	opacity: 200
+}
+
+union a {
+  add rectangle1
+  add circle1a
+  add circle1b
+}
+
 shape rectangle rectangle2 {
     position: [100, 100]
     width: 60
@@ -6,39 +36,32 @@ shape rectangle rectangle2 {
   	fillColor: "#000000"
   	opacity: 200
 }
-shape rectangle rectangle1 {
-    position: [-100, 100]
-    width: 60
-    height: 60
-    fill: true
+shape circle circle2a {
+    fillColor: "#000000"
+    radius: 15
+    position: [100, 70]
+  	fill: true
+  	opacity: 200
+}
+shape circle circle2b {
+    radius: 15
+    position: [70, -100]
+  	fill: true
   	fillColor: "#000000"
   	opacity: 200
 }
-shape rectangle rectangle6 {
-    position: [100, -100]
-    width: 60
-    height: 60
-    fill: true
-  	fillColor: "#000000"
-  	opacity: 200
+
+difference b {
+  add rectangle2
+  add circle2a
 }
-shape rectangle rectangle4 {
-    position: [99, 0]
-    width: 60
-    height: 60
-    fill: true
-  	fillColor: "#000000"
-  	opacity: 200
+
+union c {
+  add b
+  add circle2b
 }
+
 shape rectangle rectangle3 {
-    position: [-100, 0]
-    width: 60
-    height: 60
-    fill: true
-  	fillColor: "#000000"
-  	opacity: 200
-}
-shape rectangle rectangle5 {
     position: [-100, -100]
     width: 60
     height: 60
@@ -46,101 +69,62 @@ shape rectangle rectangle5 {
   	fillColor: "#000000"
   	opacity: 200
 }
-shape circle circle1a {
-    fillColor: "#ffffff"
+shape circle circle3a {
+    fillColor: "#000000"
     radius: 15
-    position: [-70, 100]
+    position: [-100, 70]
   	fill: true
-  	opacity: 200
-}
-shape circle circle2a {
-    radius: 15
-    position: [70, 100]
-  	fill: true
-  	fillColor: "#000000"
-  	opacity: 200
-}
-shape circle circle4b {
-    radius: 15
-    position: [70, 0]
-  	fill: true
-  	fillColor: "#000000"
   	opacity: 200
 }
 shape circle circle3b {
     radius: 15
-    position: [-70, 0]
-  	fill: true
-  	fillColor: "#ffffff"
-  	opacity: 200
-}
-shape circle circle6b {
-    radius: 15
-    position: [70, -100]
-  	fill: true
-  	fillColor: "#000000"
-  	opacity: 200
-}
-shape circle circle5b {
-    radius: 15
     position: [-70, -100]
   	fill: true
-  	fillColor: "#ffffff"
-  	opacity: 200
-}
-shape circle circle2b {
-    radius: 15
-    position: [100, 70]
-  	fill: true
-  	fillColor: "#ffffff"
-  	opacity: 200
-}
-shape circle circle1b {
-    radius: 15
-    position: [-100, 70]
-  	fill: true
   	fillColor: "#000000"
   	opacity: 200
 }
-shape circle circle5a {
-    radius: 15
-    position: [-100, -70]
-  	fill: true
-  	fillColor: "#ffffff"
-  	opacity: 200
+
+difference d {
+  add rectangle3
+  add circle3b
 }
-shape circle circle6a {
-    radius: 15
-    position: [100, -70]
-  	fill: true
+
+union e {
+  add d
+  add circle3a
+}
+
+shape rectangle rectangle4 {
+    strokeWidth: 2
+    position: [-100, 100]
+    width: 60
+    height: 60
+    fill: true
   	fillColor: "#000000"
-  	opacity: 200
-}
-shape circle circle4c {
-    radius: 15
-    position: [100, -30]
-  	fill: true
-  	fillColor: "#ffffff"
-  	opacity: 200
-}
-shape circle circle3c {
-    radius: 15
-    position: [-100, -30]
-  	fill: true
-  	fillColor: "#000000"
-  	opacity: 200
-}
-shape circle circle3a {
-    radius: 15
-    position: [-100, 30]
-  	fill: true
-  	fillColor: "#ffffff"
   	opacity: 200
 }
 shape circle circle4a {
+    fillColor: "#000000"
     radius: 15
-    position: [100, 30]
+    position: [-100, 70]
+  	fill: true
+  	opacity: 200
+}
+shape circle circle4b {
+    radius: 15
+    position: [-70, -100]
   	fill: true
   	fillColor: "#000000"
   	opacity: 200
 }
+
+difference h {
+  add rectangle4
+  add circle4a
+}
+
+difference y {
+  add h
+  add circle4b
+}
+
