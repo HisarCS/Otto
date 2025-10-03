@@ -100,6 +100,31 @@ document.addEventListener('DOMContentLoaded', () => {
       title: 'Navigate to Examples Tab',
       video: './tutorials/examples.mp4',
       description: 'Click Examples to browse prebuilt designs. Load any example into your editor for instant inspiration and learning.'
+    },
+    {
+      title: 'Toggle Block Mode',
+      video: './tutorials/block_toggle.mp4',
+      description: 'Click the Blocks button to switch from text code to block-based programming. Close it anytime to return to text editing.'
+    },
+    {
+      title: 'Create Shapes with Blocks',
+      video: './tutorials/block_shape.mp4',
+      description: 'Drag and drop block elements to build shapes. Blocks automatically translate into AQUI code in the editor.'
+    },
+    {
+      title: 'Set Parameters with Blocks',
+      video: './tutorials/block_param.mp4',
+      description: 'Use parameter blocks to assign values like radius, width, height, or color. Adjust blocks and watch your shape update instantly.'
+    },
+    {
+      title: 'Change Shape Position with Blocks',
+      video: './tutorials/block_pos.mp4',
+      description: 'Use position blocks to move shapes around the canvas. AQUI updates the translate(x,y) in the underlying code.'
+    },
+    {
+      title: 'Perform Boolean Operations with Blocks',
+      video: './tutorials/block_bool.mp4',
+      description: 'Combine shapes with union, difference, or intersection blocks. Perfect for building complex geometry visually.'
     }
   ];
 
