@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         detailInfo.innerHTML = `
           <div class="example-blockly-viewer" style="
             width:100%;
-            height:360px;
+            height:460px;
             border:1px solid #e5e7eb;
             border-radius:8px;
             background:#fafafa;
