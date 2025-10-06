@@ -25,6 +25,7 @@ graph TB
         BlockUI[Blockly Visual Editor]
         TextUI[Text Code Editor]
         ParamUI[Parameter Controls]
+        Canvas[Interactive Canvas<br/>Real-time Preview]
     end
 
     subgraph Input["Input Processing"]
@@ -58,6 +59,12 @@ graph TB
         Composed[Composed Shapes<br/>Union, Difference, Intersection]
     end
 
+    subgraph Render["Rendering & Interaction"]
+        Renderer[Canvas Renderer<br/>SVG/Canvas Drawing]
+        Interaction[User Interactions<br/>Pan, Zoom, Select]
+        Feedback[Visual Feedback<br/>Anchors, Constraints]
+    end
+
     subgraph Export["Export Layer"]
         SVG[SVG Export]
         DXF[DXF Export]
@@ -70,32 +77,22 @@ graph TB
         LMSolver[LM Solver Library]
     end
 
-    %% UI to Input
     BlockUI -->|Visual Blocks| BlockGen
     TextUI -->|Code Text| TextInput
     ParamUI -->|User Parameters| ParamSys
-
-    %% Input to Pipeline
+    Canvas -.->|User Edits| ParamUI
     BlockGen -->|Generated Code| Lexer
     TextInput -->|Raw Code| Lexer
-
-    %% Pipeline Flow
     Lexer -->|Tokens| Parser
     Parser -->|AST Nodes| AST
     AST -->|Dependency Graph| Topo
-
-    %% Core Processing
     Topo -->|Ordered Operations| Interp
     ParamSys -->|Parameter Values| Interp
-
-    %% Interpreter to Modules
     Interp -->|Shape Commands| ShapeLib
     Interp -->|Turtle Commands| TurtleSys
     Interp -->|Boolean Ops| BoolOps
     Interp -->|Constraints| ConstraintSys
     Interp -->|Style Props| StyleSys
-
-    %% Modules to Geometry
     ShapeLib --> Primitives
     ShapeLib --> Joints
     TurtleSys --> Primitives
@@ -103,36 +100,41 @@ graph TB
     ConstraintSys -.->|Maintains| Primitives
     ConstraintSys -.->|Maintains| Joints
     ConstraintSys -.->|Maintains| Composed
-
-    %% Geometry to Export
+    Primitives --> Renderer
+    Joints --> Renderer
+    Composed --> Renderer
+    StyleSys --> Renderer
+    Renderer -->|Draw Shapes| Canvas
+    Feedback -->|Show Anchors/Constraints| Canvas
+    Interaction <-->|Handle Events| Canvas
+    ConstraintSys -.->|Constraint Visuals| Feedback
+    Interaction -.->|Parameter Changes| ParamUI
+    Canvas -.->|Triggers Re-render| Interp
     Primitives --> SVG
     Joints --> SVG
     Composed --> SVG
     Primitives --> DXF
     Joints --> DXF
     Composed --> DXF
-
-    %% Export to External
     SVG --> CAM
     DXF --> CAM
-
-    %% External Dependencies
     Blockly -.->|Powers| BlockUI
     VattiLib -.->|Used by| BoolOps
     LMSolver -.->|Used by| ConstraintSys
 
-    %% Styling
     classDef uiLayer fill:#e1f5ff,stroke:#0288d1,stroke-width:2px,color:#000
     classDef processLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
     classDef coreLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
     classDef moduleLayer fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
     classDef geometryLayer fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000
+    classDef renderLayer fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px,color:#000
     classDef exportLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000
 
-    class BlockUI,TextUI,ParamUI uiLayer
+    class BlockUI,TextUI,ParamUI,Canvas uiLayer
     class BlockGen,TextInput,Lexer,Parser,AST processLayer
     class Topo,Interp,ParamSys coreLayer
     class ShapeLib,TurtleSys,BoolOps,ConstraintSys,StyleSys moduleLayer
     class Primitives,Joints,Composed geometryLayer
+    class Renderer,Interaction,Feedback renderLayer
     class SVG,DXF,CAM exportLayer
 ```
