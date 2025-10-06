@@ -583,6 +583,7 @@ function rebuildWorkspaceFromAqui(code, workspace) {
   workspace.render();
 }
 
+window.rebuildWorkspaceFromAqui = rebuildWorkspaceFromAqui;
 
 function updateBlocksFromText() {
   if (!blocklyWorkspace) return;
