@@ -1542,11 +1542,11 @@ body {
 
 .example-blockly-viewer {
   width: 100%;
-  height: 360px;                 
+  height: 360px;               
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: #fafafa;          
-  overflow: hidden;             
+  background: #fafafa;         
+  overflow: hidden;              
 }
 
 @media (min-width: 1280px) {
@@ -1605,4 +1605,3 @@ body {
 
 .example-blockly-viewer .blocklyMainBackground { cursor: grab; }
 .example-blockly-viewer .blocklyMainBackground:active { cursor: grabbing; }
-
