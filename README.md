@@ -21,120 +21,128 @@ The AQUI language for Otto was mainly built to create a more engaging environmen
 # Otto System Architecture
 ```mermaid
 graph TB
-    subgraph UI["User Interface Layer"]
-        BlockUI[Blockly Visual Editor]
-        TextUI[Text Code Editor]
-        ParamUI[Parameter Controls]
-        Canvas[Interactive Canvas<br/>Real-time Preview]
-    end
-
-    subgraph Input["Input Processing"]
-        BlockGen[Block-to-Code Generator<br/>blocks-umd.js]
-        TextInput[Direct Text Input]
-    end
-
-    subgraph Pipeline["Language Processing Pipeline"]
-        Lexer[Lexer<br/>Tokenization]
-        Parser[Recursive Descent Parser<br/>parser.mjs]
-        AST[Abstract Syntax Tree]
-    end
-
-    subgraph Core["Core Evaluation Engine"]
-        Topo[Topological Ordering]
-        Interp[Interpreter<br/>interpreter.mjs]
-        ParamSys[Parameter System<br/>app.js]
-    end
-
-    subgraph Modules["Functional Modules"]
-        ShapeLib[Shape Library 35+<br/>shapes.js]
-        TurtleSys[Turtle Graphics<br/>turtle.js]
-        BoolOps[Boolean Operations<br/>boolean.js<br/>Vatti Algorithm]
-        ConstraintSys[Constraint Solver<br/>Levenberg-Marquardt]
-        StyleSys[Style System<br/>Fill/Stroke]
-    end
-
-    subgraph Geometry["Geometry Engine"]
-        Primitives[Primitives<br/>Circle, Polygon, Rectangle]
-        Joints[2D Joints<br/>Finger, Cross-lap, Dovetail]
-        Composed[Composed Shapes<br/>Union, Difference, Intersection]
-    end
-
-    subgraph Render["Rendering & Interaction"]
-        Renderer[Canvas Renderer<br/>SVG/Canvas Drawing]
-        Interaction[User Interactions<br/>Pan, Zoom, Select]
-        Feedback[Visual Feedback<br/>Anchors, Constraints]
-    end
-
-    subgraph Export["Export Layer"]
-        SVG[SVG Export]
-        DXF[DXF Export]
-        CAM[CAM Software Integration]
-    end
-
     subgraph External["External Libraries"]
-        Blockly[Google Blockly]
-        VattiLib[Vatti Clipping Library]
-        LMSolver[LM Solver Library]
+        direction LR
+        Blockly[Google Blockly<br/>Visual Programming]
+        VattiLib[Vatti Clipping<br/>Boolean Ops]
+        LMSolver[Levenberg-Marquardt<br/>Constraint Solver]
     end
-
+    subgraph UI["User Interface"]
+        direction LR
+        BlockUI[Blockly Editor<br/>Visual Blocks]
+        TextUI[Text Editor<br/>Code Input]
+        Canvas[Interactive Canvas<br/>Real-time Preview<br/>Pan/Zoom/Select]
+    end
+    subgraph Controls["Controls"]
+        direction LR
+        ParamUI[Parameter Manager<br/>Dynamic Controls<br/>Real-time Updates]
+    end
+    subgraph Process["Processing Pipeline"]
+        direction LR
+        BlockGen[Block-to-Code Generator<br/>blocks-umd.js<br/>Blockly.JavaScript]
+        TextInput[Direct Text Input<br/>Code Editor]
+        Lexer[Lexer<br/>Tokenization<br/>Token Stream]
+        Parser[Recursive Descent Parser<br/>parser.mjs<br/>AST Generation]
+        AST[Abstract Syntax Tree<br/>JSON Structure]
+    end
+    subgraph Engine["Evaluation Engine"]
+        direction LR
+        Topo[Topological Ordering<br/>Dependency Resolution<br/>Execution Order]
+        Interp[Interpreter<br/>interpreter.mjs<br/>AST Evaluation]
+        ParamSys[Parameter System<br/>app.js<br/>Param Storage]
+        CodeRunner[Code Runner<br/>codeRunner.js<br/>Execution Control]
+    end
+    subgraph Modules["Functional Modules"]
+        direction LR
+        ShapeLib[Shape Library 35+<br/>shapes.js<br/>Primitives & Joints]
+        TurtleSys[Turtle Graphics<br/>turtle.js<br/>Logo-style Drawing]
+        BoolOps[Boolean Operations<br/>boolean.js<br/>Union/Diff/Intersect<br/>Vatti Algorithm]
+        ConstraintSys[Constraint System<br/>constraints/engine.mjs<br/>Distance/Coincident<br/>Horizontal/Vertical]
+        StyleSys[Style System<br/>Fill/Stroke/Color<br/>Visual Properties]
+    end
+    subgraph Geo["Geometry Engine"]
+        direction LR
+        Primitives[Primitives<br/>Circle/Rectangle<br/>Polygon/Ellipse<br/>Star/Arc/Text]
+        Joints[2D Joints<br/>Finger Joint<br/>Cross-lap<br/>Dovetail<br/>Box Joint]
+        Composed[Boolean Results<br/>Combined Shapes<br/>CSG Operations]
+    end
+    subgraph Render["Rendering & Interaction"]
+        direction LR
+        Renderer[Canvas Renderer<br/>renderer.mjs<br/>SVG/Canvas Drawing<br/>Shape Management]
+        Interaction[User Interactions<br/>dragDropSystem.mjs<br/>Mouse Events<br/>Selection]
+        Feedback[Visual Feedback<br/>constraintsOverlay.mjs<br/>Anchors Display<br/>Constraint Lines]
+        ShapeMgr[Shape Manager<br/>shapeManager.mjs<br/>Shape Registry]
+    end
+    subgraph Export["Export & Fabrication"]
+        direction LR
+        SVG[SVG Export<br/>svgExport.mjs<br/>Vector Graphics]
+        DXF[DXF Export<br/>dxfExport.mjs<br/>CAD Format]
+        CAM[CAM Software<br/>Laser Cutters<br/>CNC Machines]
+    end
+    Blockly -.->|Powers| BlockUI
+    VattiLib -.->|Algorithm| BoolOps
+    LMSolver -.->|Solver| ConstraintSys
     BlockUI -->|Visual Blocks| BlockGen
     TextUI -->|Code Text| TextInput
-    ParamUI -->|User Parameters| ParamSys
-    Canvas -.->|User Edits| ParamUI
     BlockGen -->|Generated Code| Lexer
     TextInput -->|Raw Code| Lexer
-    Lexer -->|Tokens| Parser
+    Lexer -->|Token Stream| Parser
     Parser -->|AST Nodes| AST
-    AST -->|Dependency Graph| Topo
-    Topo -->|Ordered Operations| Interp
-    ParamSys -->|Parameter Values| Interp
-    Interp -->|Shape Commands| ShapeLib
-    Interp -->|Turtle Commands| TurtleSys
+    AST -->|Program Tree| Topo
+    Topo -->|Ordered Ops| Interp
+    ParamUI -->|Param Values| ParamSys
+    ParamSys -->|Parameters| Interp
+    CodeRunner -->|Executes| Interp
+    CodeRunner -->|Controls| Renderer
+    Interp -->|Shape Cmds| ShapeLib
+    Interp -->|Turtle Cmds| TurtleSys
     Interp -->|Boolean Ops| BoolOps
     Interp -->|Constraints| ConstraintSys
     Interp -->|Style Props| StyleSys
-    ShapeLib --> Primitives
-    ShapeLib --> Joints
-    TurtleSys --> Primitives
-    BoolOps --> Composed
+    ShapeLib -->|Creates| Primitives
+    ShapeLib -->|Creates| Joints
+    TurtleSys -->|Draws| Primitives
+    BoolOps -->|Produces| Composed
     ConstraintSys -.->|Maintains| Primitives
     ConstraintSys -.->|Maintains| Joints
     ConstraintSys -.->|Maintains| Composed
-    Primitives --> Renderer
-    Joints --> Renderer
-    Composed --> Renderer
-    StyleSys --> Renderer
-    Renderer -->|Draw Shapes| Canvas
-    Feedback -->|Show Anchors/Constraints| Canvas
-    Interaction <-->|Handle Events| Canvas
-    ConstraintSys -.->|Constraint Visuals| Feedback
-    Interaction -.->|Parameter Changes| ParamUI
-    Canvas -.->|Triggers Re-render| Interp
-    Primitives --> SVG
-    Joints --> SVG
-    Composed --> SVG
-    Primitives --> DXF
-    Joints --> DXF
-    Composed --> DXF
-    SVG --> CAM
-    DXF --> CAM
-    Blockly -.->|Powers| BlockUI
-    VattiLib -.->|Used by| BoolOps
-    LMSolver -.->|Used by| ConstraintSys
-
-    classDef uiLayer fill:#e1f5ff,stroke:#0288d1,stroke-width:2px,color:#000
-    classDef processLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    classDef coreLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    classDef moduleLayer fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
-    classDef geometryLayer fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000
-    classDef renderLayer fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px,color:#000
-    classDef exportLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000
-
-    class BlockUI,TextUI,ParamUI,Canvas uiLayer
-    class BlockGen,TextInput,Lexer,Parser,AST processLayer
-    class Topo,Interp,ParamSys coreLayer
-    class ShapeLib,TurtleSys,BoolOps,ConstraintSys,StyleSys moduleLayer
-    class Primitives,Joints,Composed geometryLayer
-    class Renderer,Interaction,Feedback renderLayer
-    class SVG,DXF,CAM exportLayer
+    Primitives -->|Geometry| Renderer
+    Joints -->|Geometry| Renderer
+    Composed -->|Geometry| Renderer
+    StyleSys -->|Styling| Renderer
+    ConstraintSys -->|Visual Info| Feedback
+    ShapeMgr -->|Shape Registry| Renderer
+    Renderer -->|Draws| Canvas
+    Feedback -->|Overlays| Canvas
+    Interaction -->|Events| Canvas
+    Canvas -.->|User Edits| Interaction
+    Canvas -.->|Updates| ParamUI
+    Canvas -.->|Triggers| CodeRunner
+    ParamUI -.->|Changes| CodeRunner
+    Primitives -->|Vector Data| SVG
+    Joints -->|Vector Data| SVG
+    Composed -->|Vector Data| SVG
+    Primitives -->|CAD Data| DXF
+    Joints -->|CAD Data| DXF
+    Composed -->|CAD Data| DXF
+    SVG -->|File| CAM
+    DXF -->|File| CAM
+    classDef uiStyle fill:#e1f5ff,stroke:#0288d1,stroke-width:2px,color:#000
+    classDef controlStyle fill:#e1f5ff,stroke:#0288d1,stroke-width:2px,color:#000
+    classDef processStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef engineStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef moduleStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px,color:#000
+    classDef geoStyle fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000
+    classDef renderStyle fill:#ffe0b2,stroke:#ef6c00,stroke-width:2px,color:#000
+    classDef exportStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000
+    classDef externalStyle fill:#e0e0e0,stroke:#616161,stroke-width:2px,color:#000
+    class BlockUI,TextUI,Canvas uiStyle
+    class ParamUI controlStyle
+    class BlockGen,TextInput,Lexer,Parser,AST processStyle
+    class Topo,Interp,ParamSys,CodeRunner engineStyle
+    class ShapeLib,TurtleSys,BoolOps,ConstraintSys,StyleSys moduleStyle
+    class Primitives,Joints,Composed geoStyle
+    class Renderer,Interaction,Feedback,ShapeMgr renderStyle
+    class SVG,DXF,CAM exportStyle
+    class Blockly,VattiLib,LMSolver externalStyle
 ```
