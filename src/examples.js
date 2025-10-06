@@ -1,4 +1,8 @@
 // examples.js
+// Shows read-only Blockly blocks (from AQUI) in each example's detail view,
+// replacing the description panel. Requires:
+//   window.rebuildWorkspaceFromAqui = rebuildWorkspaceFromAqui  (in app.js)
+
 document.addEventListener('DOMContentLoaded', () => {
   (async () => {
     const examples = {
@@ -45,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const detail      = document.querySelector('.example-detail');
     const detailImage = detail.querySelector('.detail-image');
     const detailCode  = detail.querySelector('.detail-code');
-    const detailInfo  = detail.querySelector('.detail-info'); 
+    const detailInfo  = detail.querySelector('.detail-info'); // we'll repurpose this as the blocks container
     const backBtn     = detail.querySelector('.detail-back');
 
     let currentWorkspace = null;
@@ -63,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createReadOnlyBlockly(container) {
+      // Read-only viewer with zoom + scrollbars (no drag editing)
       const ws = Blockly.inject(container, {
         readOnly: true,
         toolbox: null,
@@ -106,18 +111,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = card.dataset.example;
         const ex  = examples[key];
 
+        // Image
         detailImage.src = ex.image;
 
+        // Fetch AQUI
         let aquiText = '';
         try {
           aquiText = await loadAquiText(ex.file);
-          detailCode.textContent = aquiText; 
+          detailCode.textContent = aquiText; // keep raw AQUI visible
         } catch (error) {
           const msg = `// Error loading .aqui file: ${error.message}\n// File path: ${ex.file}`;
           detailCode.textContent = msg;
           console.error('Fetch error:', error);
         }
 
+        // Reset + create blocks container
         disposeCurrentWorkspace();
         detailInfo.innerHTML = `
           <div class="example-blockly-viewer" style="
@@ -131,10 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         const container = detailInfo.querySelector('.example-blockly-viewer');
 
+        // Create read-only workspace + render AQUI → Blocks
         currentWorkspace = createReadOnlyBlockly(container);
         if (aquiText) {
           renderAquiToWorkspace(aquiText, currentWorkspace);
         } else {
+          // If fetch failed, still show an empty workspace with a hint
           const hint = document.createElement('div');
           hint.style.padding = '12px';
           hint.style.fontFamily = 'monospace';
@@ -143,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
           container.appendChild(hint);
         }
 
+        // Toggle views
         menu.style.display = 'none';
         detail.classList.add('visible');
       });
@@ -152,9 +163,10 @@ document.addEventListener('DOMContentLoaded', () => {
       detail.classList.remove('visible');
       menu.style.display = '';
       disposeCurrentWorkspace();
-      detailInfo.innerHTML = ''; 
+      detailInfo.innerHTML = ''; // clear viewer
     });
 
+    // Keep viewer layout crisp on resize
     window.addEventListener('resize', () => {
       const ws = currentWorkspace;
       if (ws) Blockly.svgResize(ws);
