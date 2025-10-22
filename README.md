@@ -1,7 +1,7 @@
 <h2 align="center">Otto: Teaching Parametric Design in Digital Fabrication Education</h2>
 <p align="center">
   <picture>
-
+<img width="1069" height="812" alt="Screenshot 2025-10-22 at 08 27 11" src="https://github.com/user-attachments/assets/3e74c99f-4148-467d-b288-0fc239c42a01" />
   </picture>
 </p>
 <p align="center">
@@ -11,6 +11,7 @@
   <a href="https://github.com/HisarCS/Aqui/tree/main/Docs">Documentation</a> •
   <a href="https://github.com/HisarCS/Aqui/blob/main/LICENSE">License</a> 
 </p>
+
 
 ---
 Graphical programming language mainly created for teaching Parametric designing in digital fabrication education while promoting computational thinking skills as well. It is completely **OPEN SOURCE!** contact EmreDay1 if you want to contribute send an email to emre.dayangac@hisarschool.k12.tr, emreday01@gmail.com, sedat.yalcin@hisarschool.k12.tr and if you want to contact the organization you may email hisarcs@hisarschool.k12.tr
