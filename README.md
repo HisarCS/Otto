@@ -1,7 +1,7 @@
 <h2 align="center">Otto: Teaching Parametric Design in Digital Fabrication Education</h2>
 <p align="center">
   <picture>
-<img width="1069" height="406" alt="Screenshot 2025-10-22 at 08 27 11" src="https://github.com/user-attachments/assets/3e74c99f-4148-467d-b288-0fc239c42a01" />
+<img width="550" height="406" alt="Screenshot 2025-10-22 at 08 27 11" src="https://github.com/user-attachments/assets/3e74c99f-4148-467d-b288-0fc239c42a01" />
   </picture>
 </p>
 <p align="center">
