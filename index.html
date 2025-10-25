@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <title>OTTO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- CodeMirror Dependencies -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
@@ -33,6 +36,24 @@
   <link rel="stylesheet" href="./src/styles.css">
   
   <style>
+    /* Reset margins and padding */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+    
+    html {
+      margin: 0;
+      padding: 0;
+    }
+    
     .docs-redirect {
       display: flex;
       flex-direction: column;
@@ -75,21 +96,674 @@
     .github-icon {
       margin-right: 8px;
     }
+    
+    /* Landing Page Styles */
+    .landing-page {
+      height: calc(100vh - 48px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .welcome-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 40px 40px;
+      background: #fafafa;
+      position: relative;
+      min-height: calc(100vh - 48px);
+    }
+    
+    .welcome-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      transform: perspective(1000px) rotateX(60deg);
+      transform-origin: center top;
+      pointer-events: none;
+    }
+    
+    .welcome-section::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect x="20" y="30" width="8" height="12" fill="%23ff4444" opacity="0.6"/><rect x="80" y="60" width="6" height="6" fill="%23000" opacity="0.4"/><rect x="150" y="40" width="10" height="8" fill="%234444ff" opacity="0.5"/><rect x="40" y="120" width="12" height="6" fill="%23ff4444" opacity="0.3"/><rect x="120" y="100" width="8" height="10" fill="%23000" opacity="0.4"/><rect x="180" y="80" width="6" height="12" fill="%234444ff" opacity="0.4"/><rect x="60" y="160" width="10" height="8" fill="%23ff4444" opacity="0.3"/><rect x="140" y="140" width="8" height="6" fill="%23000" opacity="0.3"/></svg>');
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    
+    .welcome-title {
+      font-size: 3.8em;
+      margin-bottom: 24px;
+      color: #2c2c2c;
+      font-weight: 300;
+      letter-spacing: -0.5px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .welcome-title .highlight {
+      color: #FF6B35;
+      font-weight: 600;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .welcome-description {
+      font-size: 1.2em;
+      margin-bottom: 48px;
+      color: #5a5a5a;
+      max-width: 600px;
+      line-height: 1.6;
+      font-weight: 400;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .get-started-btn {
+      padding: 16px 32px;
+      background-color: #FF6B35;
+      color: white;
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);
+    }
+    
+    .get-started-btn:hover {
+      background-color: white;
+      color: #FF6B35;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+    
+    .examples-btn {
+      padding: 16px 32px;
+      background-color: #FF6B35;
+      color: white;
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+    }
+    
+    .examples-btn:hover {
+      background-color: white;
+      color: #FF6B35;
+    }
+    
+    /* Examples Preview Section Styles */
+    .examples-preview-section {
+      padding: 60px 40px;
+      background: white;
+      position: relative;
+    }
+    
+    .examples-preview-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+    
+    .examples-preview-title {
+      font-size: 2.4em;
+      margin-bottom: 20px;
+      color: #2c2c2c;
+      text-align: center;
+      font-weight: 300;
+      letter-spacing: -0.5px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .examples-preview-description {
+      font-size: 1.1em;
+      margin-bottom: 40px;
+      color: #5a5a5a;
+      text-align: center;
+      font-weight: 400;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .examples-preview-description a {
+      color: #FF6B35;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .examples-preview-description a:hover {
+      text-decoration: underline;
+    }
+    
+    .examples-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .examples-section {
+      padding: 40px;
+      background: #ffffff;
+      position: relative;
+    }
+    
+    .examples-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+    
+    .examples-section-title {
+      font-size: 2.4em;
+      margin-bottom: 20px;
+      color: #2c2c2c;
+      text-align: center;
+      font-weight: 300;
+      letter-spacing: -0.5px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .examples-section-description {
+      font-size: 1.1em;
+      margin-bottom: 40px;
+      color: #5a5a5a;
+      text-align: center;
+      font-weight: 400;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+    
+    .examples-btn {
+      padding: 16px 32px;
+      background-color: #FF6B35;
+      color: white;
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+    }
+    
+    .examples-btn:hover {
+      background-color: white;
+      color: #FF6B35;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+    
+    .examples-btn {
+      padding: 16px 32px;
+      background-color: #FF6B35;
+      color: white;
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 2px 8px rgba(255, 107, 53, 0.2);
+    }
+    
+    .examples-btn:hover {
+      background-color: white;
+      color: #FF6B35;
+    }
+    
+    .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    /* Examples Page - Otto Poster Vibe */
+    .examples-page {
+      min-height: calc(100vh - 48px);
+      background: #F5E6D3;
+    }
+    
+    .examples-header {
+      padding: 80px 40px 60px;
+      text-align: center;
+      background: #F5E6D3;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    .examples-page-title {
+      font-size: 3.2em;
+      margin-bottom: 24px;
+      color: #B8860B;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    .examples-page-description {
+      font-size: 1.2em;
+      color: #6b7280;
+      font-weight: 400;
+      max-width: 650px;
+      margin: 0 auto;
+      line-height: 1.7;
+      letter-spacing: 0.01em;
+    }
+    
+    .examples-section {
+      padding: 60px 40px 100px;
+      background: #F5E6D3;
+    }
+    
+    #examples-tab .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    #examples-tab .example-card {
+      background: #F5E6D3;
+      border-radius: 24px;
+      padding: 36px 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      border: 2px solid rgba(184, 134, 11, 0.15);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    #examples-tab .example-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(184, 134, 11, 0.02) 0%, rgba(255, 255, 255, 0.05) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    #examples-tab .example-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+      border-color: rgba(184, 134, 11, 0.3);
+    }
+    
+    #examples-tab .example-card:hover::before {
+      opacity: 1;
+    }
+    
+    #examples-tab .example-card img {
+      width: 100%;
+      max-width: 300px;
+      height: auto;
+      border-radius: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      transition: transform 0.3s ease;
+    }
+    
+    #examples-tab .example-card:hover img {
+      transform: scale(1.03);
+    }
+    
+    #examples-tab .example-card h3 {
+      font-size: 1.3em;
+      margin: 0 0 16px 0;
+      color: #1f2937;
+      font-weight: 600;
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Example Detail Styles */
+    .example-detail {
+      position: fixed;
+      top: 48px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      z-index: 20;
+      display: none;
+      overflow-y: auto;
+    }
+    
+    .example-detail.visible {
+      display: block;
+    }
+    
+    .detail-back {
+      position: fixed;
+      top: 60px;
+      left: 20px;
+      padding: 8px 16px;
+      background-color: #FF6B35;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      z-index: 21;
+    }
+    
+    .detail-back:hover {
+      background-color: #E55A2B;
+      transform: translateY(-1px);
+    }
+    
+    .detail-image {
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+      margin: 80px auto 20px;
+      display: block;
+      border-radius: 8px;
+    }
+    
+    .detail-panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .detail-code {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.9em;
+      line-height: 1.4;
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .detail-info {
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    
+    .example-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0,0,0,0.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      position: relative;
+      z-index: 1;
+    }
+    
+    .example-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      border-color: rgba(66, 133, 244, 0.2);
+    }
+    
+    .example-card h3 {
+      font-size: 1.1em;
+      margin-bottom: 16px;
+      color: #2c2c2c;
+      font-weight: 500;
+      letter-spacing: -0.2px;
+    }
+    
+    .example-card img {
+      width: 100%;
+      max-width: 240px;
+      height: auto;
+      border-radius: 8px;
+    }
+    
+    .editor-tabs {
+      display: flex;
+      align-items: center;
+      height: 100%;
+    }
+    
+    /* Ensure proper tab content separation */
+    .tab-content {
+      position: absolute;
+      top: 48px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    #landing-tab {
+      background: #fafafa;
+    }
+    
+    #examples-tab {
+      background: #ffffff;
+    }
+    
+    #editor-tab {
+      background: white;
+    }
+    
+    /* Fix editor layout proportions */
+    .editor-panel {
+      width: 25% !important;
+    }
+    
+    .visualization-panel {
+      width: 75% !important;
+      height: calc(100vh - 96px) !important;
+      aspect-ratio: 4/3;
+    }
+    
+    #canvas {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="logo">Otto.)</div>
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="editor-tab">Otto</button>
+    <div class="tabs home-tabs" style="display: none;">
+      <button class="tab-btn active" data-tab="landing-tab">Home</button>
+      <button class="tab-btn" data-tab="examples-tab">Examples</button>
+    </div>
+    <div class="tabs editor-tabs" style="display: none;">
+      <button class="tab-btn" data-tab="editor-tab">Otto</button>
       <button class="tab-btn" data-tab="tutorials-tab">Tutorials</button>
       <button class="tab-btn" data-tab="docs-tab">Docs</button>
-      <button class="tab-btn" data-tab="examples-tab">Examples</button>
     </div>
   </div>
 
+  <!-- Landing Page Tab -->
+  <div class="tab-content active" id="landing-tab">
+    <div class="landing-page">
+      <!-- Welcome Section -->
+      <div class="welcome-section">
+        <h1 class="welcome-title">Otto: multi-modal, accessible <span class="highlight">parametric modeling</span></h1>
+        <p class="welcome-description">Otto creates precise 2D shapes and patterns using code. Design, iterate, and fabricate with parametric precision.</p>
+        <div class="action-buttons">
+          <button class="get-started-btn" onclick="switchToEditor()">Get Started</button>
+          <button class="examples-btn" onclick="switchToExamples()">View Examples</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Examples Page Tab -->
+  <div class="tab-content" id="examples-tab">
+    <div class="examples-page">
+      <div class="examples-header">
+        <h1 class="examples-page-title">Otto Examples</h1>
+        <p class="examples-page-description">Select a design below to view its code and details.</p>
+      </div>
+      
+      <div class="examples-section">
+        <div class="examples-grid">
+          <!-- Card 1 -->
+          <div class="example-card" data-example="finger-joint-box">
+            <h3>Finger-Joint Box</h3>
+            <img src="./Images/finger-joint-box.png" alt="Finger-Joint Box" />
+          </div>
+          <!-- Card 2 -->
+          <div class="example-card" data-example="puzzle-tiles-grid">
+            <h3>Puzzle Tiles Grid</h3>
+            <img src="./Images/puzzle-tiles-grid.png" alt="Puzzle Tiles Grid" />
+          </div>
+          <!-- Card 3 -->
+          <div class="example-card" data-example="mini-desk-organizer">
+            <h3>Mini Desk Organizer</h3>
+            <img src="./Images/mini-desk-organizer.png" alt="Mini Desk Organizer" />
+          </div>
+          <!-- Card 4 -->
+          <div class="example-card" data-example="chair">
+            <h3>Chair</h3>
+            <img src="./Images/chair.png" alt="Parametric Chair" />
+          </div>
+          <!-- Card 5 -->
+          <div class="example-card" data-example="parametric-construction-kit">
+            <h3>Parametric Construction Kit</h3>
+            <img src="./Images/parametric-construction-kit.png" alt="Parametric Construction Kit" />
+          </div>
+          <!-- Card 6 -->
+          <div class="example-card" data-example="fish">
+            <h3>Fish</h3>
+            <img src="./Images/fish.png" alt="Decorative Fish" />
+          </div>
+          <!-- Card 7 -->
+          <div class="example-card" data-example="ruler">
+            <h3>Ruler</h3>
+            <img src="./Images/ruler.png" alt="Ruler" />
+          </div>
+          <!-- Card 8 -->
+          <div class="example-card" data-example="cnc-safety-checklist">
+            <h3>CNC Safety Checklist</h3>
+            <img src="./Images/cnc-safety-checklist.png" alt="CNC Safety Checklist" />
+          </div>
+          <!-- Card 9 -->
+          <div class="example-card" data-example="shelf-system">
+            <h3>3D Printing Shelf System</h3>
+            <img src="./Images/shelf-system.png" alt="3D Printing Shelf System" />
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Example Detail Modal -->
+    <section class="example-detail" aria-hidden="true">
+      <button class="detail-back">Back</button>
+      <img class="detail-image" src="" alt="Example Code" />
+      <div class="detail-panels">
+        <pre class="detail-code"></pre>
+        <div class="detail-info"></div>
+      </div>
+    </section>
+  </div>
+
   <!-- Editor Tab -->
-  <div class="tab-content active" id="editor-tab">
+  <div class="tab-content" id="editor-tab">
     <div class="main-content">
       <div class="editor-panel">
         <div class="editor-top" style="padding:8px; border-bottom:1px solid #ccc;">
@@ -164,71 +838,6 @@
     </div>
   </div>
 
-  <!-- Examples Tab -->
-  <div class="tab-content" id="examples-tab">
-    <section class="examples-menu">
-      <h1 class="examples-menu__title">Otto Examples</h1>
-      <p class="examples-menu__description">Select a design below to view its code and details.</p>
-      <div class="examples-grid">
-        <!-- Card 1 -->
-        <div class="example-card" data-example="finger-joint-box">
-          <h2>Finger-Joint Box</h2>
-          <img src="./Images/finger-joint-box.png" alt="Finger-Joint Box" />
-        </div>
-        <!-- Card 2 -->
-        <div class="example-card" data-example="puzzle-tiles-grid">
-          <h2>Puzzle Tiles Grid</h2>
-          <img src="./Images/puzzle-tiles-grid.png" alt="Puzzle Tiles Grid" />
-        </div>
-        <!-- Card 3 -->
-        <div class="example-card" data-example="mini-desk-organizer">
-          <h2>Mini Desk Organizer</h2>
-          <img src="./Images/mini-desk-organizer.png" alt="Mini Desk Organizer" />
-        </div>
-        <!-- Card 4 -->
-        <div class="example-card" data-example="chair">
-          <h2>Chair</h2>
-          <img src="./Images/chair.png" alt="Parametric Chair" />
-        </div>
-
-        <!-- Card 5 -->
-        <div class="example-card" data-example="parametric-construction-kit">
-          <h2>Parametric Construction Kit</h2>
-          <img src="./Images/parametric-construction-kit.png" alt="Parametric Construction Kit" />
-        </div>
-
-        <!-- Card 6 -->
-        <div class="example-card" data-example="fish">
-          <h2>Fish</h2>
-          <img src="./Images/fish.png" alt="Decorative Fish" />
-        </div>
-
-        <!-- Card 7 -->
-        <div class="example-card" data-example="ruler">
-          <h2>Ruler</h2>
-          <img src="./Images/ruler.png" alt="Ruler" />
-        </div>
-        <!-- Card 8 -->
-        <div class="example-card" data-example="cnc-safety-checklist">
-          <h2>CNC Safety Checklist</h2>
-          <img src="./Images/cnc-safety-checklist.png" alt="CNC Safety Checklist" />
-        </div>
-        <!-- Card 9 -->
-        <div class="example-card" data-example="shelf-system">
-          <h2>3D Printing Shelf System</h2>
-          <img src="./Images/shelf-system.png" alt="3D Printing Shelf System" />
-        </div>
-      </div>
-    </section>
-    <section class="example-detail" aria-hidden="true">
-      <button class="detail-back">Back</button>
-      <img class="detail-image" src="" alt="Example Code" />
-      <div class="detail-panels">
-        <pre class="detail-code"></pre>
-        <div class="detail-info"></div>
-      </div>
-    </section>
-  </div>
 
   <!-- Shape Properties Modal -->
   <div id="shape-properties-modal">
@@ -255,6 +864,153 @@
     } else {
       console.error("Vatti-clipping library failed to load!");
     }
+    
+    // Function to switch to editor tab
+    function switchToEditor() {
+      const homeTabs = document.querySelector('.home-tabs');
+      const editorTabs = document.querySelector('.editor-tabs');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      // Hide home tabs and show editor tabs
+      homeTabs.style.display = 'none';
+      editorTabs.style.display = 'flex';
+      
+      // Remove active class from all tab contents
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      // Add active class to editor tab and content
+      const editorTab = document.querySelector('[data-tab="editor-tab"]');
+      const editorContent = document.getElementById('editor-tab');
+      editorTab.classList.add('active');
+      editorContent.classList.add('active');
+      
+      // Trigger editor initialization after a short delay to ensure DOM is ready
+      setTimeout(() => {
+        // Force canvas resize and redraw
+        if (window.forceCanvasResize) {
+          window.forceCanvasResize();
+        }
+        
+        // Refresh CodeMirror editor if it exists
+        if (window.editor && window.editor.refresh) {
+          window.editor.refresh();
+        }
+        
+        // Trigger any necessary reinitialization
+        if (window.applyNewLayout) {
+          window.applyNewLayout();
+        }
+        
+        // Dispatch a custom event to notify app.js that editor is now active
+        window.dispatchEvent(new CustomEvent('editorTabActivated'));
+      }, 100);
+    }
+    
+    // Function to switch to examples page
+    function switchToExamples() {
+      const homeTabs = document.querySelector('.home-tabs');
+      const editorTabs = document.querySelector('.editor-tabs');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      // Show home tabs and hide editor tabs
+      homeTabs.style.display = 'flex';
+      editorTabs.style.display = 'none';
+      
+      // Remove active class from all tab contents
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      // Add active class to examples tab and content
+      const examplesTab = document.querySelector('[data-tab="examples-tab"]');
+      const examplesContent = document.getElementById('examples-tab');
+      examplesTab.classList.add('active');
+      examplesContent.classList.add('active');
+    }
+    
+    // Function to switch to examples page
+    function switchToExamples() {
+      const homeTabs = document.querySelector('.home-tabs');
+      const editorTabs = document.querySelector('.editor-tabs');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      // Hide all tabs
+      homeTabs.style.display = 'none';
+      editorTabs.style.display = 'none';
+      
+      // Remove active class from all tab contents
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      // Add active class to examples tab and content
+      const examplesTab = document.querySelector('[data-tab="examples-tab"]');
+      const examplesContent = document.getElementById('examples-tab');
+      examplesTab.classList.add('active');
+      examplesContent.classList.add('active');
+    }
+    
+    // Function to return to home page
+    function returnToHome() {
+      const homeTabs = document.querySelector('.home-tabs');
+      const editorTabs = document.querySelector('.editor-tabs');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      // Hide all tabs
+      homeTabs.style.display = 'none';
+      editorTabs.style.display = 'none';
+      
+      // Remove active class from all tab contents
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      // Add active class to landing tab and content
+      const landingTab = document.querySelector('[data-tab="landing-tab"]');
+      const landingContent = document.getElementById('landing-tab');
+      landingTab.classList.add('active');
+      landingContent.classList.add('active');
+    }
+    
+    // Make logo clickable to return home
+    document.addEventListener('DOMContentLoaded', () => {
+      const logo = document.querySelector('.logo');
+      logo.style.cursor = 'pointer';
+      logo.addEventListener('click', returnToHome);
+      
+      // Add tab switching functionality
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const tabId = button.getAttribute('data-tab');
+          
+          // Remove active class from all tabs and contents
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+          
+          // Add active class to clicked tab and corresponding content
+          button.classList.add('active');
+          document.getElementById(tabId).classList.add('active');
+          
+          // Handle special cases
+          if (tabId === 'editor-tab') {
+            // Switch to editor mode
+            const homeTabs = document.querySelector('.home-tabs');
+            const editorTabs = document.querySelector('.editor-tabs');
+            homeTabs.style.display = 'none';
+            editorTabs.style.display = 'flex';
+            
+            // Trigger editor initialization
+            setTimeout(() => {
+              if (window.forceCanvasResize) window.forceCanvasResize();
+              if (window.editor && window.editor.refresh) window.editor.refresh();
+              if (window.applyNewLayout) window.applyNewLayout();
+              window.dispatchEvent(new CustomEvent('editorTabActivated'));
+            }, 100);
+          } else if (tabId === 'landing-tab' || tabId === 'examples-tab') {
+            // Switch to home mode - hide all tabs
+            const homeTabs = document.querySelector('.home-tabs');
+            const editorTabs = document.querySelector('.editor-tabs');
+            homeTabs.style.display = 'none';
+            editorTabs.style.display = 'none';
+          }
+        });
+      });
+    });
   </script>
 
   <!-- Tutorials tab-switcher -->
