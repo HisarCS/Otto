@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const cards       = document.querySelectorAll('.example-card');
-    const menu        = document.querySelector('.examples-menu');
+    const menu        = document.querySelector('.examples-section');
     const detail      = document.querySelector('.example-detail');
     const detailImage = detail.querySelector('.detail-image');
     const detailCode  = detail.querySelector('.detail-code');
@@ -111,6 +111,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = card.dataset.example;
         const ex  = examples[key];
 
+        // Clear any existing titles and content
+        detail.innerHTML = `
+          <button class="detail-back">Back</button>
+          <img class="detail-image" src="" alt="Example Code" />
+          <div class="detail-panels">
+            <pre class="detail-code"></pre>
+            <div class="detail-info"></div>
+          </div>
+        `;
+        
+        // Re-select elements after clearing
+        const detailImage = detail.querySelector('.detail-image');
+        const detailCode = detail.querySelector('.detail-code');
+        const detailInfo = detail.querySelector('.detail-info');
+        const backBtn = detail.querySelector('.detail-back');
+
         // Image
         detailImage.src = ex.image;
 
@@ -153,17 +169,18 @@ document.addEventListener('DOMContentLoaded', () => {
           container.appendChild(hint);
         }
 
-        // Toggle views
+        // Toggle views - hide menu, show detail
         menu.style.display = 'none';
         detail.classList.add('visible');
+        
+        // Re-attach back button event listener
+        backBtn.addEventListener('click', () => {
+          detail.classList.remove('visible');
+          menu.style.display = '';
+          disposeCurrentWorkspace();
+          detailInfo.innerHTML = ''; // clear viewer
+        });
       });
-    });
-
-    backBtn.addEventListener('click', () => {
-      detail.classList.remove('visible');
-      menu.style.display = '';
-      disposeCurrentWorkspace();
-      detailInfo.innerHTML = ''; // clear viewer
     });
 
     // Keep viewer layout crisp on resize
