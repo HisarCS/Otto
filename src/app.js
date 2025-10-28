@@ -104,6 +104,7 @@ const TOOLBOX_XML = `
 `;
 
 let editor;
+window.editor = editor; // Will be updated when CodeMirror is initialized
 let canvas;
 let renderer;
 let interpreter;
@@ -139,6 +140,48 @@ document.addEventListener('DOMContentLoaded', function() {
       runCode();
     }
   }, 100);
+});
+
+// Listen for editor tab activation to properly initialize components
+window.addEventListener('editorTabActivated', function() {
+  console.log('Editor tab activated, reinitializing components...');
+  
+  // Reinitialize components that might not have been properly set up
+  setTimeout(() => {
+    // Ensure all components are properly initialized
+    if (!canvas) {
+      canvas = document.getElementById('canvas');
+    }
+    
+    if (!renderer && canvas) {
+      renderer = new Renderer(canvas);
+    }
+    
+    if (!editor) {
+      setupCodeMirror();
+    }
+    
+    ensureProperConnections();
+    applyNewLayout();
+    
+    // Force canvas resize and redraw
+    if (renderer && canvas) {
+      renderer.coordinateSystem.setupCanvas();
+      renderer.redraw();
+    }
+    
+    // Refresh CodeMirror editor
+    if (editor) {
+      editor.refresh();
+    }
+    
+    // Initialize Blockly if needed
+    if (typeof Blockly !== 'undefined' && !workspace) {
+      initBlockly();
+    }
+    
+    console.log('Editor components reinitialized successfully');
+  }, 50);
 });
 
 function initializeComponents() {
@@ -220,6 +263,9 @@ function setupCodeMirror() {
       'Cmd-Enter': runCode
     }
   });
+  
+  // Make editor available globally
+  window.editor = editor;
   
   shapeManager.registerEditor(editor);
   
@@ -775,6 +821,10 @@ function forceCanvasResize() {
     }, 100);
   }
 }
+
+// Make functions available globally for HTML access
+window.forceCanvasResize = forceCanvasResize;
+window.applyNewLayout = applyNewLayout;
 
 function applyNewLayout() {
   const editorPanel = document.querySelector('.editor-panel');
