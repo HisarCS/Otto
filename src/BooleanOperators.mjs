@@ -100,9 +100,179 @@ class BooleanNaming {
     performUnion(shapes) {
       return this._clipAndMake(shapes, 'union', this.ClipperLib.ClipType.ctUnion);
     }
+<<<<<<< HEAD
     performDifference(shapes) {
       return this._clipAndMake(shapes, 'difference', this.ClipperLib.ClipType.ctDifference);
     }
+=======
+    
+    /**
+     * Perform difference operation: subject - clips
+     * Handles multiple clips by chaining: (((subject - clip1) - clip2) - clip3) ...
+     */
+    performDifference(shapes) {
+      this._ensureLib();
+      if (!shapes || shapes.length < 2) {
+        throw new Error('Difference requires at least 2 shapes');
+      }
+      
+      const scale = 10000;
+      let currentResult = shapes[0];
+      
+      // Chain differences: subtract each clip shape from the current result
+      for (let i = 1; i < shapes.length; i++) {
+        const clipShape = shapes[i];
+        
+        // Extract paths from current result (may be regular shape or path with holes)
+        const subjectPoints = this.extractShapePoints(currentResult);
+        const clipPoints = this.extractShapePoints(clipShape);
+        
+        if (!subjectPoints || subjectPoints.length === 0 || !clipPoints || clipPoints.length === 0) {
+          throw new Error(`Invalid shape in difference at step ${i}`);
+        }
+        
+        // Convert to Clipper paths
+        let subjectPaths = this._pointsToClipperPaths(subjectPoints, scale);
+        const clipPaths = this._pointsToClipperPaths(clipPoints, scale);
+        
+        if (subjectPaths.length === 0 || clipPaths.length === 0) {
+          throw new Error(`Failed to convert shape to paths at step ${i}`);
+        }
+        
+        // CRITICAL: Fix orientation for paths with holes
+        // When reusing a path with holes as subject, ensure correct winding:
+        // - First path (outer) must be CCW
+        // - Subsequent paths (holes) must be CW
+        if (subjectPaths.length > 1 && currentResult.params && currentResult.params.hasHoles) {
+          // Extract contours from original points to check orientation
+          const tempContours = [];
+          let currentContour = [];
+          
+          for (const p of subjectPoints) {
+            if (p === null) {
+              if (currentContour.length >= 3) tempContours.push(currentContour);
+              currentContour = [];
+            } else if (Array.isArray(p) && p.length >= 2) {
+              currentContour.push(p);
+            }
+          }
+          if (currentContour.length >= 3) tempContours.push(currentContour);
+          
+          // Fix orientation: outer CCW, holes CW
+          if (tempContours.length > 1) {
+            // First contour (outer) must be CCW
+            if (!this._isCounterClockwise(tempContours[0])) {
+              subjectPaths[0] = subjectPaths[0].slice().reverse();
+            }
+            // Subsequent contours (holes) must be CW
+            for (let j = 1; j < tempContours.length && j < subjectPaths.length; j++) {
+              if (this._isCounterClockwise(tempContours[j])) {
+                subjectPaths[j] = subjectPaths[j].slice().reverse();
+              }
+            }
+          }
+        }
+        
+        // Execute difference
+        const c = new this.ClipperLib.Clipper();
+        c.AddPaths(subjectPaths, this.ClipperLib.PolyType.ptSubject, true);
+        c.AddPaths(clipPaths, this.ClipperLib.PolyType.ptClip, true);
+        
+        const solution = new this.ClipperLib.Paths();
+        const success = c.Execute(
+          this.ClipperLib.ClipType.ctDifference,
+          solution,
+          this.ClipperLib.PolyFillType.pftNonZero,
+          this.ClipperLib.PolyFillType.pftNonZero
+        );
+        
+        if (!success || solution.length === 0) {
+          throw new Error(`Difference operation failed at step ${i}`);
+        }
+        
+        // Convert solution back to points format
+        const resultPoints = this._clipperPathsToPoints(solution, scale);
+        
+        // Update current result for next iteration
+        currentResult = {
+          type: 'path',
+          name: `diff_result_${i}`,
+          params: {
+            points: resultPoints,
+            closed: true,
+            operation: 'difference',
+            hasHoles: resultPoints.includes(null)
+          },
+          transform: { position: [0, 0], rotation: 0, scale: [1, 1] }
+        };
+      }
+      
+      // Final result - apply naming and styling
+      const subjectName = shapes[0].name || shapes[0].type || 'shape';
+      const name = this.naming.generateName('difference', [subjectName]);
+      const style = this.extractStyling(shapes[0], 'difference');
+      
+      return {
+        ...currentResult,
+        name,
+        params: {
+          ...currentResult.params,
+          ...style
+        }
+      };
+    }
+    
+    /**
+     * Convert point array to Clipper paths
+     * Handles null separators for holes
+     */
+    _pointsToClipperPaths(points, scale) {
+      const paths = [];
+      let currentPath = [];
+      
+      for (const p of points) {
+        if (p === null) {
+          if (currentPath.length >= 3) {
+            paths.push(currentPath);
+          }
+          currentPath = [];
+        } else if (Array.isArray(p) && p.length >= 2) {
+          currentPath.push({
+            X: Math.round(p[0] * scale),
+            Y: Math.round(-p[1] * scale)
+          });
+        }
+      }
+      
+      if (currentPath.length >= 3) {
+        paths.push(currentPath);
+      }
+      
+      return paths;
+    }
+    
+    /**
+     * Convert Clipper paths to point array format
+     * Adds null separators between paths
+     */
+    _clipperPathsToPoints(paths, scale) {
+      const points = [];
+      
+      for (let i = 0; i < paths.length; i++) {
+        if (i > 0) points.push(null);
+        
+        const path = paths[i];
+        if (path && path.length >= 3) {
+          for (const pt of path) {
+            points.push([pt.X / scale, pt.Y / scale]);
+          }
+        }
+      }
+      
+      return points;
+    }
+    
+>>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
     performIntersection(shapes) {
       return this._clipAndMake(shapes, 'intersection', this.ClipperLib.ClipType.ctIntersection);
     }
@@ -112,10 +282,15 @@ class BooleanNaming {
   
     _clipAndMake(shapes, op, clipType) {
       this._ensureLib();
+<<<<<<< HEAD
+=======
+      // Keep the low‑level boolean engine strict and handle chaining at interpreter level
+>>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
       if (op === 'union') this._ensureCount(shapes, 1);
       else if (op === 'difference' || op === 'xor') this._ensureCount(shapes, 2, 2);
       else this._ensureCount(shapes, 2);
 
+<<<<<<< HEAD
       const scale = 1000;
       const subj = [], clip = [];
       shapes.forEach((s, i) => {
@@ -123,11 +298,98 @@ class BooleanNaming {
         const path = pts.filter(p => p !== null).map(p => ({ X: Math.round(p[0] * scale), Y: Math.round(-p[1] * scale) }));
         if (i === 0) subj.push(path);
         else clip.push(path);
+=======
+      // Use a larger scale to preserve more precision when converting to integers
+      const scale = 10000;
+      const subj = [], clip = [];
+      shapes.forEach((s, i) => {
+        const pts = this.extractShapePoints(s);
+        if (!pts || pts.length === 0) {
+          console.warn(`⚠️ Shape ${i} (${s.name || s.type}) produced no points`);
+          return;
+        }
+        
+        // Split points by null to handle multiple separate contours (e.g., from union of separate shapes)
+        const contours = [];
+        let currentContour = [];
+        for (const p of pts) {
+          if (p === null) {
+            if (currentContour.length >= 3) {  // Valid polygon needs at least 3 points
+              contours.push(currentContour);
+            }
+            currentContour = [];
+          } else {
+            if (Array.isArray(p) && p.length >= 2) {
+              currentContour.push(p);
+            }
+          }
+        }
+        if (currentContour.length >= 3) {
+          contours.push(currentContour);
+        }
+        
+        if (contours.length === 0) {
+          console.warn(`⚠️ Shape ${i} (${s.name || s.type}) produced no valid contours`);
+          return;
+        }
+        
+        // If this is a path shape with holes from a previous boolean operation,
+        // Clipper already has them with correct winding (outer CCW, holes CW).
+        // We need to preserve this structure. Use CleanPolygons to ensure
+        // proper containment relationships if available.
+        if (s.type === 'path' && s.params && s.params.hasHoles && contours.length > 1) {
+          this.log(`Path ${s.name || s.type} has ${contours.length} contours (1 outer + ${contours.length - 1} holes)`);
+          // Clipper should have already set correct winding, but verify
+          // First contour should be outer (CCW), subsequent are holes (CW)
+          const outerWinding = this._isCounterClockwise(contours[0]) ? 'CCW' : 'CW';
+          this.log(`Outer contour winding: ${outerWinding} (should be CCW)`);
+          for (let j = 1; j < contours.length; j++) {
+            const holeWinding = this._isCounterClockwise(contours[j]) ? 'CCW' : 'CW';
+            this.log(`Hole ${j} winding: ${holeWinding} (should be CW)`);
+          }
+          
+          // Only correct if definitely wrong - Clipper usually returns correct winding
+          if (!this._isCounterClockwise(contours[0])) {
+            contours[0].reverse();
+            this.log(`⚠️ Corrected: Reversed outer contour to CCW for ${s.name || s.type}`);
+          }
+          for (let j = 1; j < contours.length; j++) {
+            if (this._isCounterClockwise(contours[j])) {
+              contours[j].reverse();
+              this.log(`⚠️ Corrected: Reversed hole ${j} to CW for ${s.name || s.type}`);
+            }
+          }
+        }
+        
+        this.log(`Shape ${i} (${s.name || s.type}): ${contours.length} contour(s)`);
+        
+        // Convert each contour to Clipper format
+        const paths = contours.map(contour => 
+          contour.map(p => ({ X: Math.round(p[0] * scale), Y: Math.round(-p[1] * scale) }))
+        );
+        
+        // For union, ALL shapes' contours are subject paths. For other ops, first is subject, rest are clips.
+        if (op === 'union') {
+          subj.push(...paths);
+        } else {
+          if (i === 0) {
+            subj.push(...paths);
+          } else {
+            clip.push(...paths);
+          }
+        }
+>>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
       });
   
       const c = new this.ClipperLib.Clipper();
       c.AddPaths(subj, this.ClipperLib.PolyType.ptSubject, true);
+<<<<<<< HEAD
       c.AddPaths(clip, this.ClipperLib.PolyType.ptClip, true);
+=======
+      if (clip.length > 0) {
+      c.AddPaths(clip, this.ClipperLib.PolyType.ptClip, true);
+      }
+>>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
   
       const sol = new this.ClipperLib.Paths();
       c.Execute(
@@ -137,10 +399,36 @@ class BooleanNaming {
         this.ClipperLib.PolyFillType.pftNonZero
       );
   
+<<<<<<< HEAD
       const ptsOut = [];
       sol.forEach((path, idx) => {
         if (idx > 0) ptsOut.push(null);
         path.forEach(pt => ptsOut.push([pt.X / scale, pt.Y / scale]));
+=======
+      // Clean up the solution if SimplifyPolygons is available
+      // This removes degenerate edges and self-intersections, important for chained operations
+      let cleaned = sol;
+      try {
+        if (this.ClipperLib.Clipper && typeof this.ClipperLib.Clipper.SimplifyPolygons === 'function') {
+          cleaned = this.ClipperLib.Clipper.SimplifyPolygons(
+            sol,
+            this.ClipperLib.PolyFillType.pftNonZero
+          );
+        }
+      } catch (e) {
+        // SimplifyPolygons not available, use original solution
+        this.log('SimplifyPolygons not available, using original solution');
+        cleaned = sol;
+      }
+  
+      const ptsOut = [];
+      cleaned.forEach((path, idx) => {
+        if (idx > 0) ptsOut.push(null);
+        // Ensure path has at least 3 points (valid polygon)
+        if (path.length >= 3) {
+        path.forEach(pt => ptsOut.push([pt.X / scale, pt.Y / scale]));
+        }
+>>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
       });
   
       const name = this.naming.generateName(op, shapes.map(s => s.name || 'shape'));
@@ -240,7 +528,12 @@ class BooleanNaming {
   
     _getShapeResolution(type) {
       const curved = ['circle','ellipse','arc','roundedrectangle','spiral','donut','wave'];
+<<<<<<< HEAD
       return curved.includes(type.toLowerCase()) ? 64 : 32;
+=======
+      // Increase sampling resolution to reduce boolean artifacts on curved edges
+      return curved.includes(type.toLowerCase()) ? 128 : 64;
+>>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
     }
   
     applyTransform(points, transform) {
@@ -257,6 +550,26 @@ class BooleanNaming {
       });
     }
   
+<<<<<<< HEAD
+=======
+    /**
+     * Check if a contour is wound counter-clockwise
+     * Uses the shoelace formula: negative sum = CCW, positive = CW
+     * @param {Array<Array<number>>} contour - Array of [x, y] points
+     * @returns {boolean} true if counter-clockwise, false if clockwise
+     */
+    _isCounterClockwise(contour) {
+      if (!contour || contour.length < 3) return true;
+      let sum = 0;
+      for (let i = 0; i < contour.length; i++) {
+        const p1 = contour[i];
+        const p2 = contour[(i + 1) % contour.length];
+        sum += (p2[0] - p1[0]) * (p2[1] + p1[1]);
+      }
+      return sum < 0; // Negative = CCW, Positive = CW
+    }
+  
+>>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
     extractStyling(base, op) {
       const defaults = {
         fill: true,
