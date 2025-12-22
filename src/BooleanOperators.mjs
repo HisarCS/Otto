@@ -100,11 +100,6 @@ class BooleanNaming {
     performUnion(shapes) {
       return this._clipAndMake(shapes, 'union', this.ClipperLib.ClipType.ctUnion);
     }
-<<<<<<< HEAD
-    performDifference(shapes) {
-      return this._clipAndMake(shapes, 'difference', this.ClipperLib.ClipType.ctDifference);
-    }
-=======
     
     /**
      * Perform difference operation: subject - clips
@@ -272,7 +267,6 @@ class BooleanNaming {
       return points;
     }
     
->>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
     performIntersection(shapes) {
       return this._clipAndMake(shapes, 'intersection', this.ClipperLib.ClipType.ctIntersection);
     }
@@ -282,23 +276,11 @@ class BooleanNaming {
   
     _clipAndMake(shapes, op, clipType) {
       this._ensureLib();
-<<<<<<< HEAD
-=======
       // Keep the low‑level boolean engine strict and handle chaining at interpreter level
->>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
       if (op === 'union') this._ensureCount(shapes, 1);
       else if (op === 'difference' || op === 'xor') this._ensureCount(shapes, 2, 2);
       else this._ensureCount(shapes, 2);
 
-<<<<<<< HEAD
-      const scale = 1000;
-      const subj = [], clip = [];
-      shapes.forEach((s, i) => {
-        const pts = this.extractShapePoints(s);
-        const path = pts.filter(p => p !== null).map(p => ({ X: Math.round(p[0] * scale), Y: Math.round(-p[1] * scale) }));
-        if (i === 0) subj.push(path);
-        else clip.push(path);
-=======
       // Use a larger scale to preserve more precision when converting to integers
       const scale = 10000;
       const subj = [], clip = [];
@@ -378,18 +360,13 @@ class BooleanNaming {
             clip.push(...paths);
           }
         }
->>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
       });
   
       const c = new this.ClipperLib.Clipper();
       c.AddPaths(subj, this.ClipperLib.PolyType.ptSubject, true);
-<<<<<<< HEAD
-      c.AddPaths(clip, this.ClipperLib.PolyType.ptClip, true);
-=======
       if (clip.length > 0) {
       c.AddPaths(clip, this.ClipperLib.PolyType.ptClip, true);
       }
->>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
   
       const sol = new this.ClipperLib.Paths();
       c.Execute(
@@ -398,13 +375,7 @@ class BooleanNaming {
         this.ClipperLib.PolyFillType.pftNonZero,
         this.ClipperLib.PolyFillType.pftNonZero
       );
-  
-<<<<<<< HEAD
-      const ptsOut = [];
-      sol.forEach((path, idx) => {
-        if (idx > 0) ptsOut.push(null);
-        path.forEach(pt => ptsOut.push([pt.X / scale, pt.Y / scale]));
-=======
+
       // Clean up the solution if SimplifyPolygons is available
       // This removes degenerate edges and self-intersections, important for chained operations
       let cleaned = sol;
@@ -420,7 +391,7 @@ class BooleanNaming {
         this.log('SimplifyPolygons not available, using original solution');
         cleaned = sol;
       }
-  
+
       const ptsOut = [];
       cleaned.forEach((path, idx) => {
         if (idx > 0) ptsOut.push(null);
@@ -428,7 +399,6 @@ class BooleanNaming {
         if (path.length >= 3) {
         path.forEach(pt => ptsOut.push([pt.X / scale, pt.Y / scale]));
         }
->>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
       });
   
       const name = this.naming.generateName(op, shapes.map(s => s.name || 'shape'));
@@ -528,12 +498,8 @@ class BooleanNaming {
   
     _getShapeResolution(type) {
       const curved = ['circle','ellipse','arc','roundedrectangle','spiral','donut','wave'];
-<<<<<<< HEAD
-      return curved.includes(type.toLowerCase()) ? 64 : 32;
-=======
       // Increase sampling resolution to reduce boolean artifacts on curved edges
       return curved.includes(type.toLowerCase()) ? 128 : 64;
->>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
     }
   
     applyTransform(points, transform) {
@@ -550,8 +516,6 @@ class BooleanNaming {
       });
     }
   
-<<<<<<< HEAD
-=======
     /**
      * Check if a contour is wound counter-clockwise
      * Uses the shoelace formula: negative sum = CCW, positive = CW
@@ -569,7 +533,6 @@ class BooleanNaming {
       return sum < 0; // Negative = CCW, Positive = CW
     }
   
->>>>>>> aa3ca84 (+[------->++<]>--.-------.++++++++++.)
     extractStyling(base, op) {
       const defaults = {
         fill: true,
