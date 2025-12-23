@@ -26,9 +26,17 @@ export class BooleanOperationRenderer {
 
     const nullIndex = points.findIndex(p => p === null);
     const hasHoles = nullIndex !== -1 || params.hasHoles;
+    
+    // Count how many nulls (holes) we have
+    const nullCount = points.filter(p => p === null).length;
 
     if (hasHoles && nullIndex !== -1) {
-      return this.renderPathWithHoles(points, nullIndex, params, styleContext, isSelected, isHovered);
+      // Use renderComplexBooleanPath for multiple holes, renderPathWithHoles for single hole
+      if (nullCount > 1) {
+        return this.renderComplexBooleanPath(points, params, styleContext, isSelected, isHovered);
+      } else {
+        return this.renderPathWithHoles(points, nullIndex, params, styleContext, isSelected, isHovered);
+      }
     } else {
       return this.renderSimplePath(points, params, styleContext, isSelected, isHovered);
     }

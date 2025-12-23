@@ -109,6 +109,8 @@ class BooleanNaming {
      * Handles multiple clips by chaining: (((subject - clip1) - clip2) - clip3) ...
      */
     performDifference(shapes) {
+    // Supports multiple shapes: first shape is the base, all others are cuts
+    // Example: performDifference([base, cut1, cut2, cut3]) = ((base - cut1) - cut2) - cut3
     if (!shapes || shapes.length < 2) {
       throw new Error('Difference requires at least 2 shapes');
     }
@@ -168,6 +170,7 @@ class BooleanNaming {
     let currentPts = currentResult.points;
     let currentIsBoolean = currentResult.isBooleanPath;
     this.log(`Subject shape: ${shapes[0].name || shapes[0].type || 'shape'}${currentIsBoolean ? ' (boolean path)' : ''}`);
+    this.log(`Processing ${shapes.length - 1} cut(s) from base shape`);
     if (this.debugMode && currentPts && currentPts.length > 0) {
       const samplePt = currentPts.find(p => p !== null);
       if (samplePt) {
@@ -175,6 +178,7 @@ class BooleanNaming {
       }
     }
 
+    // Process each cut sequentially: ((base - cut1) - cut2) - cut3 ...
     for (let i = 1; i < shapes.length; i++) {
       const clipResult = extract(shapes[i]);
       const clipPts = clipResult.points;
@@ -191,7 +195,7 @@ class BooleanNaming {
         throw new Error(`Invalid shape in difference at step ${i} (shape: ${shapes[i].name || shapes[i].type || 'unknown'})`);
       }
 
-      const subjPaths = toClipper(currentPts, currentIsBoolean);
+      let subjPaths = toClipper(currentPts, currentIsBoolean);
       const clipPaths = toClipper(clipPts, clipIsBoolean);
       if (this.debugMode && subjPaths.length > 0 && subjPaths[0].length > 0) {
         const sampleClipperPt = subjPaths[0][0];
@@ -201,36 +205,132 @@ class BooleanNaming {
         throw new Error(`Failed to convert shape to paths at step ${i}`);
       }
 
+      // Store original paths before any modifications
+      const originalSubjPaths = subjPaths.map(path => path.map(pt => ({ X: pt.X, Y: pt.Y })));
+
       const c = new this.ClipperLib.Clipper();
       c.AddPaths(subjPaths, this.ClipperLib.PolyType.ptSubject, true);
       c.AddPaths(clipPaths, this.ClipperLib.PolyType.ptClip, true);
 
       const sol = new this.ClipperLib.Paths();
-      const ok = c.Execute(
+      let ok = c.Execute(
         this.ClipperLib.ClipType.ctDifference,
         sol,
         this.ClipperLib.PolyFillType.pftNonZero,
         this.ClipperLib.PolyFillType.pftNonZero
       );
+      
+      // Solution 1: If operation fails or returns empty, try with pftEvenOdd
+      if (!ok || sol.length === 0) {
+        if (currentIsBoolean) {
+          this.log('⚠️ First attempt failed, trying with pftEvenOdd fill type');
+          const sol2 = new this.ClipperLib.Paths();
+          const c2 = new this.ClipperLib.Clipper();
+          c2.AddPaths(subjPaths, this.ClipperLib.PolyType.ptSubject, true);
+          c2.AddPaths(clipPaths, this.ClipperLib.PolyType.ptClip, true);
+          ok = c2.Execute(
+            this.ClipperLib.ClipType.ctDifference,
+            sol2,
+            this.ClipperLib.PolyFillType.pftEvenOdd,
+            this.ClipperLib.PolyFillType.pftEvenOdd
+          );
+          if (ok && sol2.length > 0) {
+            // Copy results from sol2 to sol
+            sol.length = 0;
+            sol2.forEach(path => sol.push(path));
+            this.log('✓ pftEvenOdd succeeded');
+          }
+        }
+      }
+      
       if (!ok) {
         throw new Error(`Difference operation failed at step ${i}: Clipper Execute returned false`);
       }
+      
+      // Solution 1: Detect and handle empty results for boolean path subjects
+      // When coordinate mismatch occurs, Clipper might return empty even though clip is inside subject
       if (sol.length === 0) {
-        // Geometry was completely subtracted - this is valid but should be logged
-        this.log(`⚠️ Warning: Difference step ${i} resulted in empty geometry (${shapes[i].name || shapes[i].type || 'shape'} completely removed remaining shape)`);
-        throw new Error(`Difference operation at step ${i} resulted in empty geometry (shape completely subtracted)`);
+        if (currentIsBoolean) {
+          // This might be a coordinate mismatch issue
+          // Check if clip is actually inside subject by comparing bounding boxes
+          this.log('⚠️ Empty result detected for boolean path subject - checking for coordinate mismatch');
+          
+          const getBounds = (paths) => {
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            paths.forEach(path => {
+              path.forEach(pt => {
+                minX = Math.min(minX, pt.X);
+                maxX = Math.max(maxX, pt.X);
+                minY = Math.min(minY, pt.Y);
+                maxY = Math.max(maxY, pt.Y);
+              });
+            });
+            return { minX, maxX, minY, maxY };
+          };
+          
+          const subjBounds = getBounds(subjPaths);
+          const clipBounds = getBounds(clipPaths);
+          
+          // If clip is inside subject bounds, it should create a hole
+          const clipInsideSubject = clipBounds.minX > subjBounds.minX && 
+                                   clipBounds.maxX < subjBounds.maxX &&
+                                   clipBounds.minY > subjBounds.minY && 
+                                   clipBounds.maxY < subjBounds.maxY;
+          
+          if (clipInsideSubject) {
+            // Clip is inside subject - manually combine them
+            // Use original paths to preserve all existing holes
+            // Preserve ALL subject paths (outer + ALL existing holes) and add clip as new hole
+            this.log(`Manually combining: subject has ${originalSubjPaths.length} paths (outer + ${originalSubjPaths.length - 1} existing holes), adding ${clipPaths.length} new hole(s)`);
+            
+            // Deep copy all original subject paths (outer + all existing holes)
+            originalSubjPaths.forEach(origPath => {
+              const copiedPath = origPath.map(pt => ({ X: pt.X, Y: pt.Y }));
+              sol.push(copiedPath);
+            });
+            
+            // Add clip paths as new holes (ensure they're clockwise for holes)
+            clipPaths.forEach(clipPath => {
+              // Deep copy and ensure clockwise winding for holes
+              const copiedClipPath = clipPath.map(pt => ({ X: pt.X, Y: pt.Y }));
+              if (copiedClipPath.length >= 3 && this._isCounterClockwiseClipper(copiedClipPath)) {
+                copiedClipPath.reverse();
+              }
+              sol.push(copiedClipPath);
+            });
+            
+            this.log(`✓ Manually combined: result now has ${sol.length} paths (1 outer + ${sol.length - 1} holes)`);
+          } else {
+            // Geometry was completely subtracted
+            this.log(`⚠️ Warning: Difference step ${i} resulted in empty geometry (${shapes[i].name || shapes[i].type || 'shape'} completely removed remaining shape)`);
+            throw new Error(`Difference operation at step ${i} resulted in empty geometry (shape completely subtracted)`);
+          }
+        } else {
+          // Normal empty result handling for regular shapes
+          this.log(`⚠️ Warning: Difference step ${i} resulted in empty geometry (${shapes[i].name || shapes[i].type || 'shape'} completely removed remaining shape)`);
+          throw new Error(`Difference operation at step ${i} resulted in empty geometry (shape completely subtracted)`);
+        }
       }
 
+      // Track if we manually combined paths (skip SimplifyPolygons to preserve structure)
+      const wasManuallyCombined = sol.length > 0 && currentIsBoolean && 
+        (originalSubjPaths.length + clipPaths.length === sol.length);
+      
       let cleaned = sol;
-      try {
-        if (this.ClipperLib.Clipper?.SimplifyPolygons) {
-          cleaned = this.ClipperLib.Clipper.SimplifyPolygons(
-            sol,
-            this.ClipperLib.PolyFillType.pftNonZero
-          );
+      // Skip SimplifyPolygons if we manually combined paths to preserve hole structure
+      if (!wasManuallyCombined) {
+        try {
+          if (this.ClipperLib.Clipper?.SimplifyPolygons) {
+            cleaned = this.ClipperLib.Clipper.SimplifyPolygons(
+              sol,
+              this.ClipperLib.PolyFillType.pftNonZero
+            );
+          }
+        } catch (e) {
+          this.log('SimplifyPolygons not available, using original solution');
         }
-      } catch (e) {
-        this.log('SimplifyPolygons not available, using original solution');
+      } else {
+        this.log('Skipping SimplifyPolygons for manually combined paths to preserve hole structure');
       }
 
       // Result is always a boolean path (from difference operation)
