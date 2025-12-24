@@ -1,0 +1,87 @@
+//Otto by the IdeaLab Fablab
+
+// ========== SHARED PARAMETERS ==========
+param materialThickness 30
+
+// ========== PIECE 1: U-SHAPE WITH NOTCH ==========
+// ---------- Parameters ----------
+param bigRectWidth 400
+param bigRectHeight 200
+param smallRectWidth 320
+param smallRectHeight 120
+param notchWidth materialThickness
+param notchHeight 10
+
+// ---------- Big Rectangle (Outer) ----------
+shape rectangle bigRect {
+  position: [0, 0]
+  width: bigRectWidth
+  height: bigRectHeight
+  fill: false
+}
+
+// ---------- Small Rectangle (Inner) ----------
+shape rectangle smallRect {
+  position: [2, -40]
+  width: smallRectWidth
+  height: smallRectHeight
+  fill: false
+}
+
+
+// ---------- Small Cut on Back Part (Bottom) ----------
+shape rectangle backNotch {
+  rotation: 90.70731936854426
+  position: [-5, 86]
+  width: notchWidth
+  height: notchHeight
+  fill: false
+}
+
+// ---------- Cut Small Rectangle from Big Rectangle (Creates U-shape) ----------
+difference step1 {
+  add bigRect
+  add smallRect
+  add backNotch
+}
+
+// ========== PIECE 2: U-SHAPE WITH NOTCH INSIDE ==========
+// ---------- Parameters ----------
+param bigRectWidth2 400
+param bigRectHeight2 200
+param smallRectWidth2 320
+param smallRectHeight2 120
+param notchWidth2 materialThickness
+param notchHeight2 10
+
+// ---------- Big Rectangle (Outer) ----------
+shape rectangle bigRect2 {
+  position: [0, 0]
+  width: bigRectWidth2
+  height: bigRectHeight2
+  fill: false
+}
+
+// ---------- Small Rectangle (Inner) ----------
+shape rectangle smallRect2 {
+  position: [2, -40]
+  width: smallRectWidth2
+  height: smallRectHeight2
+  fill: false
+}
+
+// ---------- Small Cut on Back Part (Inside, Bottom) ----------
+shape rectangle backNotch2 {
+  rotation: 90.70731936854426
+  position: [-5, -86]
+  width: notchWidth2
+  height: notchHeight2
+  fill: false
+}
+
+// ---------- Cut Small Rectangle from Big Rectangle (Creates U-shape) ----------
+difference step1_p2 {
+  add bigRect2
+  add smallRect2
+  add backNotch2
+}

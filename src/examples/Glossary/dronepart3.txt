@@ -1,0 +1,91 @@
+// ---------- Parameters ----------
+param trapBaseWidth 280
+param trapTopWidth 100
+param trapHeight 250
+param circleRadius 50
+param bottomRectWidth 50
+param bottomRectHeight 100
+param innerTrapBaseWidth 100
+param innerTrapTopWidth 80
+param innerTrapHeight 70
+param innerRectWidth 30
+param innerRectHeight 70
+param innerY -60
+param smallTrapBaseWidth 120
+param smallTrapTopWidth 20
+param smallTrapHeight 90
+param smallTrapY 60
+
+// ---------- Trapezoid with Bottom Rectangle in Path ----------
+shape path mainBody {
+  points: [
+    [-trapBaseWidth/2, -trapHeight/2],
+    [trapBaseWidth/2, -trapHeight/2],
+    [trapTopWidth/2, trapHeight/2],
+    [-trapTopWidth/2, trapHeight/2],
+    [-trapBaseWidth/2, -trapHeight/2],
+    [-bottomRectWidth/2, -trapHeight/2],
+    [-bottomRectWidth/2, -trapHeight/2 - bottomRectHeight],
+    [bottomRectWidth/2, -trapHeight/2 - bottomRectHeight],
+    [bottomRectWidth/2, -trapHeight/2],
+    [trapBaseWidth/2, -trapHeight/2]
+  ]
+  closed: true
+  fill: false
+}
+
+// ---------- Circle (for rounded top) ----------
+shape circle topCircle {
+  position: [0, trapHeight/2]
+  radius: circleRadius
+  fill: false
+}
+
+// ---------- Inner Trapezoid with Rectangle (Flipped 180 degrees, smaller) ----------
+shape path innerCutout {
+  points: [
+    [-innerTrapBaseWidth/2, innerY],
+    [innerTrapBaseWidth/2, innerY],
+    [innerTrapTopWidth/2, innerY - innerTrapHeight],
+    [-innerTrapTopWidth/2, innerY - innerTrapHeight],
+    [-innerTrapBaseWidth/2, innerY],
+    [-innerRectWidth/2, innerY],
+    [-innerRectWidth/2, innerY + innerRectHeight],
+    [innerRectWidth/2, innerY + innerRectHeight],
+    [innerRectWidth/2, innerY],
+    [innerTrapBaseWidth/2, innerY]
+  ]
+  closed: true
+  fill: false
+}
+
+// ---------- Small Triangle-like Trapezoid (Cutout, Flipped 180 degrees) ----------
+shape path smallTrap {
+  points: [
+    [-smallTrapBaseWidth/2, smallTrapY],
+    [smallTrapBaseWidth/2, smallTrapY],
+    [smallTrapTopWidth/2, smallTrapY - smallTrapHeight],
+    [-smallTrapTopWidth/2, smallTrapY - smallTrapHeight],
+    [-smallTrapBaseWidth/2, smallTrapY]
+  ]
+  closed: true
+  fill: false
+}
+
+// ---------- Union Main Body with Circle ----------
+union step1 {
+  add mainBody
+  add topCircle
+}
+
+// ---------- Union with Inner Cutout ----------
+union step2 {
+  add step1
+  add innerCutout
+}
+
+// ---------- Apply Small Trapezoid Cutout Using Difference ----------
+difference dronepart3 {
+  add step2
+  add smallTrap
+}

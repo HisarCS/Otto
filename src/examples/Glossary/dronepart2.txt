@@ -1,0 +1,43 @@
+// ---------- Parameters ----------
+param mainSize 300
+param cornerRadius 20
+param rectWidth 80
+param rectHeight 20
+param verticalOffset 100
+
+// ---------- Main Body (Rounded Rectangle) ----------
+shape roundedRectangle mainBody {
+  position: [0, 0]
+  width: mainSize
+  height: mainSize
+  radius: cornerRadius
+  fill: false
+}
+
+// ---------- Two Horizontal Rectangular Holes (Above and Below Center on Y-axis) ----------
+// Top rectangle - horizontal, centered on vertical axis
+shape rectangle holeTop {
+  position: [0, -verticalOffset]
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// Bottom rectangle - horizontal, centered on vertical axis
+shape rectangle holeBottom {
+  position: [0, verticalOffset]
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// ---------- Apply Rectangular Holes Using Difference ----------
+difference step1 {
+  add mainBody
+  add holeTop
+}
+
+difference dronepart2 {
+  add step1
+  add holeBottom
+}

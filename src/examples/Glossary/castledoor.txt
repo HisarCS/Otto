@@ -1,0 +1,210 @@
+//Otto by the IdeaLab Fablab
+
+// ========== SHARED PARAMETERS ==========
+param materialThickness 30
+
+// ========== CASTLE DOOR: SQUARE WITH SQUARE JOINERY AND POINTED ARCH ==========
+// ---------- Parameters ----------
+param squareSize 300
+param joinerySize 28
+param joinerySpacing 27
+param numJoineryPerSide 6
+param archWidth 80
+param archBaseWidth 90
+param archHeight 130
+param archBaseY -60
+
+// ---------- Main Square ----------
+shape rectangle mainSquare {
+  position: [0, 0]
+  width: squareSize
+  height: squareSize
+  fill: false
+}
+
+// ---------- Square Joinery Cutouts on All Four Sides (6 per side) ----------
+// Top side joinery (6 squares with spacing)
+for i from 0 to numJoineryPerSide - 1 {
+  param totalWidth (numJoineryPerSide - 1) * (joinerySize + joinerySpacing) + joinerySize
+  param startX -totalWidth/2
+  param xPos startX + i * (joinerySize + joinerySpacing) + joinerySize/2
+  shape rectangle joineryTop {
+    position: [xPos, squareSize/2 - joinerySize/2]
+    width: joinerySize
+    height: joinerySize
+    fill: false
+  }
+}
+
+// Bottom side joinery (6 squares with spacing)
+for i from 0 to numJoineryPerSide - 1 {
+  param totalWidth (numJoineryPerSide - 1) * (joinerySize + joinerySpacing) + joinerySize
+  param startX -totalWidth/2
+  param xPos startX + i * (joinerySize + joinerySpacing) + joinerySize/2
+  shape rectangle joineryBottom {
+    position: [xPos, -squareSize/2 + joinerySize/2]
+    width: joinerySize
+    height: joinerySize
+    fill: false
+  }
+}
+
+// Left side joinery (4 squares, excluding corners, with spacing)
+for i from 1 to numJoineryPerSide - 2 {
+  param totalHeight (numJoineryPerSide - 1) * (joinerySize + joinerySpacing) + joinerySize
+  param startY -totalHeight/2
+  param yPos startY + i * (joinerySize + joinerySpacing) + joinerySize/2
+  shape rectangle joineryLeft {
+    position: [-squareSize/2 + joinerySize/2, yPos]
+    width: joinerySize
+    height: joinerySize
+    fill: false
+  }
+}
+
+// Right side joinery (4 squares, excluding corners, with spacing)
+for i from 1 to numJoineryPerSide - 2 {
+  param totalHeight (numJoineryPerSide - 1) * (joinerySize + joinerySpacing) + joinerySize
+  param startY -totalHeight/2
+  param yPos startY + i * (joinerySize + joinerySpacing) + joinerySize/2
+  shape rectangle joineryRight {
+    position: [squareSize/2 - joinerySize/2, yPos]
+    width: joinerySize
+    height: joinerySize
+    fill: false
+  }
+}
+
+// ---------- Pointed Arch (Gothic Arch) with Curved Sides and Concave Top Arcs ----------
+param sideCurveOffset 5
+param verticalSectionHeight archHeight * 0.7
+param topArcHeight archHeight * 0.3
+param topArcRadius archWidth * 0.8
+
+shape path pointedArch {
+  position: [-2, -24]
+  points: [
+    [-archBaseWidth/2, -archBaseY],
+    [archBaseWidth/2, -archBaseY],
+    [archWidth/2 + sideCurveOffset, -archBaseY - verticalSectionHeight],
+    [archWidth/2, -archBaseY - archHeight],
+    [archWidth/2 * 0.9, -archBaseY - archHeight - topArcRadius/4],
+    [archWidth/2 * 0.6, -archBaseY - archHeight - topArcRadius/2],
+    [archWidth/2 * 0.1, -archBaseY - archHeight - topArcRadius * 0.7],
+    [0, -archBaseY - archHeight - topArcRadius +17],
+    [-archWidth/2 * 0.1, -archBaseY - archHeight - topArcRadius * 0.7],
+    [-archWidth/2 * 0.6, -archBaseY - archHeight - topArcRadius/2],
+    [-archWidth/2 * 0.9, -archBaseY - archHeight - topArcRadius/4],
+    [-archWidth/2, -archBaseY - archHeight],
+    [-archWidth/2 - sideCurveOffset, -archBaseY - verticalSectionHeight],
+    [-archBaseWidth/2, -archBaseY]
+  ]
+  closed: true
+  fill: false
+}
+
+
+// ---------- Apply Joinery Cutouts Using Difference ----------
+// Apply top joinery cutouts (6 squares)
+difference step2 {
+  add mainSquare
+  add joineryTop_0_0
+}
+
+difference step3 {
+  add step2
+  add joineryTop_1_1
+}
+
+difference step4 {
+  add step3
+  add joineryTop_2_2
+}
+
+difference step5 {
+  add step4
+  add joineryTop_3_3
+}
+
+difference step6 {
+  add step5
+  add joineryTop_4_4
+}
+
+difference step7 {
+  add step6
+  add joineryTop_5_5
+}
+
+// Apply bottom joinery cutouts (6 squares)
+difference step8 {
+  add step7
+  add joineryBottom_0_0
+}
+
+difference step9 {
+  add step8
+  add joineryBottom_1_1
+}
+
+difference step10 {
+  add step9
+  add joineryBottom_2_2
+}
+
+difference step11 {
+  add step10
+  add joineryBottom_3_3
+}
+
+difference step12 {
+  add step11
+  add joineryBottom_4_4
+}
+
+difference step13 {
+  add step12
+  add joineryBottom_5_5
+}
+
+// Apply left joinery cutouts (4 squares)
+difference step14 {
+  add step13
+  add joineryLeft_1_1
+}
+
+difference step15 {
+  add step14
+  add joineryLeft_2_2
+}
+
+difference step16 {
+  add step15
+  add joineryLeft_3_3
+}
+
+difference step17 {
+  add step16
+  add joineryLeft_4_4
+}
+
+// Apply right joinery cutouts (4 squares)
+difference step18 {
+  add step17
+  add joineryRight_1_1
+}
+
+difference step19 {
+  add step18
+  add joineryRight_2_2
+}
+
+difference step20 {
+  add step19
+  add joineryRight_3_3
+}
+
+difference castledoor {
+  add step20
+  add joineryRight_4_4
+}

@@ -1,0 +1,48 @@
+//Otto by the IdeaLab Fablab
+
+// ========== SHARED PARAMETERS ==========
+param materialThickness 30
+
+// ========== PIECE 1: HORIZONTAL RECTANGLE WITH SIDE CUTOUTS ==========
+// ---------- Parameters ----------
+param mainWidth 201
+param mainHeight 60
+param cutoutWidth 30
+param cutoutHeight materialThickness
+param sideOffset 86
+
+// ---------- Main Horizontal Rectangle ----------
+shape rectangle mainRect {
+  position: [0, 0]
+  width: mainWidth
+  height: mainHeight
+  fill: false
+}
+
+// ---------- Left Side Cutout ----------
+shape rectangle cutoutLeft1 {
+  position: [-sideOffset, 0]
+  width: cutoutWidth
+  height: cutoutHeight
+  fill: false
+}
+
+// ---------- Right Side Cutout ----------
+shape rectangle cutoutRight1 {
+  position: [sideOffset, 0]
+  width: cutoutWidth
+  height: cutoutHeight
+  fill: false
+}
+
+// ---------- Apply Cutouts Using Difference ----------
+difference step1 {
+  add mainRect
+  add cutoutLeft1
+}
+
+difference llama1 {
+  add step1
+  add cutoutRight1
+}
+

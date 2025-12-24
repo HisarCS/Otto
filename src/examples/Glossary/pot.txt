@@ -1,0 +1,87 @@
+//Otto by the IdeaLab Fablab
+
+// ========== SHARED PARAMETERS ==========
+param materialThickness 30
+
+// ========== CIRCULAR OBJECT WITH NOTCHED OUTER RING ==========
+// ---------- Parameters ----------
+param innerRadius 50
+param outerRadius 80
+param notchWidth materialThickness
+param notchLength 20
+
+// ---------- Outer Circle (Bigger) ----------
+shape circle outerCircle {
+  position: [0, 0]
+  radius: outerRadius
+  fill: false
+}
+
+// ---------- Inner Circle (Smaller) ----------
+shape circle innerCircle {
+  position: [0, 0]
+  radius: innerRadius
+  fill: false
+}
+
+// ---------- Cut Inner Circle from Outer Circle (Create Donut) ----------
+difference step1 {
+  add outerCircle
+  add innerCircle
+}
+
+// ---------- Four Notch Cutouts (Top, Right, Bottom, Left) ----------
+// Top notch (12 o'clock)
+shape rectangle notchTop {
+  position: [0, outerRadius - notchLength/2]
+  width: notchWidth
+  height: notchLength
+  fill: false
+}
+
+// Right notch (3 o'clock)
+shape rectangle notchRight {
+  position: [outerRadius - notchLength/2, 0]
+  rotation: 90
+  width: notchWidth
+  height: notchLength
+  fill: false
+}
+
+// Bottom notch (6 o'clock)
+shape rectangle notchBottom {
+  position: [0, -outerRadius + notchLength/2]
+  width: notchWidth
+  height: notchLength
+  fill: false
+}
+
+// Left notch (9 o'clock)
+shape rectangle notchLeft {
+  position: [-outerRadius + notchLength/2, 0]
+  rotation: 90
+  width: notchWidth
+  height: notchLength
+  fill: false
+}
+
+// ---------- Apply Notch Cutouts Using Difference ----------
+difference step2 {
+  add step1
+  add notchTop
+}
+
+difference step3 {
+  add step2
+  add notchRight
+}
+
+difference step4 {
+  add step3
+  add notchBottom
+}
+
+difference pot {
+  add step4
+  add notchLeft
+}

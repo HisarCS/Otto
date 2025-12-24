@@ -1,0 +1,193 @@
+//Otto by the IdeaLab Fablab
+
+// ========== SHARED PARAMETERS ==========
+param materialThickness 30
+
+// ========== PIECE 3: ELONGATED RECTANGLE WITH TOP U-CUTOUTS AND INTERNAL FEATURES ==========
+// ---------- Parameters ----------
+param mainBodyWidth 500
+param mainBodyHeight 200
+param uCutoutWidth 50
+param uCutoutHeight 30
+param uCutoutSpacing 30
+param sideSlotWidth materialThickness
+param sideSlotHeight 21
+param innerRectWidth 50
+param innerRectHeight 20
+param innerRectGap 200
+param pairGap 80
+param innerRectY -20
+
+// ---------- Main Body Rectangle ----------
+shape rectangle mainBody {
+  position: [0, 0]
+  width: mainBodyWidth
+  height: mainBodyHeight
+  fill: false
+}
+
+// ---------- Five Inverted U-shaped Cutouts on Top ----------
+shape path uCutout1 {
+  points: [
+    [-uCutoutWidth/2, mainBodyHeight/2],
+    [uCutoutWidth/2, mainBodyHeight/2],
+    [uCutoutWidth/2, mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2, mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2, mainBodyHeight/2]
+  ]
+  closed: true
+  fill: false
+}
+
+shape path uCutout2 {
+  points: [
+    [-uCutoutWidth/2 - uCutoutWidth - uCutoutSpacing, mainBodyHeight/2],
+    [uCutoutWidth/2 - uCutoutWidth - uCutoutSpacing, mainBodyHeight/2],
+    [uCutoutWidth/2 - uCutoutWidth - uCutoutSpacing, mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2 - uCutoutWidth - uCutoutSpacing, mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2 - uCutoutWidth - uCutoutSpacing, mainBodyHeight/2]
+  ]
+  closed: true
+  fill: false
+}
+
+shape path uCutout3 {
+  points: [
+    [-uCutoutWidth/2 + uCutoutWidth + uCutoutSpacing, mainBodyHeight/2],
+    [uCutoutWidth/2 + uCutoutWidth + uCutoutSpacing, mainBodyHeight/2],
+    [uCutoutWidth/2 + uCutoutWidth + uCutoutSpacing, mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2 + uCutoutWidth + uCutoutSpacing, mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2 + uCutoutWidth + uCutoutSpacing, mainBodyHeight/2]
+  ]
+  closed: true
+  fill: false
+}
+
+shape path uCutout4 {
+  points: [
+    [-uCutoutWidth/2 - 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2],
+    [uCutoutWidth/2 - 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2],
+    [uCutoutWidth/2 - 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2 - 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2 - 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2]
+  ]
+  closed: true
+  fill: false
+}
+
+shape path uCutout5 {
+  points: [
+    [-uCutoutWidth/2 + 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2],
+    [uCutoutWidth/2 + 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2],
+    [uCutoutWidth/2 + 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2 + 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2 - uCutoutHeight],
+    [-uCutoutWidth/2 + 2*(uCutoutWidth + uCutoutSpacing), mainBodyHeight/2]
+  ]
+  closed: true
+  fill: false
+}
+
+// ---------- Side Slots (Left and Right) ----------
+shape rectangle sideSlotLeft {
+  position: [-mainBodyWidth/2 + sideSlotWidth/2, 0]
+  width: sideSlotWidth
+  height: sideSlotHeight
+  fill: false
+}
+
+shape rectangle sideSlotRight {
+  position: [mainBodyWidth/2 - sideSlotWidth/2, 0]
+  width: sideSlotWidth
+  height: sideSlotHeight
+  fill: false
+}
+
+// ---------- Internal Rectangular Pairs (Lower Half) ----------
+// Left pair - first rectangle
+shape rectangle innerRect1 {
+  position: [-pairGap/2 - innerRectGap/2 - innerRectWidth/2, innerRectY]
+  width: innerRectWidth
+  height: innerRectHeight
+  fill: false
+}
+
+// Left pair - second rectangle
+shape rectangle innerRect2 {
+  position: [-pairGap/2 + innerRectGap/2 + innerRectWidth/2, innerRectY]
+  width: innerRectWidth
+  height: innerRectHeight
+  fill: false
+}
+
+// Right pair - first rectangle
+shape rectangle innerRect3 {
+  position: [pairGap/2 - innerRectGap/2 - innerRectWidth/2, innerRectY]
+  width: innerRectWidth
+  height: innerRectHeight
+  fill: false
+}
+
+// Right pair - second rectangle
+shape rectangle innerRect4 {
+  position: [pairGap/2 + innerRectGap/2 + innerRectWidth/2, innerRectY]
+  width: innerRectWidth
+  height: innerRectHeight
+  fill: false
+}
+
+// ---------- Apply All Cutouts Using Difference ----------
+difference step1_p3 {
+  add mainBody
+  add uCutout1
+}
+
+difference step2_p3 {
+  add step1_p3
+  add uCutout2
+}
+
+difference step3_p3 {
+  add step2_p3
+  add uCutout3
+}
+
+difference step4_p3 {
+  add step3_p3
+  add uCutout4
+}
+
+difference step5_p3 {
+  add step4_p3
+  add uCutout5
+}
+
+difference step6_p3 {
+  add step5_p3
+  add sideSlotLeft
+}
+
+difference step7_p3 {
+  add step6_p3
+  add sideSlotRight
+}
+
+difference step8_p3 {
+  add step7_p3
+  add innerRect1
+}
+
+difference step9_p3 {
+  add step8_p3
+  add innerRect2
+}
+
+difference step10_p3 {
+  add step9_p3
+  add innerRect3
+}
+
+difference llama3 {
+  add step10_p3
+  add innerRect4
+}
+

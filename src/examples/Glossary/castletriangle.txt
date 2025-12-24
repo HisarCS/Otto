@@ -1,0 +1,365 @@
+//Otto by the IdeaLab Fablab
+
+// ========== SHARED PARAMETERS ==========
+param materialThickness 30
+
+// ========== CASTLE TRIANGLE: TRIANGLE WITH SQUARE TEETH ==========
+// ---------- Parameters ----------
+param triangleSize 300
+param toothSize 15
+param numTeethPerSide 6
+param toothSpacing 25
+
+// ---------- Main Triangle (Equilateral) using Polygon ----------
+// Calculate triangle height: sqrt(3)/2 ≈ 0.866
+param sqrt3over2 0.866025403784
+param triangleHeight triangleSize * sqrt3over2
+// Convert triangle size to polygon radius
+// For equilateral triangle: radius = side / sqrt(3)
+param triangleRadius triangleSize / (2 * sqrt3over2)
+
+shape polygon mainTriangle {
+  position: [0, 0]
+  radius: triangleRadius
+  sides: 3
+  fill: false
+}
+
+// ---------- Bottom Side Teeth (6 square cutouts) ----------
+// Calculate bottom edge positions
+param bottomLeftX -triangleSize / 2
+param bottomLeftY -triangleHeight * 2 / 3
+param bottomTotalWidth (numTeethPerSide - 1) * (toothSpacing + toothSize * 2) + toothSize * 2
+param bottomStartX -bottomTotalWidth / 2
+
+// Calculate positions for each bottom tooth
+param bottomTooth0X bottomStartX + toothSize
+param bottomTooth1X bottomStartX + (toothSpacing + toothSize * 2) + toothSize
+param bottomTooth2X bottomStartX + (toothSpacing + toothSize * 2) * 2 + toothSize
+param bottomTooth3X bottomStartX + (toothSpacing + toothSize * 2) * 3 + toothSize
+param bottomTooth4X bottomStartX + (toothSpacing + toothSize * 2) * 4 + toothSize
+param bottomTooth5X bottomStartX + (toothSpacing + toothSize * 2) * 5 + toothSize
+param bottomToothY bottomLeftY - toothSize
+
+shape rectangle bottomTooth_0 {
+  position: [bottomTooth0X, bottomToothY]
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle bottomTooth_1 {
+  position: [bottomTooth1X, bottomToothY]
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle bottomTooth_2 {
+  position: [bottomTooth2X, bottomToothY]
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle bottomTooth_3 {
+  position: [bottomTooth3X, bottomToothY]
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle bottomTooth_4 {
+  position: [bottomTooth4X, bottomToothY]
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle bottomTooth_5 {
+  position: [bottomTooth5X, bottomToothY]
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+// ---------- Left Side Teeth (6 square cutouts) ----------
+// Position along left edge from bottomLeft to top
+param topX 0
+param topY triangleHeight / 3
+param leftEdgeDX topX - bottomLeftX
+param leftEdgeDY topY - bottomLeftY
+param leftNormalX -sqrt3over2
+param leftNormalY -0.5
+
+// Calculate positions for each left tooth
+param leftT0 0.0
+param leftT1 0.2
+param leftT2 0.4
+param leftT3 0.6
+param leftT4 0.8
+param leftT5 1.0
+
+param leftEdge0X bottomLeftX + leftEdgeDX * leftT0
+param leftEdge0Y bottomLeftY + leftEdgeDY * leftT0
+param leftTooth0X leftEdge0X + leftNormalX * toothSize
+param leftTooth0Y leftEdge0Y + leftNormalY * toothSize
+
+param leftEdge1X bottomLeftX + leftEdgeDX * leftT1
+param leftEdge1Y bottomLeftY + leftEdgeDY * leftT1
+param leftTooth1X leftEdge1X + leftNormalX * toothSize
+param leftTooth1Y leftEdge1Y + leftNormalY * toothSize
+
+param leftEdge2X bottomLeftX + leftEdgeDX * leftT2
+param leftEdge2Y bottomLeftY + leftEdgeDY * leftT2
+param leftTooth2X leftEdge2X + leftNormalX * toothSize
+param leftTooth2Y leftEdge2Y + leftNormalY * toothSize
+
+param leftEdge3X bottomLeftX + leftEdgeDX * leftT3
+param leftEdge3Y bottomLeftY + leftEdgeDY * leftT3
+param leftTooth3X leftEdge3X + leftNormalX * toothSize
+param leftTooth3Y leftEdge3Y + leftNormalY * toothSize
+
+param leftEdge4X bottomLeftX + leftEdgeDX * leftT4
+param leftEdge4Y bottomLeftY + leftEdgeDY * leftT4
+param leftTooth4X leftEdge4X + leftNormalX * toothSize
+param leftTooth4Y leftEdge4Y + leftNormalY * toothSize
+
+param leftEdge5X bottomLeftX + leftEdgeDX * leftT5
+param leftEdge5Y bottomLeftY + leftEdgeDY * leftT5
+param leftTooth5X leftEdge5X + leftNormalX * toothSize
+param leftTooth5Y leftEdge5Y + leftNormalY * toothSize
+
+shape rectangle leftTooth_0 {
+  position: [leftTooth0X, leftTooth0Y]
+  rotation: -45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle leftTooth_1 {
+  position: [leftTooth1X, leftTooth1Y]
+  rotation: -45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle leftTooth_2 {
+  position: [leftTooth2X, leftTooth2Y]
+  rotation: -45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle leftTooth_3 {
+  position: [leftTooth3X, leftTooth3Y]
+  rotation: -45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle leftTooth_4 {
+  position: [leftTooth4X, leftTooth4Y]
+  rotation: -45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle leftTooth_5 {
+  position: [leftTooth5X, leftTooth5Y]
+  rotation: -45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+// ---------- Right Side Teeth (6 square cutouts) ----------
+// Position along right edge from top to bottomRight
+param bottomRightX triangleSize / 2
+param bottomRightY -triangleHeight * 2 / 3
+param rightEdgeDX bottomRightX - topX
+param rightEdgeDY bottomRightY - topY
+param rightNormalX sqrt3over2
+param rightNormalY -0.5
+
+// Calculate positions for each right tooth
+param rightT0 0.2
+param rightT1 0.4
+param rightT2 0.6
+param rightT3 0.8
+param rightT4 1.0
+
+param rightEdge0X topX + rightEdgeDX * rightT0
+param rightEdge0Y topY + rightEdgeDY * rightT0
+param rightTooth0X rightEdge0X + rightNormalX * toothSize
+param rightTooth0Y rightEdge0Y + rightNormalY * toothSize
+
+param rightEdge1X topX + rightEdgeDX * rightT1
+param rightEdge1Y topY + rightEdgeDY * rightT1
+param rightTooth1X rightEdge1X + rightNormalX * toothSize
+param rightTooth1Y rightEdge1Y + rightNormalY * toothSize
+
+param rightEdge2X topX + rightEdgeDX * rightT2
+param rightEdge2Y topY + rightEdgeDY * rightT2
+param rightTooth2X rightEdge2X + rightNormalX * toothSize
+param rightTooth2Y rightEdge2Y + rightNormalY * toothSize
+
+param rightEdge3X topX + rightEdgeDX * rightT3
+param rightEdge3Y topY + rightEdgeDY * rightT3
+param rightTooth3X rightEdge3X + rightNormalX * toothSize
+param rightTooth3Y rightEdge3Y + rightNormalY * toothSize
+
+param rightEdge4X topX + rightEdgeDX * rightT4
+param rightEdge4Y topY + rightEdgeDY * rightT4
+param rightTooth4X rightEdge4X + rightNormalX * toothSize
+param rightTooth4Y rightEdge4Y + rightNormalY * toothSize
+
+param rightTooth5X bottomRightX + rightNormalX * toothSize
+param rightTooth5Y bottomRightY + rightNormalY * toothSize
+
+shape rectangle rightTooth_0 {
+  position: [rightTooth0X, rightTooth0Y]
+  rotation: 45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle rightTooth_1 {
+  position: [rightTooth1X, rightTooth1Y]
+  rotation: 45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle rightTooth_2 {
+  position: [rightTooth2X, rightTooth2Y]
+  rotation: 45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle rightTooth_3 {
+  position: [rightTooth3X, rightTooth3Y]
+  rotation: 45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle rightTooth_4 {
+  position: [rightTooth4X, rightTooth4Y]
+  rotation: 45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+shape rectangle rightTooth_5 {
+  position: [rightTooth5X, rightTooth5Y]
+  rotation: 45
+  width: toothSize * 2
+  height: toothSize * 2
+  fill: false
+}
+
+// ---------- Union Main Triangle with All Teeth ----------
+// Start with main triangle
+union step1 {
+  add mainTriangle
+  add bottomTooth_0
+}
+
+union step2 {
+  add step1
+  add bottomTooth_1
+}
+
+union step3 {
+  add step2
+  add bottomTooth_2
+}
+
+union step4 {
+  add step3
+  add bottomTooth_3
+}
+
+union step5 {
+  add step4
+  add bottomTooth_4
+}
+
+union step6 {
+  add step5
+  add bottomTooth_5
+}
+
+// Left side teeth
+union step7 {
+  add step6
+  add leftTooth_0
+}
+
+union step8 {
+  add step7
+  add leftTooth_1
+}
+
+union step9 {
+  add step8
+  add leftTooth_2
+}
+
+union step10 {
+  add step9
+  add leftTooth_3
+}
+
+union step11 {
+  add step10
+  add leftTooth_4
+}
+
+union step12 {
+  add step11
+  add leftTooth_5
+}
+
+// Right side teeth
+union step13 {
+  add step12
+  add rightTooth_0
+}
+
+union step14 {
+  add step13
+  add rightTooth_1
+}
+
+union step15 {
+  add step14
+  add rightTooth_2
+}
+
+union step16 {
+  add step15
+  add rightTooth_3
+}
+
+union step17 {
+  add step16
+  add rightTooth_4
+}
+
+union castletriangle {
+  add step17
+  add rightTooth_5
+}

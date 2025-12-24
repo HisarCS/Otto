@@ -1,0 +1,193 @@
+// ---------- Parameters ----------
+param mainWidth 300
+param mainHeight 300
+param centerDotRadius 8
+param rectWidth 40
+param rectHeight 12
+param diagonalDist 80
+param axialDist 120
+
+// ---------- Main Body (Regular Rectangle) ----------
+shape rectangle mainBody {
+  position: [0, 0]
+  width: mainWidth
+  height: mainHeight
+  fill: false
+}
+
+// ---------- Center Circle Cutout ----------
+shape circle centerCircle {
+  position: [0, 0]
+  radius: centerDotRadius
+  fill: false
+}
+
+// ---------- 8 Diagonal Rectangles (2 per quadrant) ----------
+// Top-left quadrant - 2 rectangles along diagonal
+shape rectangle diagRect1a {
+  position: [-diagonalDist, -diagonalDist]
+  rotation: 45
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+shape rectangle diagRect1b {
+  position: [-diagonalDist * 0.5, -diagonalDist * 0.5]
+  rotation: 45
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// Top-right quadrant - 2 rectangles along diagonal
+shape rectangle diagRect2a {
+  position: [diagonalDist, -diagonalDist]
+  rotation: -45
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+shape rectangle diagRect2b {
+  position: [diagonalDist * 0.5, -diagonalDist * 0.5]
+  rotation: -45
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// Bottom-left quadrant - 2 rectangles along diagonal
+shape rectangle diagRect3a {
+  position: [-diagonalDist, diagonalDist]
+  rotation: -45
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+shape rectangle diagRect3b {
+  position: [-diagonalDist * 0.5, diagonalDist * 0.5]
+  rotation: -45
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// Bottom-right quadrant - 2 rectangles along diagonal
+shape rectangle diagRect4a {
+  position: [diagonalDist, diagonalDist]
+  rotation: 45
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+shape rectangle diagRect4b {
+  position: [diagonalDist * 0.5, diagonalDist * 0.5]
+  rotation: 45
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// ---------- 4 Axial Rectangles (North, South, East, West) ----------
+// North
+shape rectangle axialRectNorth {
+  position: [0, -axialDist]
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// South
+shape rectangle axialRectSouth {
+  position: [0, axialDist]
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// East
+shape rectangle axialRectEast {
+  position: [axialDist, 0]
+  rotation: 90
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// West
+shape rectangle axialRectWest {
+  position: [-axialDist, 0]
+  rotation: 90
+  width: rectWidth
+  height: rectHeight
+  fill: false
+}
+
+// ---------- Apply All Cutouts Using Difference ----------
+difference step1 {
+  add mainBody
+  add centerCircle
+}
+
+difference step2 {
+  add step1
+  add diagRect1a
+}
+
+difference step3 {
+  add step2
+  add diagRect1b
+}
+
+difference step4 {
+  add step3
+  add diagRect2a
+}
+
+difference step5 {
+  add step4
+  add diagRect2b
+}
+
+difference step6 {
+  add step5
+  add diagRect3a
+}
+
+difference step7 {
+  add step6
+  add diagRect3b
+}
+
+difference step8 {
+  add step7
+  add diagRect4a
+}
+
+difference step9 {
+  add step8
+  add diagRect4b
+}
+
+difference step10 {
+  add step9
+  add axialRectNorth
+}
+
+difference step11 {
+  add step10
+  add axialRectSouth
+}
+
+difference step12 {
+  add step11
+  add axialRectEast
+}
+
+difference drone {
+  add step12
+  add axialRectWest
+}

@@ -1,0 +1,65 @@
+// ---------- Parameters ----------
+param mainSize 300
+param centerRectWidth 120
+param centerRectHeight 40
+param centerDotRadius 8
+param holeWidth 80
+param holeHeight 24
+param topBottomOffset 150
+
+// ---------- Main Body (Regular Rectangle) ----------
+shape rectangle mainBody {
+  position: [0, 0]
+  width: mainSize
+  height: mainSize
+  fill: false
+}
+
+// ---------- Top Rectangle ----------
+shape rectangle topRect {
+  position: [0, -topBottomOffset]
+  width: holeWidth
+  height: holeHeight
+  fill: false
+}
+
+// ---------- Bottom Rectangle ----------
+shape rectangle bottomRect {
+  position: [0, topBottomOffset]
+  width: holeWidth
+  height: holeHeight
+  fill: false
+}
+
+// ---------- Center Rectangle Cutout ----------
+shape rectangle centerRect {
+  position: [0, 0]
+  width: centerRectWidth
+  height: centerRectHeight
+  fill: false
+}
+
+// ---------- Center Circle Cutout ----------
+shape circle centerCircle {
+  position: [0, 0]
+  radius: centerDotRadius
+  fill: false
+}
+
+// ---------- Union Main Body with Top and Bottom Rectangles ----------
+union step1 {
+  add mainBody
+  add topRect
+  add bottomRect
+}
+
+// ---------- Apply Center Cutouts Using Difference ----------
+difference step2 {
+  add step1
+  add centerRect
+}
+
+difference dronepart1 {
+  add step2
+  add centerCircle
+}
