@@ -139,6 +139,18 @@ export class ShapeVisitor extends BaseVisitor {
       params[key] = this.interpreter.processShapeParameter(key, evaluatedValue);
     }
     
+    if (node.shapeType === 'donut') {
+      console.log('[ShapeVisitor donut]', {
+        shapeName,
+        nodeParams: node.params,
+        evaluatedParams: params,
+        startAngle: params.startAngle,
+        endAngle: params.endAngle,
+        startAngleType: typeof params.startAngle,
+        endAngleType: typeof params.endAngle
+      });
+    }
+    
     this.interpreter.processShapeFillParameters(node.shapeType, params);
     const shape = this.interpreter.env.createShapeWithName(node.shapeType, shapeName, params);
     console.log(`✅ Created shape: ${shapeName} (${node.shapeType})`);

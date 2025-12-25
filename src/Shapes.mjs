@@ -417,44 +417,113 @@ class BezierCurve extends Shape {
 
 // 13. Donut (Annulus)
 class Donut extends Shape {
-  constructor(outerRadius, innerRadius) {
+  constructor(outerRadius, innerRadius, startAngle = undefined, endAngle = undefined) {
     super();
     this.outerRadius = outerRadius;
     this.innerRadius = innerRadius;
+    this.startAngle = startAngle;
+    this.endAngle = endAngle;
+    console.log('[Donut constructor]', {
+      outerRadius,
+      innerRadius,
+      startAngle,
+      endAngle,
+      startAngleType: typeof startAngle,
+      endAngleType: typeof endAngle,
+      startAngleIsNaN: isNaN(startAngle),
+      endAngleIsNaN: isNaN(endAngle)
+    });
   }
 
   getPoints(segments = 64) {
     const points = [];
-
-    // Outer circle
-    for (let i = 0; i <= segments; i++) {
-      const angle = (i / segments) * Math.PI * 2;
+    
+    // If startAngle and endAngle are provided, create a partial donut (arc segment)
+    // Check if they are numbers (not undefined, null, or NaN)
+    const hasStartAngle = typeof this.startAngle === 'number' && !isNaN(this.startAngle);
+    const hasEndAngle = typeof this.endAngle === 'number' && !isNaN(this.endAngle);
+    
+    console.log('[Donut getPoints]', {
+      hasStartAngle,
+      hasEndAngle,
+      startAngle: this.startAngle,
+      endAngle: this.endAngle,
+      startAngleType: typeof this.startAngle,
+      endAngleType: typeof this.endAngle
+    });
+    
+    if (hasStartAngle && hasEndAngle) {
+      const startRad = (this.startAngle * Math.PI) / 180;
+      const endRad = (this.endAngle * Math.PI) / 180;
+      let angleSpan = endRad - startRad;
+      
+      // Normalize angle span to be in the range [0, 2π]
+      if (angleSpan < 0) angleSpan += 2 * Math.PI;
+      if (angleSpan > 2 * Math.PI) angleSpan -= 2 * Math.PI;
+      
+      // Outer arc
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const angle = startRad + t * angleSpan;
+        points.push({
+          x: Math.cos(angle) * this.outerRadius,
+          y: Math.sin(angle) * this.outerRadius,
+        });
+      }
+      
+      // Connect to inner arc at end angle
       points.push({
-        x: Math.cos(angle) * this.outerRadius,
-        y: Math.sin(angle) * this.outerRadius,
+        x: Math.cos(endRad) * this.innerRadius,
+        y: Math.sin(endRad) * this.innerRadius,
+      });
+      
+      // Inner arc (in reverse to create hole)
+      for (let i = segments; i >= 0; i--) {
+        const t = i / segments;
+        const angle = startRad + t * angleSpan;
+        points.push({
+          x: Math.cos(angle) * this.innerRadius,
+          y: Math.sin(angle) * this.innerRadius,
+        });
+      }
+      
+      // Close the path by connecting back to the start of outer circle
+      points.push({
+        x: Math.cos(startRad) * this.outerRadius,
+        y: Math.sin(startRad) * this.outerRadius,
+      });
+    } else {
+      // Full donut (original behavior)
+      // Outer circle
+      for (let i = 0; i <= segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        points.push({
+          x: Math.cos(angle) * this.outerRadius,
+          y: Math.sin(angle) * this.outerRadius,
+        });
+      }
+
+      // Add a line to the inner circle start
+      points.push({
+        x: Math.cos(0) * this.innerRadius,
+        y: Math.sin(0) * this.innerRadius,
+      });
+
+      // Inner circle (in reverse to create hole)
+      for (let i = segments; i >= 0; i--) {
+        const angle = (i / segments) * Math.PI * 2;
+        points.push({
+          x: Math.cos(angle) * this.innerRadius,
+          y: Math.sin(angle) * this.innerRadius,
+        });
+      }
+
+      // Close the path by connecting back to the start of outer circle
+      points.push({
+        x: Math.cos(0) * this.outerRadius,
+        y: Math.sin(0) * this.outerRadius,
       });
     }
-
-    // Add a line to the inner circle start
-    points.push({
-      x: Math.cos(0) * this.innerRadius,
-      y: Math.sin(0) * this.innerRadius,
-    });
-
-    // Inner circle (in reverse to create hole)
-    for (let i = segments; i >= 0; i--) {
-      const angle = (i / segments) * Math.PI * 2;
-      points.push({
-        x: Math.cos(angle) * this.innerRadius,
-        y: Math.sin(angle) * this.innerRadius,
-      });
-    }
-
-    // Close the path by connecting back to the start of outer circle
-    points.push({
-      x: Math.cos(0) * this.outerRadius,
-      y: Math.sin(0) * this.outerRadius,
-    });
 
     return points.map((p) => this.transformPoint(p));
   }

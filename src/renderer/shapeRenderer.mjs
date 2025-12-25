@@ -183,7 +183,8 @@ export class ShapeRenderer {
     }
 
     // Close the path for all shapes except open paths
-    if (!["arc", "path", "wave"].includes(type)) {
+    // Donut should always close (even partial donuts form closed shapes)
+    if (!["arc", "path", "wave"].includes(type) || type === "donut") {
       this.ctx.closePath();
 
       // Only fill if explicitly requested (this respects fill: false)
@@ -282,7 +283,23 @@ export class ShapeRenderer {
             params.tabDepth || 20,
           );
         case "donut":
-          return new Donut(params.outerRadius || 50, params.innerRadius || 20);
+          const startAngle = params.startAngle != null ? Number(params.startAngle) : undefined;
+          const endAngle = params.endAngle != null ? Number(params.endAngle) : undefined;
+          console.log('[shapeRenderer createShapeInstance donut]', {
+            params,
+            startAngle,
+            endAngle,
+            startAngleType: typeof startAngle,
+            endAngleType: typeof endAngle,
+            startAngleRaw: params.startAngle,
+            endAngleRaw: params.endAngle
+          });
+          return new Donut(
+            params.outerRadius || 50, 
+            params.innerRadius || 20,
+            startAngle,
+            endAngle
+          );
         case "spiral":
           return new Spiral(
             params.startRadius || 10,
@@ -511,6 +528,42 @@ export class ShapeRenderer {
 
       case "donut":
         const donutRadius = params.outerRadius || 50;
+        // For partial donuts (with startAngle/endAngle), calculate tighter bounds
+        if (params.startAngle != null && params.endAngle != null) {
+          const startRad = (Number(params.startAngle) * Math.PI) / 180;
+          const endRad = (Number(params.endAngle) * Math.PI) / 180;
+          let angleSpan = endRad - startRad;
+          if (angleSpan < 0) angleSpan += 2 * Math.PI;
+          
+          // Calculate bounding box for the arc segment
+          const angles = [];
+          for (let i = 0; i <= 8; i++) {
+            const t = i / 8;
+            angles.push(startRad + t * angleSpan);
+          }
+          // Include start and end points of both outer and inner arcs
+          angles.push(startRad, endRad);
+          
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          angles.forEach(angle => {
+            const outerX = Math.cos(angle) * donutRadius;
+            const outerY = Math.sin(angle) * donutRadius;
+            const innerX = Math.cos(angle) * (params.innerRadius || 20);
+            const innerY = Math.sin(angle) * (params.innerRadius || 20);
+            minX = Math.min(minX, outerX, innerX);
+            maxX = Math.max(maxX, outerX, innerX);
+            minY = Math.min(minY, outerY, innerY);
+            maxY = Math.max(maxY, outerY, innerY);
+          });
+          
+          return {
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+          };
+        }
+        // Full donut - use circular bounds
         return {
           x: -donutRadius,
           y: -donutRadius,

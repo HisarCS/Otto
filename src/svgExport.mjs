@@ -697,8 +697,40 @@ function createSVGDonutMM(params, svgNS) {
   const path = document.createElementNS(svgNS, "path");
   const outerRadius = params.outerRadius || mmToPx(25);
   const innerRadius = params.innerRadius || mmToPx(10);
+  const startAngle = params.startAngle !== undefined ? params.startAngle * Math.PI / 180 : 0;
+  const endAngle = params.endAngle !== undefined ? params.endAngle * Math.PI / 180 : 2 * Math.PI;
   
-  const pathData = `M ${outerRadius.toFixed(3)},0 A ${outerRadius.toFixed(3)},${outerRadius.toFixed(3)} 0 1,0 ${(-outerRadius).toFixed(3)},0 A ${outerRadius.toFixed(3)},${outerRadius.toFixed(3)} 0 1,0 ${outerRadius.toFixed(3)},0 M ${innerRadius.toFixed(3)},0 A ${innerRadius.toFixed(3)},${innerRadius.toFixed(3)} 0 1,1 ${(-innerRadius).toFixed(3)},0 A ${innerRadius.toFixed(3)},${innerRadius.toFixed(3)} 0 1,1 ${innerRadius.toFixed(3)},0`;
+  let pathData = '';
+  
+  if (params.startAngle !== undefined && params.endAngle !== undefined) {
+    // Partial donut (arc segment)
+    const startRad = startAngle;
+    const endRad = endAngle;
+    let angleSpan = endRad - startRad;
+    
+    // Normalize angle span
+    if (angleSpan < 0) angleSpan += 2 * Math.PI;
+    if (angleSpan > 2 * Math.PI) angleSpan -= 2 * Math.PI;
+    
+    const largeArcFlag = angleSpan > Math.PI ? 1 : 0;
+    
+    // Outer arc
+    const outerStartX = Math.cos(startRad) * outerRadius;
+    const outerStartY = Math.sin(startRad) * outerRadius;
+    const outerEndX = Math.cos(endRad) * outerRadius;
+    const outerEndY = Math.sin(endRad) * outerRadius;
+    
+    // Inner arc (reverse direction)
+    const innerStartX = Math.cos(endRad) * innerRadius;
+    const innerStartY = Math.sin(endRad) * innerRadius;
+    const innerEndX = Math.cos(startRad) * innerRadius;
+    const innerEndY = Math.sin(startRad) * innerRadius;
+    
+    pathData = `M ${outerStartX.toFixed(3)},${outerStartY.toFixed(3)} A ${outerRadius.toFixed(3)},${outerRadius.toFixed(3)} 0 ${largeArcFlag},1 ${outerEndX.toFixed(3)},${outerEndY.toFixed(3)} L ${innerStartX.toFixed(3)},${innerStartY.toFixed(3)} A ${innerRadius.toFixed(3)},${innerRadius.toFixed(3)} 0 ${largeArcFlag},0 ${innerEndX.toFixed(3)},${innerEndY.toFixed(3)} Z`;
+  } else {
+    // Full donut (original behavior)
+    pathData = `M ${outerRadius.toFixed(3)},0 A ${outerRadius.toFixed(3)},${outerRadius.toFixed(3)} 0 1,0 ${(-outerRadius).toFixed(3)},0 A ${outerRadius.toFixed(3)},${outerRadius.toFixed(3)} 0 1,0 ${outerRadius.toFixed(3)},0 M ${innerRadius.toFixed(3)},0 A ${innerRadius.toFixed(3)},${innerRadius.toFixed(3)} 0 1,1 ${(-innerRadius).toFixed(3)},0 A ${innerRadius.toFixed(3)},${innerRadius.toFixed(3)} 0 1,1 ${innerRadius.toFixed(3)},0`;
+  }
   
   path.setAttribute("d", pathData);
   path.setAttribute("fill-rule", "evenodd");

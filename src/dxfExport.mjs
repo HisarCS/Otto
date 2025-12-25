@@ -769,8 +769,108 @@ ${transform.y.toFixed(6)}
 function createDXFDonut(params, transform, layerName) {
   const outerRadius = params.outerRadius || 25;
   const innerRadius = params.innerRadius || 10;
+  const startAngle = params.startAngle !== undefined ? params.startAngle : 0;
+  const endAngle = params.endAngle !== undefined ? params.endAngle : 360;
   
-  let result = `0
+  let result = '';
+  
+  if (params.startAngle !== undefined && params.endAngle !== undefined) {
+    // Partial donut - use arcs
+    const startRad = startAngle * Math.PI / 180;
+    const endRad = endAngle * Math.PI / 180;
+    
+    // Outer arc
+    const outerStartX = transform.x + Math.cos(startRad) * outerRadius;
+    const outerStartY = transform.y + Math.sin(startRad) * outerRadius;
+    const outerEndX = transform.x + Math.cos(endRad) * outerRadius;
+    const outerEndY = transform.y + Math.sin(endRad) * outerRadius;
+    
+    // Inner arc (reverse)
+    const innerStartX = transform.x + Math.cos(endRad) * innerRadius;
+    const innerStartY = transform.y + Math.sin(endRad) * innerRadius;
+    const innerEndX = transform.x + Math.cos(startRad) * innerRadius;
+    const innerEndY = transform.y + Math.sin(startRad) * innerRadius;
+    
+    // Outer arc
+    result += `0
+ARC
+8
+${layerName}
+10
+${transform.x.toFixed(6)}
+20
+${transform.y.toFixed(6)}
+30
+0.0
+40
+${outerRadius.toFixed(6)}
+50
+${startAngle.toFixed(6)}
+51
+${endAngle.toFixed(6)}
+`;
+    
+    // Inner arc (reverse direction)
+    const innerStartAngle = endAngle > startAngle ? endAngle : endAngle + 360;
+    const innerEndAngle = startAngle > endAngle ? startAngle : startAngle + 360;
+    
+    result += `0
+ARC
+8
+${layerName}
+10
+${transform.x.toFixed(6)}
+20
+${transform.y.toFixed(6)}
+30
+0.0
+40
+${innerRadius.toFixed(6)}
+50
+${innerStartAngle.toFixed(6)}
+51
+${innerEndAngle.toFixed(6)}
+`;
+    
+    // Add lines to close the path
+    result += `0
+LINE
+8
+${layerName}
+10
+${outerEndX.toFixed(6)}
+20
+${outerEndY.toFixed(6)}
+30
+0.0
+11
+${innerStartX.toFixed(6)}
+21
+${innerStartY.toFixed(6)}
+31
+0.0
+`;
+    
+    result += `0
+LINE
+8
+${layerName}
+10
+${innerEndX.toFixed(6)}
+20
+${innerEndY.toFixed(6)}
+30
+0.0
+11
+${outerStartX.toFixed(6)}
+21
+${outerStartY.toFixed(6)}
+31
+0.0
+`;
+  } else {
+    // Full donut - use circles (original behavior)
+    result = `0
 CIRCLE
 8
 ${layerName}
@@ -784,7 +884,7 @@ ${transform.y.toFixed(6)}
 ${outerRadius.toFixed(6)}
 `;
 
-  result += `0
+    result += `0
 CIRCLE
 8
 ${layerName}
@@ -797,6 +897,7 @@ ${transform.y.toFixed(6)}
 40
 ${innerRadius.toFixed(6)}
 `;
+  }
 
   return result;
 }

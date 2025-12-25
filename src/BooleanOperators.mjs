@@ -725,7 +725,22 @@ class BooleanNaming {
         case 'roundedRectangle': return new RoundedRectangle(p.width || 100, p.height || 100, p.radius || 10);
         case 'arrow': return new Arrow(p.length || 100, p.headWidth || 30, p.headLength || 25);
         case 'beziercurve': return new BezierCurve(p.startX, p.startY, p.cp1x, p.cp1y, p.cp2x, p.cp2y, p.endX, p.endY);
-        case 'donut': return new Donut(p.outerRadius || 50, p.innerRadius || 20);
+        case 'donut': 
+          const boolStartAngle = p.startAngle != null ? Number(p.startAngle) : undefined;
+          const boolEndAngle = p.endAngle != null ? Number(p.endAngle) : undefined;
+          console.log('[BooleanOperators _createShapeInstance donut]', {
+            p,
+            boolStartAngle,
+            boolEndAngle,
+            startAngleType: typeof boolStartAngle,
+            endAngleType: typeof boolEndAngle
+          });
+          return new Donut(
+            p.outerRadius || 50, 
+            p.innerRadius || 20, 
+            boolStartAngle,
+            boolEndAngle
+          );
         case 'spiral': return new Spiral(p.startRadius || 10, p.endRadius || 50, p.turns || 3);
         case 'cross': return new Cross(p.width || 100, p.thickness || 20);
         case 'gear': return new Gear(p.pitch_diameter || 50, p.teeth || 10, p.pressure_angle || 20);

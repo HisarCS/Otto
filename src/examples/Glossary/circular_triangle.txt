@@ -1,0 +1,97 @@
+//Otto by the IdeaLab Fablab
+
+// ========== SHARED PARAMETERS ==========
+param materialThickness 35
+
+// ========== CIRCULAR TRIANGLE: C-SHAPED ANNULAR SEGMENT WITH CUTOUTS ==========
+// ---------- Parameters ----------
+param innerRadius 150
+param outerRadius 250
+param slotLength 70
+param slotWidth materialThickness
+
+// Angular parameters (in degrees)
+param startAngle 180
+param endAngle -60
+
+// Slot positions (angles in degrees)
+param outerSlot1Angle 115
+param outerSlot2Angle 65
+param innerSlot1Angle 165
+param innerSlot2Angle 205
+
+// ---------- Create C-shape using donut with start and end angles ----------
+shape donut cShape {
+  position: [0, 0]
+  outerRadius: outerRadius
+  innerRadius: innerRadius
+  startAngle: startAngle
+  endAngle: endAngle
+  fill: false
+}
+
+// ---------- Slot Cutouts ----------
+// Outer Slot 1 (at ~115 degrees)
+param outerSlot1X outerRadius * -0.42261826174
+param outerSlot1Y outerRadius * 0.90630778703
+shape rectangle outerSlot1 {
+  position: [outerSlot1X, outerSlot1Y]
+  rotation: 115
+  width: slotLength
+  height: slotWidth
+  fill: false
+}
+
+// Outer Slot 2 (at ~65 degrees)
+param outerSlot2X outerRadius * 0.42261826174
+param outerSlot2Y outerRadius * 0.90630778703
+shape rectangle outerSlot2 {
+  position: [outerSlot2X, outerSlot2Y]
+  rotation: 65
+  width: slotLength
+  height: slotWidth
+  fill: false
+}
+
+// Inner Slot 1 (at ~165 degrees)
+param innerSlot1X innerRadius * -0.96592582628
+param innerSlot1Y innerRadius * 0.2588190451
+shape rectangle innerSlot1 {
+  position: [innerSlot1X, innerSlot1Y]
+  rotation: 165
+  width: slotLength
+  height: slotWidth
+  fill: false
+}
+
+// Inner Slot 2 (at ~205 degrees)
+param innerSlot2X innerRadius * -0.90630778703
+param innerSlot2Y innerRadius * -0.42261826174
+shape rectangle innerSlot2 {
+  position: [innerSlot2X, innerSlot2Y]
+  rotation: 205
+  width: slotLength
+  height: slotWidth
+  fill: false
+}
+
+// ---------- Apply Slot Cutouts ----------
+difference step1 {
+  add cShape
+  add outerSlot1
+}
+
+difference step2 {
+  add step1
+  add outerSlot2
+}
+
+difference step3 {
+  add step2
+  add innerSlot1
+}
+
+difference circular_triangle {
+  add step3
+  add innerSlot2
+}
