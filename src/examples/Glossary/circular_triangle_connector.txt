@@ -1,0 +1,43 @@
+//Otto by the IdeaLab Fablab
+
+
+// ========== SHARED PARAMETERS ==========
+param materialThickness 35
+
+// ========== U-SHAPED CONNECTOR ==========
+// ---------- Parameters ----------
+param connectorWidth 200
+param connectorHeight 150
+param outerCornerRadius 15
+param innerCornerRadius 10
+param cutoutWidth materialThickness * 2
+param cutoutHeight 80
+
+// ---------- Create outer rounded rectangle ----------
+shape roundedRectangle outerShape {
+  position: [0, 0]
+  width: connectorWidth/1.5
+  height: connectorHeight
+  radius: outerCornerRadius
+  fill: false
+}
+
+// ---------- Create inner U-shaped cutout ----------
+// The cutout is a rounded rectangle positioned at the bottom center
+// It creates the U-shaped opening by cutting upward from the bottom
+// Position: bottom of connector is at y = -connectorHeight/2
+// Cutout center should be at: -connectorHeight/2 + cutoutHeight/2
+param cutoutX 0
+param cutoutY (-connectorHeight / 2) + (cutoutHeight / 2)
+shape rectangle innerCutout {
+  position: [cutoutX, cutoutY]
+  width: cutoutWidth
+  height: cutoutHeight
+  radius: innerCornerRadius
+  fill: false
+}
+
+difference circular_triangle_connector {
+  add outerShape
+  add innerCutout
+}

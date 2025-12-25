@@ -11,14 +11,19 @@ param slotLength 70
 param slotWidth materialThickness
 
 // Angular parameters (in degrees)
+// C-shape spans ~270 degrees: starts at 9 o'clock (180°), goes counter-clockwise to 6 o'clock (270°)
+// To get 270 degrees counter-clockwise from 180°, we go to 180° - 270° = -90° (which is 270°)
+// But the implementation calculates span as endAngle - startAngle, so we need endAngle = 180° + 270° = 450° = 90°
+// Actually, let's use: startAngle 180°, endAngle 90° (which gives 270° going the long way)
 param startAngle 180
-param endAngle -60
+param endAngle 90
 
-// Slot positions (angles in degrees)
-param outerSlot1Angle 115
-param outerSlot2Angle 65
-param innerSlot1Angle 165
-param innerSlot2Angle 205
+// Slot positions (angles in degrees, measured from center)
+// Outer slots on outer edge, inner slots on inner edge
+param outerSlot1Angle 45
+param outerSlot2Angle 225
+param innerSlot1Angle 135
+param innerSlot2Angle 315
 
 // ---------- Create C-shape using donut with start and end angles ----------
 shape donut cShape {
@@ -31,45 +36,45 @@ shape donut cShape {
 }
 
 // ---------- Slot Cutouts ----------
-// Outer Slot 1 (at ~115 degrees)
-param outerSlot1X outerRadius * -0.42261826174
-param outerSlot1Y outerRadius * 0.90630778703
+// Outer Slot 1 (upper-right portion of outer arc)
+param outerSlot1X outerRadius * 0.70710678118
+param outerSlot1Y outerRadius * 0.70710678118
 shape rectangle outerSlot1 {
   position: [outerSlot1X, outerSlot1Y]
-  rotation: 115
+  rotation: 45
   width: slotLength
   height: slotWidth
   fill: false
 }
 
-// Outer Slot 2 (at ~65 degrees)
-param outerSlot2X outerRadius * 0.42261826174
-param outerSlot2Y outerRadius * 0.90630778703
+// Outer Slot 2 (lower-left portion of outer arc)
+param outerSlot2X outerRadius * -0.70710678118
+param outerSlot2Y outerRadius * -0.70710678118
 shape rectangle outerSlot2 {
   position: [outerSlot2X, outerSlot2Y]
-  rotation: 65
+  rotation: 225
   width: slotLength
   height: slotWidth
   fill: false
 }
 
-// Inner Slot 1 (at ~165 degrees)
-param innerSlot1X innerRadius * -0.96592582628
-param innerSlot1Y innerRadius * 0.2588190451
+// Inner Slot 1 (upper-left portion of inner arc)
+param innerSlot1X innerRadius * -0.70710678118
+param innerSlot1Y innerRadius * 0.70710678118
 shape rectangle innerSlot1 {
   position: [innerSlot1X, innerSlot1Y]
-  rotation: 165
+  rotation: 135
   width: slotLength
   height: slotWidth
   fill: false
 }
 
-// Inner Slot 2 (at ~205 degrees)
-param innerSlot2X innerRadius * -0.90630778703
-param innerSlot2Y innerRadius * -0.42261826174
+// Inner Slot 2 (lower-right portion of inner arc)
+param innerSlot2X innerRadius * 0.70710678118
+param innerSlot2Y innerRadius * -0.70710678118
 shape rectangle innerSlot2 {
   position: [innerSlot2X, innerSlot2Y]
-  rotation: 205
+  rotation: 315
   width: slotLength
   height: slotWidth
   fill: false
