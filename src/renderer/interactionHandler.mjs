@@ -90,6 +90,17 @@ export class InteractionHandler {
   }
   
   handleMouseUp(event) {
+    // If a boolean was being dragged/rotated, regenerate it from moved operands
+    if (this._booleanDragInProgress) {
+      this._booleanDragInProgress = false;
+      // Delay slightly to let code updates settle, then regenerate
+      setTimeout(() => {
+        if (typeof window.runCode === 'function') {
+          window.runCode();
+        }
+      }, 50);
+    }
+
     this.dragging = false;
     this.scaling = false;
     this.rotating = false;
@@ -245,13 +256,12 @@ export class InteractionHandler {
     const rotatedY = dy * Math.cos(angle) - dx * Math.sin(angle);
     
     const bounds = this.renderer.transformManager.calculateBounds(shape);
-    // TRUE 1:1 scale - no scaling factors
-    const scaledWidth = bounds.width;
-    const scaledHeight = bounds.height;
     
     return (
-      Math.abs(rotatedX) <= scaledWidth / 2 &&
-      Math.abs(rotatedY) <= scaledHeight / 2
+      rotatedX >= bounds.x &&
+      rotatedX <= bounds.x + bounds.width &&
+      rotatedY >= bounds.y &&
+      rotatedY <= bounds.y + bounds.height
     );
   }
   
@@ -263,29 +273,20 @@ export class InteractionHandler {
     const shapeY = this.coordinateSystem.transformY(shape.transform.position[1]);
     
     const bounds = this.renderer.transformManager.calculateBounds(shape);
-    // TRUE 1:1 scale - no scaling factors
-    const scaledWidth = bounds.width;
-    const scaledHeight = bounds.height;
-    const halfWidth = scaledWidth / 2;
-    const halfHeight = scaledHeight / 2;
-    
     const angle = -shape.transform.rotation * Math.PI / 180;
-    const rotate = (px, py) => {
-      const s = Math.sin(angle);
-      const c = Math.cos(angle);
-      const dx = px - shapeX;
-      const dy = py - shapeY;
-      return {
-        x: shapeX + (dx * c - dy * s),
-        y: shapeY + (dx * s + dy * c)
-      };
-    };
-    
+    const sinA = Math.sin(angle);
+    const cosA = Math.cos(angle);
+
+    const localToScreen = (localX, localY) => ({
+      x: shapeX + (localX * cosA - localY * sinA),
+      y: shapeY + (localX * sinA + localY * cosA)
+    });
+
     const handlePositions = [
-      { handle: 'tl', pos: rotate(shapeX - halfWidth, shapeY - halfHeight) },
-      { handle: 'tr', pos: rotate(shapeX + halfWidth, shapeY - halfHeight) },
-      { handle: 'br', pos: rotate(shapeX + halfWidth, shapeY + halfHeight) },
-      { handle: 'bl', pos: rotate(shapeX - halfWidth, shapeY + halfHeight) }
+      { handle: 'tl', pos: localToScreen(bounds.x, bounds.y) },
+      { handle: 'tr', pos: localToScreen(bounds.x + bounds.width, bounds.y) },
+      { handle: 'br', pos: localToScreen(bounds.x + bounds.width, bounds.y + bounds.height) },
+      { handle: 'bl', pos: localToScreen(bounds.x, bounds.y + bounds.height) }
     ];
     
     for (const handleInfo of handlePositions) {
@@ -298,7 +299,8 @@ export class InteractionHandler {
       }
     }
     
-    const rotHandlePos = rotate(shapeX, shapeY - halfHeight - this.rotationHandleDistance);
+    const centerX = bounds.x + bounds.width / 2;
+    const rotHandlePos = localToScreen(centerX, bounds.y - this.rotationHandleDistance);
     const rotDx = x - rotHandlePos.x;
     const rotDy = y - rotHandlePos.y;
     const rotDist = Math.sqrt(rotDx * rotDx + rotDy * rotDy);
@@ -421,6 +423,47 @@ export class InteractionHandler {
     if (event.altKey) {
       newRotation = Math.round(angle / 15) * 15;
     }
+
+    // Check if this is a boolean result with operands - rotate them as a group
+    const operandNames = shape.params?.operands;
+    const isBoolean = !!shape.params?.operation && Array.isArray(operandNames);
+
+    if (isBoolean && operandNames.length > 0) {
+      const oldRotation = shape.transform.rotation || 0;
+      const deltaRotation = newRotation - oldRotation;
+      const deltaRadians = deltaRotation * Math.PI / 180;
+
+      const boolCenterX = shape.transform.position[0];
+      const boolCenterY = shape.transform.position[1];
+
+      const cos = Math.cos(deltaRadians);
+      const sin = Math.sin(deltaRadians);
+
+      for (const opName of operandNames) {
+        const opShape = this.renderer.shapes.get(opName);
+        if (!opShape?.transform?.position) continue;
+
+        const opX = opShape.transform.position[0];
+        const opY = opShape.transform.position[1];
+        const relX = opX - boolCenterX;
+        const relY = opY - boolCenterY;
+
+        const newRelX = relX * cos - relY * sin;
+        const newRelY = relX * sin + relY * cos;
+
+        opShape.transform.position = [boolCenterX + newRelX, boolCenterY + newRelY];
+        opShape.transform.rotation = (opShape.transform.rotation || 0) + deltaRotation;
+
+        if (typeof this.renderer.updateCodeCallback === 'function') {
+          this.renderer.updateCodeCallback({ action: 'update', name: opName, shape: opShape });
+        }
+      }
+
+      this._booleanDragInProgress = true;
+      shape.transform.rotation = newRotation;
+      this.renderer.redraw();
+      return;
+    }
     
     this.renderer.shapeManager.onCanvasRotationChange(shapeName, newRotation);
     this.renderer.notifyShapeChanged(this.selectedShape);
@@ -438,13 +481,47 @@ export class InteractionHandler {
     const worldDX = dx;  // No scaling needed - 1 pixel = 1 mm
     const worldDY = -dy; // Just flip Y axis
     
-    let newX = shape.transform.position[0] + worldDX;
-    let newY = shape.transform.position[1] + worldDY;
+    const oldX = shape.transform.position[0];
+    const oldY = shape.transform.position[1];
+    
+    let newX = oldX + worldDX;
+    let newY = oldY + worldDY;
 
     if (this.coordinateSystem.isGridEnabled && event.ctrlKey) {
       const snapped = this.coordinateSystem.snapToGrid(newX, newY);
       newX = snapped.x;
       newY = snapped.y;
+    }
+
+    // Calculate final delta (accounts for grid snapping)
+    const finalDX = newX - oldX;
+    const finalDY = newY - oldY;
+
+    // Check if this is a boolean result with operands - move them as a group
+    const operandNames = shape.params?.operands;
+    const isBoolean = !!shape.params?.operation && Array.isArray(operandNames);
+
+    if (isBoolean && operandNames.length > 0) {
+      // Move all operands by the same delta
+      for (const opName of operandNames) {
+        const opShape = this.renderer.shapes.get(opName);
+        if (!opShape?.transform?.position) continue;
+
+        opShape.transform.position = [
+          opShape.transform.position[0] + finalDX,
+          opShape.transform.position[1] + finalDY
+        ];
+
+        if (typeof this.renderer.updateCodeCallback === 'function') {
+          this.renderer.updateCodeCallback({ action: 'update', name: opName, shape: opShape });
+        }
+      }
+      
+      // Mark that we need to regenerate the boolean on mouseup
+      this._booleanDragInProgress = true;
+      shape.transform.position = [newX, newY];
+      this.renderer.redraw();
+      return;
     }
 
     this.renderer.shapeManager.onCanvasPositionChange(shapeName, [newX, newY]);

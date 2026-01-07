@@ -44,14 +44,17 @@ export class SelectionSystem {
     this.ctx.rotate(-transform.rotation * Math.PI / 180);
 
     const bounds = this.renderer.transformManager.calculateBounds(shape);
-    const scaledWidth = bounds.width * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
-    const scaledHeight = bounds.height * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    const scale = this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    const offsetX = bounds.x * scale;
+    const offsetY = bounds.y * scale;
+    const scaledWidth = bounds.width * scale;
+    const scaledHeight = bounds.height * scale;
 
     // Draw inner bounds outline (solid)
     this.ctx.strokeStyle = this.selectionColor + '40';
     this.ctx.lineWidth = 1;
     this.ctx.setLineDash([4, 4]);
-    this.ctx.strokeRect(-scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
+    this.ctx.strokeRect(offsetX, offsetY, scaledWidth, scaledHeight);
     this.ctx.setLineDash([]);
 
     this.ctx.restore();
@@ -69,13 +72,16 @@ export class SelectionSystem {
     this.ctx.rotate(-transform.rotation * Math.PI / 180);
 
     const bounds = this.renderer.transformManager.calculateBounds(shape);
-    const scaledWidth = bounds.width * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
-    const scaledHeight = bounds.height * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    const scale = this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    const offsetX = bounds.x * scale;
+    const offsetY = bounds.y * scale;
+    const scaledWidth = bounds.width * scale;
+    const scaledHeight = bounds.height * scale;
 
     this.ctx.strokeStyle = this.hoverColor + '80';
     this.ctx.lineWidth = 2;
     this.ctx.setLineDash([2, 2]);
-    this.ctx.strokeRect(-scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
+    this.ctx.strokeRect(offsetX, offsetY, scaledWidth, scaledHeight);
     this.ctx.setLineDash([]);
 
     this.ctx.restore();
@@ -90,7 +96,9 @@ export class SelectionSystem {
     this.ctx.save();
 
     const bounds = this.renderer.transformManager.calculateBounds(shape);
-    const labelY = screenY - (bounds.height * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel) / 2 - 25;
+    const scale = this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    const topY = screenY + bounds.y * scale;
+    const labelY = topY - 25;
 
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
     this.ctx.fillRect(screenX - 40, labelY - 10, 80, 20);
@@ -113,8 +121,9 @@ export class SelectionSystem {
     const screenY = this.coordinateSystem.transformY(shape.transform.position[1]);
 
     const bounds = this.renderer.transformManager.calculateBounds(shape);
-    const badgeX = screenX + (bounds.width * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel) / 2 + 10;
-    const badgeY = screenY - (bounds.height * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel) / 2;
+    const scale = this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    const badgeX = screenX + (bounds.x + bounds.width) * scale + 10;
+    const badgeY = screenY + bounds.y * scale;
 
     this.ctx.save();
 

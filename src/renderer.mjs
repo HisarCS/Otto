@@ -9,6 +9,7 @@ import { SelectionSystem } from "./renderer/selectionSystem.mjs";
 import { HandleSystem } from "./renderer/handleSystem.mjs";
 import { DebugVisualizer } from "./renderer/debugVisualizer.mjs";
 import { TransformManager } from "./renderer/transformManager.mjs";
+import { InteractionHandler } from "./renderer/interactionHandler.mjs";
 import { shapeManager } from "./shapeManager.mjs";
 
 export class Renderer {
@@ -43,7 +44,8 @@ export class Renderer {
     this.debugVisualizer = new DebugVisualizer(this.ctx);
     this.transformManager = new TransformManager();
 
-    this.interactionHandler = new SimpleInteractionHandler(this);
+    // Use the full interaction handler module (keeps hit-testing/handles consistent, esp. for paths)
+    this.interactionHandler = new InteractionHandler(this);
     this.renderingEngine = new ModularRenderingEngine(this);
   }
 
@@ -347,11 +349,11 @@ export class Renderer {
 
   drawSelectionUIInContext(shape, shapeName) {
     const bounds = this.transformManager.calculateBounds(shape);
-    const shapeWidth = bounds.width;
-    const shapeHeight = bounds.height;
     const padding = 16;
-    const outlineWidth = shapeWidth + padding * 2;
-    const outlineHeight = shapeHeight + padding * 2;
+    const outlineX = bounds.x - padding;
+    const outlineY = bounds.y - padding;
+    const outlineWidth = bounds.width + padding * 2;
+    const outlineHeight = bounds.height + padding * 2;
 
     this.ctx.save();
     
@@ -359,13 +361,7 @@ export class Renderer {
     this.ctx.lineWidth = 2;
     this.ctx.setLineDash([]);
     this.ctx.beginPath();
-    this.ctx.roundRect(
-      -outlineWidth / 2, 
-      -outlineHeight / 2, 
-      outlineWidth, 
-      outlineHeight, 
-      10
-    );
+    this.ctx.roundRect(outlineX, outlineY, outlineWidth, outlineHeight, 10);
     
     this.ctx.shadowColor = 'rgba(255, 87, 34, 0.2)';
     this.ctx.shadowBlur = 15;
@@ -380,26 +376,22 @@ export class Renderer {
     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
-    this.ctx.roundRect(
-      -outlineWidth / 2 + 1, 
-      -outlineHeight / 2 + 1, 
-      outlineWidth - 2, 
-      outlineHeight - 2, 
-      9
-    );
+    this.ctx.roundRect(outlineX + 1, outlineY + 1, outlineWidth - 2, outlineHeight - 2, 9);
     this.ctx.stroke();
 
     this.ctx.restore();
 
-    this.drawOrangeCornerHandles(shape, shapeWidth, shapeHeight);
-    this.drawOrangeRotationHandle(shape, shapeHeight);
+    this.drawOrangeCornerHandles(bounds);
+    this.drawOrangeRotationHandle(bounds);
   }
 
   drawHoverUIInContext(shape) {
     const bounds = this.transformManager.calculateBounds(shape);
-    const shapeWidth = bounds.width;
-    const shapeHeight = bounds.height;
     const hoverPadding = 12;
+    const hoverX = bounds.x - hoverPadding;
+    const hoverY = bounds.y - hoverPadding;
+    const hoverWidth = bounds.width + hoverPadding * 2;
+    const hoverHeight = bounds.height + hoverPadding * 2;
 
     this.ctx.save();
     
@@ -410,13 +402,7 @@ export class Renderer {
     this.ctx.lineWidth = 2;
     this.ctx.setLineDash([6, 3]);
     this.ctx.beginPath();
-    this.ctx.roundRect(
-      -shapeWidth / 2 - hoverPadding,
-      -shapeHeight / 2 - hoverPadding,
-      shapeWidth + hoverPadding * 2,
-      shapeHeight + hoverPadding * 2,
-      8
-    );
+    this.ctx.roundRect(hoverX, hoverY, hoverWidth, hoverHeight, 8);
     this.ctx.stroke();
     this.ctx.setLineDash([]);
 
@@ -427,12 +413,12 @@ export class Renderer {
     this.ctx.restore();
   }
 
-  drawOrangeCornerHandles(shape, shapeWidth, shapeHeight) {
+  drawOrangeCornerHandles(bounds) {
     const handlePositions = [
-      { x: -shapeWidth / 2, y: -shapeHeight / 2, handle: "tl" },
-      { x: shapeWidth / 2, y: -shapeHeight / 2, handle: "tr" },
-      { x: shapeWidth / 2, y: shapeHeight / 2, handle: "br" },
-      { x: -shapeWidth / 2, y: shapeHeight / 2, handle: "bl" }
+      { x: bounds.x, y: bounds.y, handle: "tl" },
+      { x: bounds.x + bounds.width, y: bounds.y, handle: "tr" },
+      { x: bounds.x + bounds.width, y: bounds.y + bounds.height, handle: "br" },
+      { x: bounds.x, y: bounds.y + bounds.height, handle: "bl" }
     ];
 
     handlePositions.forEach((pos) => {
@@ -484,9 +470,11 @@ export class Renderer {
     });
   }
 
-  drawOrangeRotationHandle(shape, shapeHeight) {
+  drawOrangeRotationHandle(bounds) {
     const rotationDistance = 45;
-    const rotationY = -shapeHeight / 2 - rotationDistance;
+    const topY = bounds.y;
+    const centerX = bounds.x + bounds.width / 2;
+    const rotationY = topY - rotationDistance;
     const isHovered = this.interactionHandler.hoveredHandle === "rotate";
     const isActive = this.interactionHandler.activeHandle === "rotate";
 
@@ -494,8 +482,8 @@ export class Renderer {
 
     const lineWidth = 3;
     const lineGradient = this.ctx.createLinearGradient(
-      0, -shapeHeight / 2, 
-      0, rotationY + 12
+      centerX, topY, 
+      centerX, rotationY + 12
     );
     lineGradient.addColorStop(0, 'rgba(255, 87, 34, 0.9)');
     lineGradient.addColorStop(0.6, 'rgba(255, 87, 34, 0.6)');
@@ -507,15 +495,15 @@ export class Renderer {
     this.ctx.lineWidth = lineWidth;
     this.ctx.lineCap = 'round';
     this.ctx.beginPath();
-    this.ctx.moveTo(0, -shapeHeight / 2);
-    this.ctx.lineTo(0, rotationY + 12);
+    this.ctx.moveTo(centerX, topY);
+    this.ctx.lineTo(centerX, rotationY + 12);
     this.ctx.stroke();
 
     this.ctx.shadowBlur = 0;
 
     if (isHovered || isActive) {
       this.ctx.save();
-      this.ctx.translate(0, rotationY);
+      this.ctx.translate(centerX, rotationY);
       
       this.ctx.strokeStyle = 'rgba(255, 87, 34, 0.6)';
       this.ctx.lineWidth = 2;
@@ -529,7 +517,7 @@ export class Renderer {
     }
 
     this.ctx.save();
-    this.ctx.translate(0, rotationY);
+    this.ctx.translate(centerX, rotationY);
     
     const handleSize = 18;
     const scaledHandleSize = isActive ? handleSize * 1.05 : isHovered ? handleSize * 1.15 : handleSize;
@@ -878,6 +866,17 @@ class SimpleInteractionHandler {
   }
   
   handleMouseUp(event) {
+    // If a boolean was being dragged/rotated, regenerate it from moved operands
+    if (this._booleanDragInProgress) {
+      this._booleanDragInProgress = false;
+      // Delay slightly to let code updates settle, then regenerate
+      setTimeout(() => {
+        if (typeof window.runCode === 'function') {
+          window.runCode();
+        }
+      }, 50);
+    }
+
     this.dragging = false;
     this.scaling = false;
     this.rotating = false;
@@ -1204,6 +1203,51 @@ class SimpleInteractionHandler {
     if (event.altKey) {
       newRotation = Math.round(angle / 15) * 15;
     }
+
+    // Check if this is a boolean result with operands - rotate them as a group
+    const operandNames = shape.params?.operands;
+    const isBoolean = !!shape.params?.operation && Array.isArray(operandNames);
+
+    if (isBoolean && operandNames.length > 0) {
+      const oldRotation = shape.transform.rotation || 0;
+      const deltaRotation = newRotation - oldRotation;
+      const deltaRadians = deltaRotation * Math.PI / 180;
+
+      // Rotate around the boolean's current transform.position (matches the UI rotation handle)
+      const boolCenterX = shape.transform.position[0];
+      const boolCenterY = shape.transform.position[1];
+
+      // 1) Update operand transforms in-memory
+      // 2) Write operand code immediately via updateCodeCallback (no debounced timer)
+      const cos = Math.cos(deltaRadians);
+      const sin = Math.sin(deltaRadians);
+
+      for (const opName of operandNames) {
+        const opShape = this.renderer.shapes.get(opName);
+        if (!opShape?.transform?.position) continue;
+
+        const opX = opShape.transform.position[0];
+        const opY = opShape.transform.position[1];
+        const relX = opX - boolCenterX;
+        const relY = opY - boolCenterY;
+
+        const newRelX = relX * cos - relY * sin;
+        const newRelY = relX * sin + relY * cos;
+
+        opShape.transform.position = [boolCenterX + newRelX, boolCenterY + newRelY];
+        opShape.transform.rotation = (opShape.transform.rotation || 0) + deltaRotation;
+
+        if (typeof this.renderer.updateCodeCallback === 'function') {
+          this.renderer.updateCodeCallback({ action: 'update', name: opName, shape: opShape });
+        }
+      }
+
+      // Rotate path points directly for visual feedback so selection bounds stay aligned
+      shape.transform.rotation = newRotation;
+      this._booleanDragInProgress = true;
+      this.renderer.redraw();
+      return;
+    }
     
     this.renderer.shapeManager.onCanvasRotationChange(shapeName, newRotation);
     this.renderer.notifyShapeChanged(this.selectedShape);
@@ -1220,13 +1264,47 @@ class SimpleInteractionHandler {
     const worldDX = dx;
     const worldDY = -dy;
     
-    let newX = shape.transform.position[0] + worldDX;
-    let newY = shape.transform.position[1] + worldDY;
+    const oldX = shape.transform.position[0];
+    const oldY = shape.transform.position[1];
+    
+    let newX = oldX + worldDX;
+    let newY = oldY + worldDY;
 
     if (this.coordinateSystem.isGridEnabled && event.ctrlKey) {
       const snapped = this.coordinateSystem.snapToGrid(newX, newY);
       newX = snapped.x;
       newY = snapped.y;
+    }
+
+    // Calculate final delta (accounts for grid snapping)
+    const finalDX = newX - oldX;
+    const finalDY = newY - oldY;
+
+    // Check if this is a boolean result with operands - move them as a group
+    const operandNames = shape.params?.operands;
+    const isBoolean = !!shape.params?.operation && Array.isArray(operandNames);
+
+    if (isBoolean && operandNames.length > 0) {
+      // Move all operands by the same delta (in-memory) and write operand code immediately.
+      for (const opName of operandNames) {
+        const opShape = this.renderer.shapes.get(opName);
+        if (!opShape?.transform?.position) continue;
+
+        opShape.transform.position = [
+          opShape.transform.position[0] + finalDX,
+          opShape.transform.position[1] + finalDY
+        ];
+
+        if (typeof this.renderer.updateCodeCallback === 'function') {
+          this.renderer.updateCodeCallback({ action: 'update', name: opName, shape: opShape });
+        }
+      }
+      
+      // Adjust boolean path points directly for live feedback so bounds stay accurate
+      shape.transform.position = [newX, newY];
+      this._booleanDragInProgress = true;
+      this.renderer.redraw();
+      return;
     }
 
     this.renderer.shapeManager.onCanvasPositionChange(shapeName, [newX, newY]);

@@ -53,21 +53,24 @@ export class HandleSystem {
       bounds = this.calculateFallbackBounds(shape);
     }
 
-    const scaledWidth = bounds.width * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
-    const scaledHeight = bounds.height * this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    const scale = this.coordinateSystem.scale * this.coordinateSystem.zoomLevel;
+    const offsetX = bounds.x * scale;
+    const offsetY = bounds.y * scale;
+    const scaledWidth = bounds.width * scale;
+    const scaledHeight = bounds.height * scale;
 
-    this.drawCornerHandles(shape, scaledWidth, scaledHeight);
-    this.drawRotationHandle(shape, scaledHeight);
+    this.drawCornerHandles(shape, scaledWidth, scaledHeight, offsetX, offsetY);
+    this.drawRotationHandle(shape, scaledWidth, scaledHeight, offsetX, offsetY);
 
     this.ctx.restore();
   }
 
-  drawCornerHandles(shape, scaledWidth, scaledHeight) {
+  drawCornerHandles(shape, scaledWidth, scaledHeight, offsetX, offsetY) {
     const handlePositions = [
-      { x: -scaledWidth / 2, y: -scaledHeight / 2, handle: 'tl' },
-      { x: scaledWidth / 2, y: -scaledHeight / 2, handle: 'tr' },
-      { x: scaledWidth / 2, y: scaledHeight / 2, handle: 'br' },
-      { x: -scaledWidth / 2, y: scaledHeight / 2, handle: 'bl' }
+      { x: offsetX, y: offsetY, handle: 'tl' },
+      { x: offsetX + scaledWidth, y: offsetY, handle: 'tr' },
+      { x: offsetX + scaledWidth, y: offsetY + scaledHeight, handle: 'br' },
+      { x: offsetX, y: offsetY + scaledHeight, handle: 'bl' }
     ];
 
     handlePositions.forEach(pos => {
@@ -106,15 +109,16 @@ export class HandleSystem {
     });
   }
 
-  drawRotationHandle(shape, scaledHeight) {
-    const rotHandleY = -scaledHeight / 2 - this.rotationHandleDistance;
+  drawRotationHandle(shape, scaledWidth, scaledHeight, offsetX, offsetY) {
+    const centerX = offsetX + scaledWidth / 2;
+    const rotHandleY = offsetY - this.rotationHandleDistance;
     const isRotHovered = this.hoveredHandle === 'rotate';
     const isRotActive = this.activeHandle === 'rotate';
     const rotRadius = isRotHovered ? this.handleHoverRadius : this.handleRadius;
 
     this.ctx.beginPath();
-    this.ctx.moveTo(0, -scaledHeight / 2);
-    this.ctx.lineTo(0, rotHandleY);
+    this.ctx.moveTo(centerX, offsetY);
+    this.ctx.lineTo(centerX, rotHandleY);
     const connectionColor = shape.params.operation ? 
       this.getOperationColor(shape.params.operation) : this.selectionColor;
     this.ctx.strokeStyle = connectionColor + '60';
@@ -122,12 +126,12 @@ export class HandleSystem {
     this.ctx.stroke();
 
     this.ctx.beginPath();
-    this.ctx.arc(0.5, rotHandleY + 0.5, rotRadius, 0, Math.PI * 2);
+    this.ctx.arc(centerX + 0.5, rotHandleY + 0.5, rotRadius, 0, Math.PI * 2);
     this.ctx.fillStyle = this.handleShadowColor;
     this.ctx.fill();
 
     this.ctx.beginPath();
-    this.ctx.arc(0, rotHandleY, rotRadius, 0, Math.PI * 2);
+    this.ctx.arc(centerX, rotHandleY, rotRadius, 0, Math.PI * 2);
     this.ctx.fillStyle = this.handleFillColor;
     this.ctx.fill();
 
@@ -139,23 +143,23 @@ export class HandleSystem {
 
     if (isRotHovered) {
       this.ctx.beginPath();
-      this.ctx.arc(0, rotHandleY, rotRadius + 2, 0, Math.PI * 2);
+      this.ctx.arc(centerX, rotHandleY, rotRadius + 2, 0, Math.PI * 2);
       this.ctx.strokeStyle = strokeColor + '40';
       this.ctx.lineWidth = 1;
       this.ctx.stroke();
     }
 
     this.ctx.beginPath();
-    this.ctx.arc(0, rotHandleY, rotRadius * 0.4, 0, Math.PI * 1.5);
+    this.ctx.arc(centerX, rotHandleY, rotRadius * 0.4, 0, Math.PI * 1.5);
     this.ctx.strokeStyle = strokeColor;
     this.ctx.lineWidth = 1.5;
     this.ctx.stroke();
 
     const arrowSize = 2;
     this.ctx.beginPath();
-    this.ctx.moveTo(-rotRadius * 0.4, rotHandleY);
-    this.ctx.lineTo(-rotRadius * 0.4 - arrowSize, rotHandleY - arrowSize);
-    this.ctx.lineTo(-rotRadius * 0.4 - arrowSize, rotHandleY + arrowSize);
+    this.ctx.moveTo(centerX - rotRadius * 0.4, rotHandleY);
+    this.ctx.lineTo(centerX - rotRadius * 0.4 - arrowSize, rotHandleY - arrowSize);
+    this.ctx.lineTo(centerX - rotRadius * 0.4 - arrowSize, rotHandleY + arrowSize);
     this.ctx.strokeStyle = strokeColor;
     this.ctx.lineWidth = 1.5;
     this.ctx.stroke();

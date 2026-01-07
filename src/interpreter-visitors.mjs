@@ -204,6 +204,10 @@ export class BooleanOperationVisitor extends BaseVisitor {
       }
     }
 
+    // Store operand names so boolean can act as a group when moved/rotated
+    result.params = result.params || {};
+    result.params.operands = [...shapeNames];
+
     result.name = name;
     this.interpreter.env.addShape(name, result);
     return result;
